@@ -15,6 +15,9 @@ COPY . .
 RUN uv pip install --system -e . && \
     crawl4ai-setup
 
+RUN pip install --no-cache-dir tqdm
+
+
 EXPOSE ${PORT}
 
 # Command to run the MCP server
