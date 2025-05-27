@@ -323,23 +323,39 @@ def search_documents(
     Returns:
         List of matching documents
     """
-    # Create embedding for the query
+    # --- NEW IMPLEMENTATION: hybrid full-text + vector search -----------------
+    # 1️⃣ Create the query embedding once
     query_embedding = create_embedding(query)
 
-    # Execute the search using the match_crawled_pages function
+    # 2️⃣ Build the parameter payload expected by the RPC
+    params = {
+        "query_text": query,  # NEW — raw query for full-text search
+        "query_embedding": query_embedding,
+        "match_count": match_count,
+    }
+    if filter_metadata:
+        params["filter"] = filter_metadata
+
+    # 3️⃣ Call the hybrid_search RPC on crawled_pages
     try:
-        # Only include filter parameter if filter_metadata is provided and not empty
-        params = {"query_embedding": query_embedding, "match_count": match_count}
-
-        # Only add the filter if it's actually provided and not empty
-        if filter_metadata:
-            params["filter"] = (
-                filter_metadata  # Pass the dictionary directly, not JSON-encoded
-            )
-
-        result = client.rpc("match_crawled_pages", params).execute()
-
-        return result.data
+        result = client.rpc("hybrid_search_crawled_pages", params).execute()
+        rows = result.data or []
     except Exception as e:
-        print(f"Error searching documents: {e}")
+        print(f"[search_documents] RPC failed: {e}")
         return []
+
+    # 4️⃣ Normalise output so the rest of your code stays unchanged
+    out = []
+    for r in rows:
+        out.append(
+            {
+                "url": r["metadata"].get("url"),
+                "content": r["content"],
+                "metadata": r["metadata"],
+                # expose hybrid-ranking numbers
+                "rrf_score": r["rrf_score"],
+                "full_text_rank": r["full_text_rank"],
+                "semantic_rank": r["semantic_rank"],
+            }
+        )
+    return out
