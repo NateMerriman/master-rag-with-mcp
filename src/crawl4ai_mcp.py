@@ -29,6 +29,7 @@ from crawl4ai import (
     MemoryAdaptiveDispatcher,
 )
 from utils import get_supabase_client, add_documents_to_supabase, search_documents
+from config import get_config, ConfigurationError, StrategyConfig
 
 # Load environment variables from the project root .env file
 project_root = Path(__file__).resolve().parent.parent
@@ -36,6 +37,26 @@ dotenv_path = project_root / ".env"
 
 # Force override of existing environment variables
 load_dotenv(dotenv_path, override=True)
+
+# Load and validate configuration at startup
+try:
+    strategy_config = get_config()
+    print(f"✅ {strategy_config}")
+    
+    # Log enabled strategies for debugging
+    enabled_strategies = strategy_config.get_enabled_strategies()
+    if enabled_strategies:
+        strategy_names = [s.value for s in enabled_strategies]
+        print(f"📊 Enhanced RAG strategies enabled: {', '.join(strategy_names)}")
+    else:
+        print("📊 Running in baseline mode (no enhanced strategies)")
+        
+except ConfigurationError as e:
+    print(f"❌ Configuration Error: {e}")
+    exit(1)
+except Exception as e:
+    print(f"❌ Unexpected configuration error: {e}")
+    exit(1)
 
 
 # Create a dataclass for our application context
