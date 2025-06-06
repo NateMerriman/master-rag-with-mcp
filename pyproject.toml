@@ -9,6 +9,8 @@ dependencies = [
     "mcp==1.7.1",
     "supabase==2.15.1",
     "openai==1.71.0",
-    "dotenv==0.9.9",
-    "tqdm>=4.66"
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.66",
+    "psutil>=5.9.0",
+    "requests>=2.31.0"
 ]

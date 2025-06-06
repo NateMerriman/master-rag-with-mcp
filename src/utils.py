@@ -312,7 +312,7 @@ def search_documents(
     filter_metadata: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Search for documents in Supabase using vector similarity.
+    Search for documents in Supabase using hybrid search edge function.
 
     Args:
         client: Supabase client
@@ -323,39 +323,59 @@ def search_documents(
     Returns:
         List of matching documents
     """
-    # --- NEW IMPLEMENTATION: hybrid full-text + vector search -----------------
-    # 1️⃣ Create the query embedding once
-    query_embedding = create_embedding(query)
-
-    # 2️⃣ Build the parameter payload expected by the RPC
+    # Build the parameter payload for the edge function
     params = {
-        "query_text": query,  # NEW — raw query for full-text search
-        "query_embedding": query_embedding,
+        "query": query,
         "match_count": match_count,
     }
     if filter_metadata:
         params["filter"] = filter_metadata
 
-    # 3️⃣ Call the hybrid_search RPC on crawled_pages
+    # Call the hybrid search edge function using direct requests
+    # (workaround for Supabase Python client issue)
     try:
-        result = client.rpc("hybrid_search_crawled_pages", params).execute()
-        rows = result.data or []
+        import requests
+        
+        # Get connection details from client
+        supabase_url = os.getenv("SUPABASE_URL", "http://localhost:54321")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        
+        if not supabase_key:
+            print("[search_documents] Missing SUPABASE_SERVICE_KEY")
+            return []
+        
+        # Make direct request to edge function
+        url = f"{supabase_url}/functions/v1/hybrid-search-crawled-pages"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {supabase_key}"
+        }
+        
+        response = requests.post(url, json=params, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            rows = response.json()
+        else:
+            print(f"[search_documents] Edge function failed with status {response.status_code}: {response.text}")
+            return []
+            
     except Exception as e:
-        print(f"[search_documents] RPC failed: {e}")
+        print(f"[search_documents] Edge function failed: {e}")
         return []
 
-    # 4️⃣ Normalise output so the rest of your code stays unchanged
+    # Normalize output so the rest of your code stays unchanged
     out = []
-    for r in rows:
-        out.append(
-            {
-                "url": r["metadata"].get("url"),
-                "content": r["content"],
-                "metadata": r["metadata"],
-                # expose hybrid-ranking numbers
-                "rrf_score": r["rrf_score"],
-                "full_text_rank": r["full_text_rank"],
-                "semantic_rank": r["semantic_rank"],
-            }
-        )
+    if isinstance(rows, list):
+        for r in rows:
+            out.append(
+                {
+                    "url": r["metadata"].get("url"),
+                    "content": r["content"],
+                    "metadata": r["metadata"],
+                    # expose hybrid-ranking numbers
+                    "rrf_score": r["rrf_score"],
+                    "full_text_rank": r["full_text_rank"],
+                    "semantic_rank": r["semantic_rank"],
+                }
+            )
     return out

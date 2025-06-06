@@ -1,0 +1,114 @@
+{
+  "timestamp": "2025-06-05T03:34:51.445807",
+  "search_performance": {
+    "avg_response_time_ms": 790.81,
+    "median_response_time_ms": 809.61,
+    "min_response_time_ms": 532.53,
+    "max_response_time_ms": 1149.96,
+    "avg_embedding_time_ms": 261.76,
+    "avg_memory_delta_mb": -28.14,
+    "avg_result_count": 10,
+    "successful_queries": 5,
+    "detailed_metrics": [
+      {
+        "query": "installation",
+        "description": "Simple term search",
+        "total_time_ms": 1149.96,
+        "embedding_time_ms": 337.04,
+        "search_time_ms": 812.93,
+        "memory_delta_mb": 8.0,
+        "result_count": 10,
+        "has_results": true
+      },
+      {
+        "query": "how to configure settings",
+        "description": "Natural language query",
+        "total_time_ms": 621.04,
+        "embedding_time_ms": 187.47,
+        "search_time_ms": 433.57,
+        "memory_delta_mb": -31.83,
+        "result_count": 10,
+        "has_results": true
+      },
+      {
+        "query": "API endpoint documentation example",
+        "description": "Multi-term technical query",
+        "total_time_ms": 532.53,
+        "embedding_time_ms": 178.76,
+        "search_time_ms": 353.77,
+        "memory_delta_mb": -45.03,
+        "result_count": 10,
+        "has_results": true
+      },
+      {
+        "query": "error handling best practices",
+        "description": "Complex conceptual query",
+        "total_time_ms": 809.61,
+        "embedding_time_ms": 451.77,
+        "search_time_ms": 357.85,
+        "memory_delta_mb": -56.48,
+        "result_count": 10,
+        "has_results": true
+      },
+      {
+        "query": "python code example function",
+        "description": "Code-related query",
+        "total_time_ms": 840.9,
+        "embedding_time_ms": 153.77,
+        "search_time_ms": 687.12,
+        "memory_delta_mb": -15.36,
+        "result_count": 10,
+        "has_results": true
+      }
+    ]
+  },
+  "system_info": {
+    "cpu_count": 8,
+    "memory_total_gb": 16.0,
+    "memory_available_gb": 3.44,
+    "python_version": "3.12.10",
+    "platform": "posix"
+  },
+  "database_stats": {
+    "total_documents": 9149,
+    "unique_sources": 8,
+    "sources_list": [
+      "docs.ag-ui.com",
+      "docs.anthropic.com",
+      "docs.cursor.com",
+      "docs.firecrawl.dev",
+      "langfuse.com",
+      "logfire.pydantic.dev",
+      "modelcontextprotocol.io",
+      "www.anthropic.com"
+    ],
+    "avg_content_length_chars": 4336.96
+  },
+  "test_queries": [
+    {
+      "query": "installation",
+      "result_count": 10,
+      "response_time_ms": 1149.96
+    },
+    {
+      "query": "how to configure settings",
+      "result_count": 10,
+      "response_time_ms": 621.04
+    },
+    {
+      "query": "API endpoint documentation example",
+      "result_count": 10,
+      "response_time_ms": 532.53
+    },
+    {
+      "query": "error handling best practices",
+      "result_count": 10,
+      "response_time_ms": 809.61
+    },
+    {
+      "query": "python code example function",
+      "result_count": 10,
+      "response_time_ms": 840.9
+    }
+  ]
+}
