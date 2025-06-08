@@ -4,7 +4,4 @@ __pycache__
 crawl4ai_mcp.egg-info
 .DS_Store
 mcp-crawl4ai-rag.code-workspace
-CLAUDE.md
-PLANNING.md
-TASKS.md
-supabase_overview.md
+
