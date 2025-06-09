@@ -308,6 +308,19 @@ def add_documents_to_supabase(
                 print(f"Error deleting record for URL {url}: {inner_e}")
                 # Continue with the next URL even if one fails
 
+    # Create or get source entries for all unique URLs
+    url_to_source_id = {}
+    for url in unique_urls:
+        # Get all content chunks for this URL to calculate word count
+        url_contents = [contents[i] for i, u in enumerate(urls) if u == url]
+        url_metadatas = [metadatas[i] for i, u in enumerate(urls) if u == url]
+        
+        source_id = get_or_create_source(client, url, url_contents, url_metadatas)
+        if source_id is not None:
+            url_to_source_id[url] = source_id
+        else:
+            print(f"⚠️ Failed to create/get source for URL {url}")
+
     # Check if contextual embeddings should be used
     use_contextual_embeddings = _should_use_contextual_embeddings()
 
@@ -380,6 +393,7 @@ def add_documents_to_supabase(
                 "embedding": batch_embeddings[
                     j
                 ],  # Use embedding from contextual content
+                "source_id": url_to_source_id.get(batch_urls[j]),  # Set source_id from our mapping
             }
 
             batch_data.append(data)
@@ -402,8 +416,8 @@ def add_documents_to_supabase(
         # Process each URL's content for code extraction
         for url, url_contents in url_to_content.items():
             try:
-                # Get source_id for this URL
-                source_id = get_source_id_from_url(client, url)
+                # Get source_id from our pre-created mapping
+                source_id = url_to_source_id.get(url)
                 if source_id is None:
                     print(f"⚠️ No source_id found for URL {url}, skipping code extraction")
                     continue
@@ -512,6 +526,51 @@ def get_source_id_from_url(client: Client, url: str) -> Optional[int]:
         print(f"Error getting source_id for URL {url}: {e}")
     
     return None
+
+
+def get_or_create_source(client: Client, url: str, contents: List[str], metadatas: List[Dict[str, Any]]) -> Optional[int]:
+    """
+    Get existing source_id for a URL or create a new source entry.
+    
+    Args:
+        client: Supabase client
+        url: The URL to get or create source for
+        contents: List of content chunks for this URL (for word count calculation)
+        metadatas: List of metadata dicts for this URL
+        
+    Returns:
+        source_id if successful, None if error
+    """
+    # First try to get existing source
+    existing_source_id = get_source_id_from_url(client, url)
+    if existing_source_id is not None:
+        return existing_source_id
+    
+    try:
+        # Calculate total word count from all chunks for this URL
+        total_word_count = sum(len(content.split()) for content in contents)
+        
+        # Prepare source data (no 'name' column in sources table)
+        source_data = {
+            "url": url,
+            "total_word_count": total_word_count,
+        }
+        
+        # Insert new source (use upsert to handle race conditions)
+        response = client.table("sources").upsert(source_data, on_conflict="url").execute()
+        
+        if response.data and len(response.data) > 0:
+            source_id = response.data[0]["source_id"]
+            print(f"✅ Created new source: {url} (ID: {source_id})")
+            return source_id
+        else:
+            print(f"⚠️ Failed to create source for URL {url}: No data returned")
+            return None
+            
+    except Exception as e:
+        print(f"Error creating source for URL {url}: {e}")
+        # Try to get it again in case another process created it
+        return get_source_id_from_url(client, url)
 
 
 def search_documents(
