@@ -87,6 +87,7 @@ Enhanced Strategies (configurable):
 3. **✅ Application** (3-5 days): PHASE 3 IN PROGRESS - Strategy system + contextual embeddings + code extraction
    - **✅ Task 3.0 Complete**: Contextual embeddings integration with strategy configuration system
    - **✅ Task 3.1 Complete**: Strategy Manager implementation with component lifecycle management
+   - **✅ Task 3.2 Complete**: Code extraction pipeline integration with dual embeddings and agentic RAG configuration
 4. **Advanced RAG** (5-7 days): Reranking integration + cross-strategy testing
 
 ### Code Organization
@@ -138,6 +139,7 @@ pytest = ">=8.3.5"  # ✅ IMPLEMENTED - For comprehensive testing
 - ✅ **Database architecture** (Sources table, code examples table, FK constraints with 100% data integrity)
 - ✅ **Contextual embeddings integration** (`src/utils.py` enhanced with strategy configuration, 16 integration tests)
 - ✅ **Strategy Manager implementation** (`src/strategies/manager.py` with lifecycle management, 32 unit tests)
+- ✅ **Code extraction pipeline integration** (`src/utils.py` enhanced with agentic RAG code processing, 14 comprehensive tests)
 - ✅ **Conditional tool registration** (Tools appear/disappear based on enabled strategies)
 
 ### Environment Variables

@@ -115,13 +115,20 @@ The server provides a dynamic set of tools that adapt based on your enabled RAG 
 
 ## Database Setup
 
-Before running the server, you need to set up the database with the pgvector extension:
+Before running the server, you need to set up the database with the pgvector extension and all required tables:
 
 1. Go to the SQL Editor in your Supabase dashboard (create a new project first if necessary)
 
 2. Create a new query and paste the contents of `crawled_pages.sql`
 
-3. Run the query to create the necessary tables and functions
+3. Run the query to create the core tables and functions
+
+4. **For advanced features**: If you plan to use agentic RAG code extraction, also run the migration scripts in `src/database/migrations/` to set up the enhanced schema:
+   - `001_create_sources_table.sql` - Creates centralized source management
+   - `002_create_code_examples_table.sql` - Creates specialized code storage with hybrid search
+   - Run scripts in numerical order for proper dependencies
+
+> **Note**: The core `crawled_pages` table is sufficient for basic functionality. Advanced tables are only needed when using specific RAG strategies.
 
 ## Configuration
 
@@ -255,21 +262,30 @@ CONTEXTUAL_MODEL=gpt-4o-mini
 **Best for**: Complex documentation, technical content, research papers
 
 ### Agentic RAG (`USE_AGENTIC_RAG=true`)
-**Purpose**: Specialized capabilities for AI coding assistants.
+**Purpose**: Specialized capabilities for AI coding assistants with automatic code extraction.
 
-**What it does**: Extracts and indexes code examples separately, enables code-to-code search.
+**What it does**: Automatically detects, extracts, and indexes code examples with dual embeddings (code content + natural language summaries) for enhanced code search capabilities.
+
+**Features**:
+- **Automatic Code Detection**: Supports 18+ programming languages (Python, JavaScript, SQL, Java, C++, etc.)
+- **Smart Code Processing**: Language detection, complexity scoring (1-10 scale), and contextual summarization
+- **Dual Embeddings**: Separate embeddings for code content and natural language descriptions
+- **Hybrid Code Search**: Combines semantic search with language/complexity filtering
+- **Code-to-Code Search**: Find similar code patterns and implementations
 
 **Benefits**:
-- Specialized code search and extraction
+- Specialized code search and extraction with high accuracy
 - Better retrieval for programming-related queries
-- Supports natural language to code search
+- Supports both natural language to code and code-to-code search
+- Enables powerful AI coding assistant scenarios
 
 **Trade-offs**:
-- Additional database tables and complexity
-- Code extraction processing overhead
-- Most beneficial only for programming content
+- Additional database tables and processing complexity
+- Code extraction overhead during crawling (~10-20% additional time)
+- Most beneficial only for content with code examples
+- Requires source_id relationships (automatic setup)
 
-**Best for**: AI coding assistants, technical documentation with code examples
+**Best for**: AI coding assistants, technical documentation with code examples, programming tutorials
 
 ### Enhanced Hybrid Search (`USE_HYBRID_SEARCH_ENHANCED=true`)
 **Purpose**: More sophisticated hybrid search algorithms.
@@ -688,6 +704,13 @@ python tests/test_performance_regression.py --quick
 
 # Run comprehensive tests
 uv run pytest tests/ -v
+
+# Run specific test suites
+uv run pytest tests/test_config.py -v                     # Configuration system (21 tests)
+uv run pytest tests/test_reranking.py -v                  # Reranking functionality (22 tests)
+uv run pytest tests/test_contextual_integration.py -v     # Contextual embeddings (16 tests)
+uv run pytest tests/test_strategy_manager.py -v           # Strategy Manager (32 tests)
+uv run pytest tests/test_code_extraction_pipeline.py -v   # Code extraction pipeline (14 tests)
 ```
 
 #### Enable debug logging
