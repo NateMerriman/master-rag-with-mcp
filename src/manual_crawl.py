@@ -2,20 +2,33 @@
 """
 Manual crawler / chunker / Supabase loader for big jobs that would time-out
 when triggered through the MCP tool layer.
+
+This script supports all enhanced RAG strategies via environment variable configuration.
+All enhancements from the MCP server are available during manual crawling:
+- Contextual embeddings (USE_CONTEXTUAL_EMBEDDINGS=true)
+- Agentic RAG code extraction (USE_AGENTIC_RAG=true) 
+- Enhanced hybrid search capabilities
 """
 
 import argparse, asyncio, json, datetime
 from urllib.parse import urlparse
 from tqdm import tqdm
 import datetime, zoneinfo  # add zoneinfo
+from pathlib import Path
+from dotenv import load_dotenv
 
 UTC = zoneinfo.ZoneInfo("UTC")  # single timezone object
+
+# Load environment variables
+project_root = Path(__file__).resolve().parent.parent
+dotenv_path = project_root / ".env"
+load_dotenv(dotenv_path, override=True)
 
 # The yellow “import crawl4ai could not be resolved” comes from Pylance on your Mac.
 # It happens because the crawl4ai package lives only inside the Docker image, not in your local Python env. The warning is harmless; the import will work once the code runs in the container.
 from crawl4ai import AsyncWebCrawler, BrowserConfig
 
-# keep Supabase helpers from utils.py
+# keep Supabase helpers from utils.py (these now include all enhancements)
 from utils import get_supabase_client, add_documents_to_supabase
 
 # bring the crawl helpers in from crawl4ai_mcp.py
@@ -40,6 +53,25 @@ logging.basicConfig(
     force=True,  # <-- this clears earlier handlers
 )
 logger = logging.getLogger(__name__)
+
+# Load and validate configuration for enhanced features
+try:
+    from config import get_config, ConfigurationError
+    strategy_config = get_config()
+    logger.info(f"✅ {strategy_config}")
+    
+    # Log enabled strategies for manual crawling
+    enabled_strategies = strategy_config.get_enabled_strategies()
+    if enabled_strategies:
+        strategy_names = [s.value for s in enabled_strategies]
+        logger.info(f"📊 Manual crawl with enhanced RAG strategies: {', '.join(strategy_names)}")
+    else:
+        logger.info("📊 Manual crawl in baseline mode (no enhanced strategies)")
+        
+except (ConfigurationError, ImportError) as e:
+    logger.warning(f"⚠️ Configuration Warning: {e}")
+    logger.info("📊 Manual crawl will use baseline functionality only")
+    strategy_config = None
 
 
 DEFAULT_CHUNK_SIZE = 5_000

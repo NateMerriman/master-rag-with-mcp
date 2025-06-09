@@ -238,6 +238,26 @@ CONTEXTUAL_MODEL=gpt-4o-mini
 - **Preservation**: Original RRF scores and rankings are preserved in metadata
 - **Fallback**: Gracefully degrades to hybrid search if reranking fails
 
+**How the Two-Stage Pipeline Works**:
+
+*Stage 1: Hybrid Search (Foundation)*
+1. **Semantic search** retrieves content via vector embeddings (OpenAI text-embedding-3-small)
+2. **Full-text search** finds keyword matches using PostgreSQL FTS with tsvector/GIN indexing  
+3. **RRF (Reciprocal Rank Fusion)** intelligently combines both rankings into unified scores
+4. Returns initial result set (default: 20 documents) with comprehensive scoring metadata
+
+*Stage 2: Cross-Encoder Reranking (Enhancement)*
+1. Takes the hybrid search results as input (preserving all original scores)
+2. **Query-document pair scoring** using transformer-based cross-encoder model
+3. **Reorders results** based on nuanced semantic relevance understanding
+4. Returns top results (default: 5) with both original and reranking scores
+
+**Key Architectural Benefits**:
+- **Additive Enhancement**: Reranking builds upon hybrid search rather than replacing it
+- **Best of Both Worlds**: Fast initial filtering (hybrid) + precise final ranking (cross-encoder)
+- **Score Preservation**: All original RRF, semantic, and full-text scores remain available
+- **Performance Optimization**: Cross-encoder only processes the most promising candidates
+
 **Benefits**:
 - **Quality**: Significantly improves result relevance for complex queries
 - **Compatibility**: Preserves all hybrid search benefits (RRF, semantic + full-text)
