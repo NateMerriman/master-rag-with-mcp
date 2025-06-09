@@ -264,7 +264,8 @@ class TestStrategyManagerToolManagement:
             "crawl_single_page",
             "smart_crawl_url", 
             "get_available_sources",
-            "perform_rag_query"
+            "perform_rag_query",
+            "get_strategy_status"
         ]
         
         assert all(tool in tools for tool in expected_baseline_tools)
@@ -277,7 +278,7 @@ class TestStrategyManagerToolManagement:
         
         tools = manager.get_available_tools()
         assert "search_code_examples" in tools
-        assert "extract_code_from_content" in tools
+        # Note: extract_code_from_content was removed - functionality is now integrated into the crawling pipeline
     
     def test_get_available_tools_reranking(self):
         """Test available tools with reranking enabled."""
@@ -313,8 +314,8 @@ class TestStrategyManagerToolManagement:
             "smart_crawl_url", 
             "get_available_sources",
             "perform_rag_query",
+            "get_strategy_status",
             "search_code_examples",
-            "extract_code_from_content",
             "perform_rag_query_with_reranking",
             "perform_contextual_rag_query"
         ]
@@ -418,7 +419,7 @@ class TestStrategyManagerStatus:
         assert status["enabled_strategies"] == []
         assert status["components"] == {}
         assert status["initialization_errors"] == []
-        assert len(status["available_tools"]) == 4  # Baseline tools only
+        assert len(status["available_tools"]) == 5  # Baseline tools only (including get_strategy_status)
     
     def test_get_status_report_initialized(self):
         """Test status report for initialized manager."""

@@ -300,14 +300,14 @@ class StrategyManager:
             "crawl_single_page",
             "smart_crawl_url", 
             "get_available_sources",
-            "perform_rag_query"
+            "perform_rag_query",
+            "get_strategy_status"
         ]
         
         # Add strategy-specific tools
         if self.is_strategy_enabled(RAGStrategy.AGENTIC_RAG):
             available_tools.extend([
-                "search_code_examples",
-                "extract_code_from_content"
+                "search_code_examples"
             ])
         
         if self.is_strategy_enabled(RAGStrategy.RERANKING):

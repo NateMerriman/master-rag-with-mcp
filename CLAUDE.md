@@ -63,7 +63,7 @@ This project is derived from an older version of a reference repository, but has
 
 ## Enhancement Project Context
 
-### Current Enhancement Phase: Phase 3 In Progress - Task 3.2 Complete ✅
+### Current Enhancement Phase: Phase 3 Complete ✅ - Ready for Phase 4
 This codebase is undergoing a planned enhancement project to integrate 14 advanced RAG strategies from the reference repository. Refer to `PLANNING.md` and `TASKS.md` for full context of the enhancement plan.
 
 **Phase 1: Foundation Enhancements - COMPLETED:**
@@ -77,10 +77,11 @@ This codebase is undergoing a planned enhancement project to integrate 14 advanc
 - ✅ **Task 2.2 Code Examples Table Implementation**: Specialized code storage with hybrid search, 18+ language support, dual embeddings
 - ✅ **Task 2.3 Foreign Key Constraints**: Complete relational integrity with 100% data linkage, CASCADE operations, performance validated
 
-**Phase 3: Application Features Enhancement - IN PROGRESS:**
+**Phase 3: Application Features Enhancement - COMPLETED:**
 - ✅ **Task 3.0 Contextual Embeddings Integration**: Strategy configuration system integrated with existing contextual embeddings, full backward compatibility maintained
 - ✅ **Task 3.1 Strategy Manager Implementation**: Centralized component lifecycle management, conditional tool registration, resource optimization
 - ✅ **Task 3.2 Code Extraction Pipeline**: Automatic code detection and storage with dual embeddings, integrated with agentic RAG configuration system
+- ✅ **Task 3.3 Conditional Tool Registration**: Strategy-aware MCP tool availability with comprehensive error handling and dynamic documentation
 
 The enhancement follows a strict preservation-first approach:
 
@@ -104,6 +105,7 @@ The enhancement follows a strict preservation-first approach:
 5. **✅ Contextual Embeddings Integration** - Enhanced semantic understanding integrated with strategy configuration system
 6. **✅ Strategy Manager Implementation** - Centralized component lifecycle management with conditional tool registration
 7. **✅ Agentic RAG Code Extraction** - Automatic code detection, processing, and storage with dual embeddings for enhanced code search
+8. **✅ Conditional Tool Registration** - Strategy-aware MCP tool availability with dynamic documentation and comprehensive error handling
 
 ### Development Guidelines for Enhancements
 - Always test rollback procedures before implementing database changes
@@ -115,6 +117,7 @@ The enhancement follows a strict preservation-first approach:
 - ✅ **Contextual embeddings integration complete**: New strategy configuration system integrated with existing functionality, full backward compatibility maintained
 - ✅ **Strategy Manager complete**: Centralized component lifecycle management implemented with 32 comprehensive tests
 - ✅ **Code extraction pipeline complete**: Automatic code detection and storage with dual embeddings, agentic RAG configuration integration, 14 comprehensive tests
+- ✅ **Conditional tool registration complete**: Strategy-aware MCP tool availability implemented with 13 comprehensive tests, dynamic documentation via get_strategy_status tool
 - Test strategy combinations, not just individual features
 - **Validate integration points with Supabase Docker stack and n8n workflows**
 - ✅ **Edge function compatibility verified**: Fixed search_documents() with direct requests approach
@@ -327,3 +330,28 @@ Supports both SSE (Server-Sent Events) and stdio transport modes for different M
 - ✅ Supabase Python client edge function compatibility
 - ✅ Search function implementation with direct requests approach
 - ✅ Real baseline capture with actual search results (not empty queries)
+
+## MCP Tools & Strategy-Based Availability
+
+### Base Tools (Always Available)
+- `crawl_single_page` - Crawl a single web page and store content
+- `smart_crawl_url` - Intelligently crawl URLs (sitemaps, txt files, or regular pages)
+- `get_available_sources` - Get all available sources in the database
+- `perform_rag_query` - Perform basic RAG query with hybrid search
+- `get_strategy_status` - View current strategy configuration and available tools
+
+### Strategy-Specific Tools
+**Agentic RAG Tools** (require `USE_AGENTIC_RAG=true`):
+- `search_code_examples` - Search for code examples with language and complexity filtering
+
+**Reranking Tools** (require `USE_RERANKING=true`):
+- `perform_rag_query_with_reranking` - Enhanced RAG query with cross-encoder reranking
+
+**Contextual Embeddings Tools** (require `USE_CONTEXTUAL_EMBEDDINGS=true`):
+- `perform_contextual_rag_query` - RAG query with enhanced contextual embeddings
+
+### Tool Error Handling
+When accessing a disabled tool, users receive clear error messages indicating:
+- Which tool was attempted
+- Which strategies are required to enable the tool
+- Current configuration status

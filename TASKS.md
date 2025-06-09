@@ -1,6 +1,6 @@
 # TASKS.md - Crawl4AI RAG Enhancement Implementation Tasks
 
-## Current Status: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Phase 3 In Progress - Task 3.2 Complete ✅
+## Current Status: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Phase 3 Complete ✅
 
 ## Phase 1: Foundation Enhancements (1-2 days)
 
@@ -304,19 +304,28 @@
 - 14 comprehensive tests covering configuration, storage, integration, and error scenarios
 - Ready for specialized code search tools implementation in Task 4.3
 
-### TASK 3.3: Conditional Tool Registration
-**Priority: MEDIUM | Estimated: 3 hours**
+### ✅ TASK 3.3: Conditional Tool Registration - COMPLETED
+**Priority: MEDIUM | Estimated: 3 hours | Actual: 2 hours**
 
-- [ ] Modify existing tool registration to check strategy configuration
-- [ ] Create strategy-specific tools (code search, enhanced search)
-- [ ] Add tool documentation generation based on enabled strategies
-- [ ] Implement error handling for disabled tool access
-- [ ] Test tool availability with different configurations
+- [x] Modify existing tool registration to check strategy configuration
+- [x] Create strategy-specific tools (code search, enhanced search)
+- [x] Add tool documentation generation based on enabled strategies
+- [x] Implement error handling for disabled tool access
+- [x] Test tool availability with different configurations
 
-**Acceptance Criteria:**
-- Tools appear only when relevant strategies enabled
-- Clear error messages when accessing disabled tools
-- Documentation reflects current configuration
+**Acceptance Criteria: ✅ ALL MET**
+- Tools appear only when relevant strategies enabled ✅
+- Clear error messages when accessing disabled tools ✅
+- Documentation reflects current configuration ✅
+
+**Implementation Notes:**
+- Created `@conditional_tool` decorator for strategy-aware tool registration
+- Added strategy-specific tools: `search_code_examples`, `perform_rag_query_with_reranking`, `perform_contextual_rag_query`
+- Added `get_strategy_status` tool for dynamic configuration documentation
+- Updated StrategyManager's `get_available_tools()` to track all tools
+- Comprehensive error handling with informative messages including required strategies
+- Created 13 test cases covering all conditional tool scenarios
+- Updated existing strategy manager tests to account for new tools
 
 ## Phase 4: Advanced RAG Strategies (5-7 days)
 

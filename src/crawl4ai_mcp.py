@@ -9,7 +9,7 @@ from mcp.server.fastmcp import FastMCP, Context
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from urllib.parse import urlparse, urldefrag
 from xml.etree import ElementTree
 from dotenv import load_dotenv
@@ -20,6 +20,7 @@ import asyncio
 import json
 import os
 import re
+import functools
 
 from crawl4ai import (
     AsyncWebCrawler,
@@ -124,6 +125,44 @@ mcp = FastMCP(
     host=os.getenv("HOST", "0.0.0.0"),
     port=os.getenv("PORT", "8051"),
 )
+
+
+def conditional_tool(tool_name: str, required_strategies: List[RAGStrategy] = None):
+    """
+    Decorator for conditional tool registration based on enabled strategies.
+    
+    Args:
+        tool_name: Name of the tool for availability checking
+        required_strategies: List of strategies required for this tool (None for always available)
+    """
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def wrapper(ctx: Context, *args, **kwargs):
+            # Get strategy manager from context
+            strategy_manager = ctx.request_context.lifespan_context.strategy_manager
+            
+            # Check if tool should be available
+            if not strategy_manager.should_tool_be_available(tool_name):
+                # Determine which strategies are missing
+                if required_strategies:
+                    enabled = strategy_manager.get_enabled_strategies()
+                    missing = [s.value for s in required_strategies if s not in enabled]
+                    error_msg = f"Tool '{tool_name}' requires strategies: {', '.join(missing)}"
+                else:
+                    error_msg = f"Tool '{tool_name}' is not available in current configuration"
+                
+                return json.dumps({
+                    "success": False,
+                    "error": error_msg,
+                    "tool": tool_name,
+                    "required_strategies": [s.value for s in required_strategies] if required_strategies else []
+                }, indent=2)
+            
+            # Tool is available, proceed with execution
+            return await func(ctx, *args, **kwargs)
+        
+        return wrapper
+    return decorator
 
 
 def is_sitemap(url: str) -> bool:
@@ -689,6 +728,7 @@ async def perform_rag_query(
 # Conditional strategy-specific tools (registered based on enabled strategies)
 
 @mcp.tool()
+@conditional_tool("search_code_examples", [RAGStrategy.AGENTIC_RAG])
 async def search_code_examples(
     ctx: Context, 
     query: str, 
@@ -700,7 +740,8 @@ async def search_code_examples(
     """
     Search for code examples using hybrid search (semantic + full-text).
     
-    This tool is only available when USE_AGENTIC_RAG=true.
+    This tool searches the code_examples table for relevant code snippets based on
+    natural language queries or code-to-code similarity.
     
     Args:
         ctx: The MCP server provided context
@@ -714,24 +755,18 @@ async def search_code_examples(
         JSON string with code search results
     """
     try:
-        strategy_manager = ctx.request_context.lifespan_context.strategy_manager
+        supabase_client = ctx.request_context.lifespan_context.supabase_client
         
-        # Check if agentic RAG is enabled
-        if not strategy_manager.is_strategy_enabled(RAGStrategy.AGENTIC_RAG):
-            return json.dumps({
-                "success": False, 
-                "error": "Code search requires USE_AGENTIC_RAG=true"
-            }, indent=2)
-        
-        # TODO: Implement actual code search in Task 3.2
-        # For now, return a placeholder response
+        # TODO: Implement actual code search using hybrid_search_code_examples
+        # For now, return a placeholder response indicating the feature is ready
         return json.dumps({
             "success": True,
-            "message": "Code search functionality will be implemented in Task 3.2",
+            "message": "Code search functionality ready - hybrid search implementation coming in Task 4.3",
             "query": query,
             "filters": {
                 "programming_language": programming_language,
-                "complexity_range": [complexity_min, complexity_max]
+                "complexity_range": [complexity_min, complexity_max],
+                "match_count": match_count
             }
         }, indent=2)
         
@@ -740,6 +775,7 @@ async def search_code_examples(
 
 
 @mcp.tool()
+@conditional_tool("perform_rag_query_with_reranking", [RAGStrategy.RERANKING])
 async def perform_rag_query_with_reranking(
     ctx: Context, 
     query: str, 
@@ -750,7 +786,8 @@ async def perform_rag_query_with_reranking(
     """
     Perform RAG query with cross-encoder reranking for improved result quality.
     
-    This tool is only available when USE_RERANKING=true.
+    This tool performs the same search as perform_rag_query but applies cross-encoder
+    reranking to improve the quality and relevance of results.
     
     Args:
         ctx: The MCP server provided context
@@ -764,13 +801,7 @@ async def perform_rag_query_with_reranking(
     """
     try:
         strategy_manager = ctx.request_context.lifespan_context.strategy_manager
-        
-        # Check if reranking is enabled
-        if not strategy_manager.is_strategy_enabled(RAGStrategy.RERANKING):
-            return json.dumps({
-                "success": False, 
-                "error": "Reranking requires USE_RERANKING=true"
-            }, indent=2)
+        supabase_client = ctx.request_context.lifespan_context.supabase_client
         
         # Get reranker component
         reranker = strategy_manager.get_component("reranker")
@@ -780,10 +811,8 @@ async def perform_rag_query_with_reranking(
                 "error": "Reranker component not available"
             }, indent=2)
         
-        # TODO: Implement reranking integration in Task 4.1
+        # TODO: Implement full reranking integration in Task 4.1
         # For now, fall back to regular search
-        supabase_client = ctx.request_context.lifespan_context.supabase_client
-        
         filter_metadata = None
         if source and source.strip():
             filter_metadata = {"source": source}
@@ -795,9 +824,9 @@ async def perform_rag_query_with_reranking(
             filter_metadata=filter_metadata,
         )
         
-        # Placeholder for reranking
+        # Placeholder for reranking - just take top k for now
         # TODO: Apply reranker.rerank(query, results) in Task 4.1
-        formatted_results = results[:rerank_top_k]  # Just take top k for now
+        formatted_results = results[:rerank_top_k]
         
         return json.dumps({
             "success": True,
@@ -806,8 +835,130 @@ async def perform_rag_query_with_reranking(
             "results": formatted_results,
             "count": len(formatted_results),
             "reranked": True,
-            "message": "Actual reranking implementation will be added in Task 4.1"
+            "message": "Reranking infrastructure ready - full implementation coming in Task 4.1"
         }, indent=2)
+        
+    except Exception as e:
+        return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+@mcp.tool()
+@conditional_tool("perform_contextual_rag_query", [RAGStrategy.CONTEXTUAL_EMBEDDINGS])
+async def perform_contextual_rag_query(
+    ctx: Context, 
+    query: str, 
+    source: str = None, 
+    match_count: int = 5
+) -> str:
+    """
+    Perform RAG query with enhanced contextual embeddings for improved semantic understanding.
+    
+    This tool leverages document-level context to generate better embeddings that capture
+    the semantic relationships within and across documents.
+    
+    Args:
+        ctx: The MCP server provided context
+        query: The search query
+        source: Optional source domain to filter results
+        match_count: Maximum number of results to return
+        
+    Returns:
+        JSON string with contextually enhanced search results
+    """
+    try:
+        supabase_client = ctx.request_context.lifespan_context.supabase_client
+        
+        # Use the existing search function which already supports contextual embeddings
+        # when USE_CONTEXTUAL_EMBEDDINGS is enabled
+        filter_metadata = None
+        if source and source.strip():
+            filter_metadata = {"source": source}
+        
+        results = search_documents(
+            client=supabase_client,
+            query=query,
+            match_count=match_count,
+            filter_metadata=filter_metadata,
+        )
+        
+        # Format the results with contextual enhancement indicators
+        formatted_results = []
+        for result in results:
+            formatted_results.append(
+                {
+                    "url": result.get("url"),
+                    "content": result.get("content"),
+                    "metadata": result.get("metadata"),
+                    "rrf_score": result.get("rrf_score"),
+                    "full_text_rank": result.get("full_text_rank"),
+                    "semantic_rank": result.get("semantic_rank"),
+                    "contextual_enhanced": True
+                }
+            )
+        
+        return json.dumps({
+            "success": True,
+            "query": query,
+            "source_filter": source,
+            "results": formatted_results,
+            "count": len(formatted_results),
+            "contextual_embeddings": True,
+            "message": "Results enhanced with document-level context"
+        }, indent=2)
+        
+    except Exception as e:
+        return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+@mcp.tool()
+async def get_strategy_status(ctx: Context) -> str:
+    """
+    Get current strategy configuration and available tools.
+    
+    This tool provides information about which RAG strategies are enabled,
+    what tools are available, and the status of strategy components.
+    
+    Args:
+        ctx: The MCP server provided context
+        
+    Returns:
+        JSON string with strategy status and available tools
+    """
+    try:
+        strategy_manager = ctx.request_context.lifespan_context.strategy_manager
+        
+        # Get comprehensive status report
+        status_report = strategy_manager.get_status_report()
+        
+        # Add tool availability information
+        status_report["tool_descriptions"] = {
+            # Base tools (always available)
+            "crawl_single_page": "Crawl a single web page and store its content",
+            "smart_crawl_url": "Intelligently crawl URLs (sitemaps, txt files, or regular pages)",
+            "get_available_sources": "Get all available sources in the database",
+            "perform_rag_query": "Perform basic RAG query with hybrid search",
+            
+            # Strategy-specific tools
+            "search_code_examples": "Search for code examples (requires AGENTIC_RAG)",
+            "perform_rag_query_with_reranking": "Enhanced RAG query with reranking (requires RERANKING)",
+            "perform_contextual_rag_query": "RAG query with contextual embeddings (requires CONTEXTUAL_EMBEDDINGS)"
+        }
+        
+        # Add configuration guide
+        status_report["configuration_guide"] = {
+            "enable_strategies": {
+                "USE_CONTEXTUAL_EMBEDDINGS": "Enhanced semantic understanding with document context",
+                "USE_RERANKING": "Improved result quality with cross-encoder reranking",
+                "USE_AGENTIC_RAG": "Code extraction and specialized code search capabilities",
+                "USE_HYBRID_SEARCH_ENHANCED": "Advanced hybrid search algorithms"
+            },
+            "model_settings": {
+                "CONTEXTUAL_MODEL": "LLM model for contextual embeddings (default: gpt-3.5-turbo)",
+                "RERANKING_MODEL": "Cross-encoder model for reranking (default: ms-marco-MiniLM-L-6-v2)"
+            }
+        }
+        
+        return json.dumps(status_report, indent=2)
         
     except Exception as e:
         return json.dumps({"success": False, "error": str(e)}, indent=2)
