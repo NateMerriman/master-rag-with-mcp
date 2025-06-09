@@ -63,7 +63,7 @@ This project is derived from an older version of a reference repository, but has
 
 ## Enhancement Project Context
 
-### Current Enhancement Phase: Phase 2 In Progress - Task 2.1 Complete ✅
+### Current Enhancement Phase: Phase 2 Complete ✅ - Ready for Phase 3
 This codebase is undergoing a planned enhancement project to integrate 14 advanced RAG strategies from the reference repository. Refer to `PLANNING.md` and `TASKS.md` for full context of the enhancement plan.
 
 **Phase 1: Foundation Enhancements - COMPLETED:**
@@ -72,9 +72,10 @@ This codebase is undergoing a planned enhancement project to integrate 14 advanc
 - ✅ **Task 1.2 Sentence Transformers Integration**: Cross-encoder reranking infrastructure with comprehensive testing
 - ✅ **Task 1.3 Enhanced Documentation**: Complete user documentation, troubleshooting guide, performance tuning recommendations
 
-**Phase 2: Database Architecture Enhancements - IN PROGRESS:**
+**Phase 2: Database Architecture Enhancements - COMPLETED:**
 - ✅ **Task 2.1 Sources Table Implementation**: Centralized source management with 729 sources extracted from crawled_pages
 - ✅ **Task 2.2 Code Examples Table Implementation**: Specialized code storage with hybrid search, 18+ language support, dual embeddings
+- ✅ **Task 2.3 Foreign Key Constraints**: Complete relational integrity with 100% data linkage, CASCADE operations, performance validated
 
 The enhancement follows a strict preservation-first approach:
 
@@ -94,7 +95,7 @@ The enhancement follows a strict preservation-first approach:
 1. **✅ Strategy Configuration System** - Runtime RAG strategy selection via environment variables
 2. **✅ Cross-Encoder Reranking Infrastructure** - Local result reordering for quality improvement (ready for integration)
 3. **✅ Enhanced Documentation** - Comprehensive user guides, troubleshooting, and performance tuning
-4. **🔄 Database Architecture** - Sources table (✅ complete) + code examples with FK constraints
+4. **✅ Database Architecture** - Sources table + code examples + FK constraints (complete relational integrity)
 5. **Contextual Embeddings** - Enhanced semantic understanding (builds on existing MODEL_CHOICE)
 6. **Agentic RAG** - Specialized code extraction and search capabilities
 
@@ -104,7 +105,7 @@ The enhancement follows a strict preservation-first approach:
 - ✅ **Strategy configuration system implemented**: Runtime RAG strategy selection with validation
 - ✅ **Reranking infrastructure complete**: Cross-encoder reranking system implemented with comprehensive testing
 - ✅ **Documentation comprehensive**: User guides, troubleshooting, performance tuning all complete
-- ✅ **Sources table implemented**: 729 sources extracted from crawled_pages with performance indexes
+- ✅ **Database architecture complete**: Sources + code examples + FK constraints with 100% data integrity and performance validation
 - Test strategy combinations, not just individual features
 - **Validate integration points with Supabase Docker stack and n8n workflows**
 - ✅ **Edge function compatibility verified**: Fixed search_documents() with direct requests approach
@@ -115,6 +116,16 @@ The enhancement follows a strict preservation-first approach:
 - **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
 - **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
 - When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
+
+### 🗄️ Database Operations & Setup Scripts
+- **Prefer manual SQL scripts over Python for database operations** when more reliable and efficient
+- **Create standalone .sql files** for complex migrations, schema changes, and data operations
+- **Include validation steps** in SQL scripts with clear status messages and progress indicators
+- **Always create both migration and rollback scripts** for any database changes
+- **Test scripts in Supabase Studio** before committing to ensure compatibility
+- **Use descriptive script names** like `populate_source_ids_manual.sql`, `add_foreign_key_constraint.sql`
+- **Include step-by-step instructions** in script headers for easy execution
+- **Provide both automated Python tools AND manual SQL scripts** for flexibility in different scenarios
 
 ### ✅ Task Completion
 - **Mark completed tasks in `TASK.md`** immediately after finishing them.
