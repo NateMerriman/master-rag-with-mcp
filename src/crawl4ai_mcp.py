@@ -21,6 +21,7 @@ import json
 import os
 import re
 import functools
+import time
 
 from crawl4ai import (
     AsyncWebCrawler,
@@ -786,8 +787,10 @@ async def perform_rag_query_with_reranking(
     """
     Perform RAG query with cross-encoder reranking for improved result quality.
     
-    This tool performs the same search as perform_rag_query but applies cross-encoder
-    reranking to improve the quality and relevance of results.
+    This tool performs hybrid search (combining semantic + full-text with RRF) and then
+    applies cross-encoder reranking to improve the quality and relevance of results.
+    The hybrid search RRF benefits are preserved as the initial ranking, with reranking
+    providing additional quality improvements.
     
     Args:
         ctx: The MCP server provided context
@@ -811,22 +814,75 @@ async def perform_rag_query_with_reranking(
                 "error": "Reranker component not available"
             }, indent=2)
         
-        # TODO: Implement full reranking integration in Task 4.1
-        # For now, fall back to regular search
+        # Step 1: Perform hybrid search (preserves RRF benefits)
         filter_metadata = None
         if source and source.strip():
             filter_metadata = {"source": source}
         
-        results = search_documents(
+        hybrid_results = search_documents(
             client=supabase_client,
             query=query,
             match_count=match_count,
             filter_metadata=filter_metadata,
         )
         
-        # Placeholder for reranking - just take top k for now
-        # TODO: Apply reranker.rerank(query, results) in Task 4.1
-        formatted_results = results[:rerank_top_k]
+        if not hybrid_results:
+            return json.dumps({
+                "success": True,
+                "query": query,
+                "source_filter": source,
+                "results": [],
+                "count": 0,
+                "reranked": False,
+                "message": "No results found for query"
+            }, indent=2)
+        
+        # Step 2: Apply cross-encoder reranking on top of hybrid search results
+        start_time = time.time()
+        
+        # Convert results to format expected by reranker
+        search_results_for_reranking = []
+        for result in hybrid_results:
+            search_results_for_reranking.append({
+                "content": result.get("content", ""),
+                "url": result.get("url", ""),
+                "title": result.get("metadata", {}).get("headers", ""),
+                "chunk_index": result.get("metadata", {}).get("chunk_index", 0),
+                "score": result.get("rrf_score", 0.0),
+                "metadata": result.get("metadata", {}),
+                # Preserve hybrid search scores
+                "rrf_score": result.get("rrf_score"),
+                "full_text_rank": result.get("full_text_rank"),
+                "semantic_rank": result.get("semantic_rank")
+            })
+        
+        # Apply reranking
+        reranking_result = reranker.rerank_results(query, search_results_for_reranking)
+        
+        # Step 3: Format final results preserving both hybrid and reranking scores
+        formatted_results = []
+        for i, result in enumerate(reranking_result.results[:rerank_top_k]):
+            formatted_results.append({
+                "url": result.url,
+                "content": result.content,
+                "metadata": {
+                    **result.metadata,
+                    # Preserve original hybrid search scores
+                    "original_rrf_score": result.original_score,
+                    "original_rank": i + 1,
+                    # Add reranking information
+                    "reranking_score": result.metadata.get("reranking_score", 0.0),
+                    "reranked_position": i + 1
+                },
+                # Keep original hybrid search scores at top level for compatibility
+                "rrf_score": result.original_score,
+                "full_text_rank": search_results_for_reranking[0].get("full_text_rank") if search_results_for_reranking else None,
+                "semantic_rank": search_results_for_reranking[0].get("semantic_rank") if search_results_for_reranking else None,
+                # Add reranking score at top level
+                "reranking_score": result.metadata.get("reranking_score", 0.0),
+            })
+        
+        reranking_time = (time.time() - start_time) * 1000
         
         return json.dumps({
             "success": True,
@@ -835,7 +891,15 @@ async def perform_rag_query_with_reranking(
             "results": formatted_results,
             "count": len(formatted_results),
             "reranked": True,
-            "message": "Reranking infrastructure ready - full implementation coming in Task 4.1"
+            "reranking_stats": {
+                "model_used": reranking_result.model_used,
+                "reranking_time_ms": reranking_result.reranking_time_ms,
+                "total_scored": reranking_result.total_scored,
+                "fallback_used": reranking_result.fallback_used,
+                "initial_results": len(hybrid_results),
+                "reranked_results": len(formatted_results)
+            },
+            "message": f"Results enhanced with hybrid search (RRF) + cross-encoder reranking in {reranking_time:.1f}ms"
         }, indent=2)
         
     except Exception as e:

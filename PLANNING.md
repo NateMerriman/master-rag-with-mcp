@@ -89,7 +89,7 @@ Enhanced Strategies (configurable):
    - **✅ Task 3.1 Complete**: Strategy Manager implementation with component lifecycle management
    - **✅ Task 3.2 Complete**: Code extraction pipeline integration with dual embeddings and agentic RAG configuration
    - **✅ Task 3.3 Complete**: Conditional tool registration with strategy-aware availability
-4. **Advanced RAG** (5-7 days): Reranking integration + cross-strategy testing
+4. **Advanced RAG** (5-7 days): ✅ **TASK 4.1 COMPLETE** - Reranking integration + cross-strategy testing
 
 ### Code Organization
 ```
@@ -108,6 +108,7 @@ src/
 tests/
 ├── test_config.py         # ✅ IMPLEMENTED - Configuration system tests (21 tests)
 ├── test_reranking.py      # ✅ IMPLEMENTED - Reranking functionality tests (22 tests)
+├── test_reranking_integration.py # ✅ IMPLEMENTED - Reranking pipeline integration tests (7 tests)
 ├── test_contextual_integration.py # ✅ IMPLEMENTED - Contextual embeddings integration tests (16 tests)
 ├── test_strategy_manager.py # ✅ IMPLEMENTED - Strategy Manager functionality tests (32 tests)
 ├── test_performance_regression.py  # ✅ IMPLEMENTED - Performance monitoring and regression testing
@@ -130,10 +131,11 @@ sentence-transformers = ">=3.0.0"  # ✅ IMPLEMENTED - For cross-encoder reranki
 pytest = ">=8.3.5"  # ✅ IMPLEMENTED - For comprehensive testing
 ```
 
-### Phase 1, 2 & 3 Completed Deliverables
+### Phase 1, 2, 3 & 4.1 Completed Deliverables
 - ✅ **Performance monitoring framework** (`src/performance_baseline.py`, `src/performance_monitor.py`)
 - ✅ **Strategy configuration system** (`src/config.py` with comprehensive validation)
 - ✅ **Cross-encoder reranking infrastructure** (`src/reranking.py` with 22 unit tests)
+- ✅ **Cross-encoder reranking integration** (`perform_rag_query_with_reranking` tool, hybrid search preservation, 7 integration tests)
 - ✅ **Enhanced documentation** (README.md with strategy guides, troubleshooting, performance tuning)
 - ✅ **Regression testing** (`tests/test_performance_regression.py`)
 - ✅ **Configuration testing** (`tests/test_config.py` with 21 test cases)

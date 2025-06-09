@@ -228,21 +228,31 @@ CONTEXTUAL_MODEL=gpt-4o-mini
 **Performance**: ~790ms average response time (baseline)
 
 ### Cross-Encoder Reranking (`USE_RERANKING=true`)
-**Purpose**: Improves search result quality by reordering the top results.
+**Purpose**: Improves search result quality by reordering the top results from hybrid search.
 
-**What it does**: Uses a specialized AI model to score query-document pairs and reorder results by relevance.
+**What it does**: Uses a cross-encoder model (default: `ms-marco-MiniLM-L-6-v2`) to score query-document pairs and reorder results by relevance. Works as a post-processing step that preserves all benefits of the hybrid search while adding quality improvements.
+
+**Integration**: 
+- **Tool**: `perform_rag_query_with_reranking` becomes available when enabled
+- **Pipeline**: Hybrid Search (RRF) → Cross-Encoder Reranking → Final Results
+- **Preservation**: Original RRF scores and rankings are preserved in metadata
+- **Fallback**: Gracefully degrades to hybrid search if reranking fails
 
 **Benefits**:
-- Significantly improves result quality for complex queries
-- Works on top of existing hybrid search
-- Particularly effective for natural language questions
+- **Quality**: Significantly improves result relevance for complex queries
+- **Compatibility**: Preserves all hybrid search benefits (RRF, semantic + full-text)
+- **Flexibility**: Works with source filtering and existing search parameters
+- **Natural Language**: Particularly effective for conversational and question-based queries
 
 **Trade-offs**:
-- Adds ~200-500ms processing time for reranking
-- Requires sentence-transformers dependency (~500MB)
-- Uses additional CPU for local inference
+- **Performance**: Adds ~150-500ms processing time for reranking
+- **Dependencies**: Requires sentence-transformers library (~500MB download)
+- **Resources**: Uses additional CPU for local cross-encoder inference
+- **Memory**: Loads model into memory (~100-200MB RAM)
 
-**Best for**: Users who prioritize search quality over speed
+**Performance Monitoring**: Built-in timing metrics and overhead tracking included.
+
+**Best for**: Users who prioritize search quality over speed, complex query scenarios, Q&A applications
 
 ### Contextual Embeddings (`USE_CONTEXTUAL_EMBEDDINGS=true`)
 **Purpose**: Enhanced semantic understanding through document-level context.

@@ -16,6 +16,7 @@ from datetime import datetime
 import psutil
 
 from utils import search_documents, create_embedding
+from reranking import get_reranker, is_reranking_available
 
 # Try to import dotenv, fall back to os.environ if not available
 try:
@@ -93,6 +94,78 @@ class PerformanceMonitor:
             "search_time_ms": round(search_time * 1000, 2),
             "memory_delta_mb": round(memory_after - memory_before, 2),
             "result_count": len(results),
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    def measure_reranking_performance(self, supabase_client, query: str, match_count: int = 20, rerank_top_k: int = 5) -> Dict[str, Any]:
+        """
+        Measure performance of hybrid search + reranking pipeline.
+        
+        Args:
+            supabase_client: Supabase client instance
+            query: Search query
+            match_count: Number of initial results to retrieve
+            rerank_top_k: Number of top results after reranking
+            
+        Returns:
+            Performance metrics including reranking overhead
+        """
+        if not is_reranking_available():
+            return {
+                "error": "Reranking not available",
+                "reranking_available": False,
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        memory_before = psutil.Process().memory_info().rss / (1024**2)  # MB
+        
+        # Step 1: Measure hybrid search time
+        search_start = time.time()
+        hybrid_results = search_documents(supabase_client, query, match_count=match_count)
+        search_time = time.time() - search_start
+        
+        if not hybrid_results:
+            return {
+                "error": "No results from hybrid search",
+                "search_time_ms": round(search_time * 1000, 2),
+                "result_count": 0,
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Step 2: Measure reranking time
+        reranker = get_reranker()
+        reranking_start = time.time()
+        
+        # Convert results to format expected by reranker
+        search_results_for_reranking = []
+        for result in hybrid_results:
+            search_results_for_reranking.append({
+                "content": result.get("content", ""),
+                "url": result.get("url", ""),
+                "title": result.get("metadata", {}).get("headers", ""),
+                "chunk_index": result.get("metadata", {}).get("chunk_index", 0),
+                "score": result.get("rrf_score", 0.0),
+                "metadata": result.get("metadata", {})
+            })
+        
+        reranking_result = reranker.rerank_results(query, search_results_for_reranking)
+        reranking_time = time.time() - reranking_start
+        
+        memory_after = psutil.Process().memory_info().rss / (1024**2)  # MB
+        total_time = search_time + reranking_time
+        
+        return {
+            "query": query,
+            "total_time_ms": round(total_time * 1000, 2),
+            "search_time_ms": round(search_time * 1000, 2),
+            "reranking_time_ms": round(reranking_time * 1000, 2),
+            "memory_delta_mb": round(memory_after - memory_before, 2),
+            "initial_result_count": len(hybrid_results),
+            "final_result_count": min(len(hybrid_results), rerank_top_k),
+            "reranking_model": reranking_result.model_used,
+            "reranking_overhead_percent": round((reranking_time / search_time) * 100, 1) if search_time > 0 else 0,
+            "fallback_used": reranking_result.fallback_used,
+            "reranking_available": True,
             "timestamp": datetime.now().isoformat()
         }
     
