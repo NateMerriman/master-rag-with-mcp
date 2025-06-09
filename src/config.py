@@ -118,10 +118,8 @@ class StrategyConfig:
                 "MAX_RERANKING_RESULTS should not exceed 100 for performance reasons"
             )
         
-        if self.use_contextual_embeddings and "MODEL_CHOICE" not in os.environ:
-            errors.append(
-                "USE_CONTEXTUAL_EMBEDDINGS requires MODEL_CHOICE environment variable"
-            )
+        # Remove the MODEL_CHOICE requirement since we now have CONTEXTUAL_MODEL
+        # Contextual embeddings validation is handled by dependency checks
         
         return errors
     
@@ -133,7 +131,7 @@ class StrategyConfig:
             Dictionary mapping strategies to required environment variables
         """
         return {
-            RAGStrategy.CONTEXTUAL_EMBEDDINGS: ["MODEL_CHOICE", "OPENAI_API_KEY"],
+            RAGStrategy.CONTEXTUAL_EMBEDDINGS: ["OPENAI_API_KEY"],
             RAGStrategy.HYBRID_SEARCH_ENHANCED: ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"],
             RAGStrategy.AGENTIC_RAG: ["OPENAI_API_KEY", "SUPABASE_URL"],
             RAGStrategy.RERANKING: [],  # Uses local models, no API keys needed

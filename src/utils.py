@@ -11,6 +11,16 @@ from urllib.parse import urlparse
 import openai
 import time
 
+try:
+    from .config import get_config, RAGStrategy
+except ImportError:
+    try:
+        from config import get_config, RAGStrategy
+    except ImportError:
+        # Fallback for when config is not available (backward compatibility)
+        get_config = None
+        RAGStrategy = None
+
 
 # --- added helper function to retry on rate limit errors ---
 def _retry_with_backoff(fn, *args, max_retries=6, base_delay=2, **kwargs):
@@ -34,6 +44,53 @@ def _retry_with_backoff(fn, *args, max_retries=6, base_delay=2, **kwargs):
 
 # Load OpenAI API key for embeddings
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+
+def _should_use_contextual_embeddings() -> bool:
+    """
+    Determine if contextual embeddings should be used based on configuration.
+    
+    Checks both the new USE_CONTEXTUAL_EMBEDDINGS flag and the existing MODEL_CHOICE
+    behavior for backward compatibility.
+    
+    Returns:
+        bool: True if contextual embeddings should be used
+    """
+    # Check new configuration system first
+    if get_config is not None:
+        try:
+            config = get_config()
+            if config.use_contextual_embeddings:
+                return True
+        except Exception:
+            # Fall through to legacy check if config fails
+            pass
+    
+    # Backward compatibility: check MODEL_CHOICE
+    model_choice = os.getenv("MODEL_CHOICE")
+    return bool(model_choice)
+
+
+def _get_contextual_model() -> Optional[str]:
+    """
+    Get the model to use for contextual embeddings.
+    
+    Returns:
+        str: Model name to use, or None if contextual embeddings disabled
+    """
+    # Check new configuration system first
+    if get_config is not None:
+        try:
+            config = get_config()
+            if config.use_contextual_embeddings:
+                return config.contextual_model
+        except Exception:
+            # Fall through to legacy check if config fails
+            pass
+    
+    # Backward compatibility: use MODEL_CHOICE
+    model_choice = os.getenv("MODEL_CHOICE")
+    return model_choice if model_choice else None
 
 
 def get_supabase_client() -> Client:
@@ -112,7 +169,12 @@ def generate_contextual_embedding(full_document: str, chunk: str) -> Tuple[str, 
         - The contextual text that situates the chunk within the document
         - Boolean indicating if contextual embedding was performed
     """
-    model_choice = os.getenv("MODEL_CHOICE")
+    # Determine which model to use based on configuration
+    model_choice = _get_contextual_model()
+    
+    # Return original chunk if no model configured
+    if not model_choice:
+        return chunk, False
 
     try:
         # Create the prompt for generating contextual information
@@ -221,9 +283,8 @@ def add_documents_to_supabase(
                 print(f"Error deleting record for URL {url}: {inner_e}")
                 # Continue with the next URL even if one fails
 
-    # Check if MODEL_CHOICE is set for contextual embeddings
-    model_choice = os.getenv("MODEL_CHOICE")
-    use_contextual_embeddings = bool(model_choice)
+    # Check if contextual embeddings should be used
+    use_contextual_embeddings = _should_use_contextual_embeddings()
 
     # Process in batches to avoid memory issues
     for i in range(0, len(contents), batch_size):

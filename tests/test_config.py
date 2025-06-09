@@ -178,13 +178,14 @@ class TestValidation:
         assert len(errors) == 1
         assert "should not exceed 100 for performance reasons" in errors[0]
 
-    def test_validate_contextual_embeddings_dependency(self):
-        """Test validation requires MODEL_CHOICE for contextual embeddings."""
+    def test_validate_contextual_embeddings_no_longer_requires_model_choice(self):
+        """Test that contextual embeddings no longer require MODEL_CHOICE (uses CONTEXTUAL_MODEL instead)."""
         config = StrategyConfig(use_contextual_embeddings=True)
         
         with patch.dict(os.environ, {}, clear=True):
             errors = config.validate()
-            assert any("requires MODEL_CHOICE environment variable" in error for error in errors)
+            # Should not have any MODEL_CHOICE requirement errors since we removed that dependency
+            assert not any("requires MODEL_CHOICE environment variable" in error for error in errors)
 
     def test_validate_dependencies(self):
         """Test dependency validation for enabled strategies."""
@@ -196,10 +197,11 @@ class TestValidation:
         with patch.dict(os.environ, {}, clear=True):
             errors = config.validate_dependencies()
             
-            # Should have errors for missing OPENAI_API_KEY, MODEL_CHOICE, and SUPABASE_URL
+            # Should have errors for missing OPENAI_API_KEY and SUPABASE_URL (no longer MODEL_CHOICE)
             assert len(errors) > 0
             assert any("OPENAI_API_KEY" in error for error in errors)
-            assert any("MODEL_CHOICE" in error for error in errors)
+            # MODEL_CHOICE is no longer required for contextual embeddings
+            assert not any("MODEL_CHOICE" in error for error in errors)
             assert any("SUPABASE_URL" in error for error in errors)
 
     def test_validate_dependencies_satisfied(self):
