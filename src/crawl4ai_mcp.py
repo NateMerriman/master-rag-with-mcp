@@ -29,7 +29,9 @@ from crawl4ai import (
     MemoryAdaptiveDispatcher,
 )
 from utils import get_supabase_client, add_documents_to_supabase, search_documents
-from config import get_config, ConfigurationError, StrategyConfig
+from config import get_config, ConfigurationError, StrategyConfig, RAGStrategy
+from strategies import StrategyManager
+from strategies.manager import initialize_strategy_manager, cleanup_strategy_manager, get_strategy_manager
 
 # Load environment variables from the project root .env file
 project_root = Path(__file__).resolve().parent.parent
@@ -50,9 +52,16 @@ try:
         print(f"📊 Enhanced RAG strategies enabled: {', '.join(strategy_names)}")
     else:
         print("📊 Running in baseline mode (no enhanced strategies)")
+    
+    # Initialize strategy manager
+    strategy_manager = initialize_strategy_manager(strategy_config)
+    print(f"✅ Strategy manager initialized with {len(strategy_manager.components)} components")
         
 except ConfigurationError as e:
     print(f"❌ Configuration Error: {e}")
+    exit(1)
+except RuntimeError as e:
+    print(f"❌ Strategy Manager Error: {e}")
     exit(1)
 except Exception as e:
     print(f"❌ Unexpected configuration error: {e}")
@@ -66,6 +75,7 @@ class Crawl4AIContext:
 
     crawler: AsyncWebCrawler
     supabase_client: Client
+    strategy_manager: StrategyManager
 
 
 @asynccontextmanager
@@ -77,7 +87,7 @@ async def crawl4ai_lifespan(server: FastMCP) -> AsyncIterator[Crawl4AIContext]:
         server: The FastMCP server instance
 
     Yields:
-        Crawl4AIContext: The context containing the Crawl4AI crawler and Supabase client
+        Crawl4AIContext: The context containing the Crawl4AI crawler, Supabase client, and strategy manager
     """
     # Create browser configuration
     browser_config = BrowserConfig(headless=True, verbose=False)
@@ -88,12 +98,22 @@ async def crawl4ai_lifespan(server: FastMCP) -> AsyncIterator[Crawl4AIContext]:
 
     # Initialize Supabase client
     supabase_client = get_supabase_client()
+    
+    # Get the strategy manager (already initialized at startup)
+    strategy_manager = get_strategy_manager()
+    if strategy_manager is None:
+        raise RuntimeError("Strategy manager not initialized")
 
     try:
-        yield Crawl4AIContext(crawler=crawler, supabase_client=supabase_client)
+        yield Crawl4AIContext(
+            crawler=crawler, 
+            supabase_client=supabase_client,
+            strategy_manager=strategy_manager
+        )
     finally:
         # Clean up the crawler
         await crawler.__aexit__(None, None, None)
+        # Strategy manager cleanup happens at application shutdown
 
 
 # Initialize FastMCP server
@@ -666,14 +686,146 @@ async def perform_rag_query(
         return json.dumps({"success": False, "query": query, "error": str(e)}, indent=2)
 
 
+# Conditional strategy-specific tools (registered based on enabled strategies)
+
+@mcp.tool()
+async def search_code_examples(
+    ctx: Context, 
+    query: str, 
+    programming_language: str = None,
+    complexity_min: int = 1,
+    complexity_max: int = 10,
+    match_count: int = 5
+) -> str:
+    """
+    Search for code examples using hybrid search (semantic + full-text).
+    
+    This tool is only available when USE_AGENTIC_RAG=true.
+    
+    Args:
+        ctx: The MCP server provided context
+        query: Search query for code examples
+        programming_language: Optional filter by programming language
+        complexity_min: Minimum complexity score (1-10)
+        complexity_max: Maximum complexity score (1-10) 
+        match_count: Maximum number of results to return
+        
+    Returns:
+        JSON string with code search results
+    """
+    try:
+        strategy_manager = ctx.request_context.lifespan_context.strategy_manager
+        
+        # Check if agentic RAG is enabled
+        if not strategy_manager.is_strategy_enabled(RAGStrategy.AGENTIC_RAG):
+            return json.dumps({
+                "success": False, 
+                "error": "Code search requires USE_AGENTIC_RAG=true"
+            }, indent=2)
+        
+        # TODO: Implement actual code search in Task 3.2
+        # For now, return a placeholder response
+        return json.dumps({
+            "success": True,
+            "message": "Code search functionality will be implemented in Task 3.2",
+            "query": query,
+            "filters": {
+                "programming_language": programming_language,
+                "complexity_range": [complexity_min, complexity_max]
+            }
+        }, indent=2)
+        
+    except Exception as e:
+        return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+@mcp.tool()
+async def perform_rag_query_with_reranking(
+    ctx: Context, 
+    query: str, 
+    source: str = None, 
+    match_count: int = 20,
+    rerank_top_k: int = 5
+) -> str:
+    """
+    Perform RAG query with cross-encoder reranking for improved result quality.
+    
+    This tool is only available when USE_RERANKING=true.
+    
+    Args:
+        ctx: The MCP server provided context
+        query: The search query
+        source: Optional source domain to filter results
+        match_count: Number of initial results to retrieve for reranking
+        rerank_top_k: Number of top results to return after reranking
+        
+    Returns:
+        JSON string with reranked search results
+    """
+    try:
+        strategy_manager = ctx.request_context.lifespan_context.strategy_manager
+        
+        # Check if reranking is enabled
+        if not strategy_manager.is_strategy_enabled(RAGStrategy.RERANKING):
+            return json.dumps({
+                "success": False, 
+                "error": "Reranking requires USE_RERANKING=true"
+            }, indent=2)
+        
+        # Get reranker component
+        reranker = strategy_manager.get_component("reranker")
+        if reranker is None:
+            return json.dumps({
+                "success": False, 
+                "error": "Reranker component not available"
+            }, indent=2)
+        
+        # TODO: Implement reranking integration in Task 4.1
+        # For now, fall back to regular search
+        supabase_client = ctx.request_context.lifespan_context.supabase_client
+        
+        filter_metadata = None
+        if source and source.strip():
+            filter_metadata = {"source": source}
+        
+        results = search_documents(
+            client=supabase_client,
+            query=query,
+            match_count=match_count,
+            filter_metadata=filter_metadata,
+        )
+        
+        # Placeholder for reranking
+        # TODO: Apply reranker.rerank(query, results) in Task 4.1
+        formatted_results = results[:rerank_top_k]  # Just take top k for now
+        
+        return json.dumps({
+            "success": True,
+            "query": query,
+            "source_filter": source,
+            "results": formatted_results,
+            "count": len(formatted_results),
+            "reranked": True,
+            "message": "Actual reranking implementation will be added in Task 4.1"
+        }, indent=2)
+        
+    except Exception as e:
+        return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
 async def main():
     transport = os.getenv("TRANSPORT", "sse")
-    if transport == "sse":
-        # Run the MCP server with sse transport
-        await mcp.run_sse_async()
-    else:
-        # Run the MCP server with stdio transport
-        await mcp.run_stdio_async()
+    try:
+        if transport == "sse":
+            # Run the MCP server with sse transport
+            await mcp.run_sse_async()
+        else:
+            # Run the MCP server with stdio transport
+            await mcp.run_stdio_async()
+    finally:
+        # Clean up strategy manager resources
+        print("🧹 Cleaning up strategy manager...")
+        cleanup_strategy_manager()
 
 
 if __name__ == "__main__":

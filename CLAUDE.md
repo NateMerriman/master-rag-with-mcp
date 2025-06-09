@@ -63,7 +63,7 @@ This project is derived from an older version of a reference repository, but has
 
 ## Enhancement Project Context
 
-### Current Enhancement Phase: Phase 3 In Progress - Task 3.0 Complete ✅
+### Current Enhancement Phase: Phase 3 In Progress - Task 3.1 Complete ✅
 This codebase is undergoing a planned enhancement project to integrate 14 advanced RAG strategies from the reference repository. Refer to `PLANNING.md` and `TASKS.md` for full context of the enhancement plan.
 
 **Phase 1: Foundation Enhancements - COMPLETED:**
@@ -79,6 +79,7 @@ This codebase is undergoing a planned enhancement project to integrate 14 advanc
 
 **Phase 3: Application Features Enhancement - IN PROGRESS:**
 - ✅ **Task 3.0 Contextual Embeddings Integration**: Strategy configuration system integrated with existing contextual embeddings, full backward compatibility maintained
+- ✅ **Task 3.1 Strategy Manager Implementation**: Centralized component lifecycle management, conditional tool registration, resource optimization
 
 The enhancement follows a strict preservation-first approach:
 
@@ -100,7 +101,8 @@ The enhancement follows a strict preservation-first approach:
 3. **✅ Enhanced Documentation** - Comprehensive user guides, troubleshooting, and performance tuning
 4. **✅ Database Architecture** - Sources table + code examples + FK constraints (complete relational integrity)
 5. **✅ Contextual Embeddings Integration** - Enhanced semantic understanding integrated with strategy configuration system
-6. **Agentic RAG** - Specialized code extraction and search capabilities
+6. **✅ Strategy Manager Implementation** - Centralized component lifecycle management with conditional tool registration
+7. **Agentic RAG** - Specialized code extraction and search capabilities
 
 ### Development Guidelines for Enhancements
 - Always test rollback procedures before implementing database changes
@@ -110,6 +112,7 @@ The enhancement follows a strict preservation-first approach:
 - ✅ **Documentation comprehensive**: User guides, troubleshooting, performance tuning all complete
 - ✅ **Database architecture complete**: Sources + code examples + FK constraints with 100% data integrity and performance validation
 - ✅ **Contextual embeddings integration complete**: New strategy configuration system integrated with existing functionality, full backward compatibility maintained
+- ✅ **Strategy Manager complete**: Centralized component lifecycle management implemented with 32 comprehensive tests
 - Test strategy combinations, not just individual features
 - **Validate integration points with Supabase Docker stack and n8n workflows**
 - ✅ **Edge function compatibility verified**: Fixed search_documents() with direct requests approach
@@ -182,14 +185,16 @@ python tests/test_performance_regression.py --quick
 python -c "from src.performance_monitor import validate_against_baseline; from src.utils import get_supabase_client; print('✅ No regressions' if validate_against_baseline(get_supabase_client()) else '⚠️ Regressions detected')"
 ```
 
-### Testing Commands (Tasks 1.1 & 1.2 Complete)
+### Testing Commands (Tasks 1.1, 1.2, & 3.1 Complete)
 ```bash
 # Run all tests
 uv run pytest
 
 # Run specific test modules
-uv run pytest tests/test_config.py -v        # Configuration system tests (21 tests)
-uv run pytest tests/test_reranking.py -v    # Reranking functionality tests (22 tests)
+uv run pytest tests/test_config.py -v               # Configuration system tests (21 tests)
+uv run pytest tests/test_reranking.py -v           # Reranking functionality tests (22 tests)
+uv run pytest tests/test_strategy_manager.py -v    # Strategy Manager tests (32 tests)
+uv run pytest tests/test_contextual_integration.py -v # Contextual embeddings integration tests (16 tests)
 
 # Run tests with coverage
 uv run pytest --cov=src tests/

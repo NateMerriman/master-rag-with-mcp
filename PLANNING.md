@@ -86,6 +86,7 @@ Enhanced Strategies (configurable):
    - **✅ Task 2.3 Complete**: Foreign key constraints with 100% data integrity and performance validation
 3. **✅ Application** (3-5 days): PHASE 3 IN PROGRESS - Strategy system + contextual embeddings + code extraction
    - **✅ Task 3.0 Complete**: Contextual embeddings integration with strategy configuration system
+   - **✅ Task 3.1 Complete**: Strategy Manager implementation with component lifecycle management
 4. **Advanced RAG** (5-7 days): Reranking integration + cross-strategy testing
 
 ### Code Organization
@@ -98,12 +99,15 @@ src/
 ├── database/
 │   ├── migrations/        # ✅ IMPLEMENTED - Schema migration scripts (001_create_sources_table)
 │   └── models.py         # ✅ IMPLEMENTED - Source and CrawledPage models
-└── strategies/           # RAG strategy implementations
+└── strategies/           # ✅ IMPLEMENTED - RAG strategy implementations
+    ├── __init__.py       # ✅ IMPLEMENTED - Strategy package exports
+    └── manager.py        # ✅ IMPLEMENTED - StrategyManager with component lifecycle
 
 tests/
 ├── test_config.py         # ✅ IMPLEMENTED - Configuration system tests (21 tests)
 ├── test_reranking.py      # ✅ IMPLEMENTED - Reranking functionality tests (22 tests)
 ├── test_contextual_integration.py # ✅ IMPLEMENTED - Contextual embeddings integration tests (16 tests)
+├── test_strategy_manager.py # ✅ IMPLEMENTED - Strategy Manager functionality tests (32 tests)
 ├── test_performance_regression.py  # ✅ IMPLEMENTED - Performance monitoring and regression testing
 └── ...                   # Additional test files for future components
 ```
@@ -124,7 +128,7 @@ sentence-transformers = ">=3.0.0"  # ✅ IMPLEMENTED - For cross-encoder reranki
 pytest = ">=8.3.5"  # ✅ IMPLEMENTED - For comprehensive testing
 ```
 
-### Phase 1 & 2 Completed Deliverables
+### Phase 1, 2 & 3 (Partial) Completed Deliverables
 - ✅ **Performance monitoring framework** (`src/performance_baseline.py`, `src/performance_monitor.py`)
 - ✅ **Strategy configuration system** (`src/config.py` with comprehensive validation)
 - ✅ **Cross-encoder reranking infrastructure** (`src/reranking.py` with 22 unit tests)
@@ -133,6 +137,8 @@ pytest = ">=8.3.5"  # ✅ IMPLEMENTED - For comprehensive testing
 - ✅ **Configuration testing** (`tests/test_config.py` with 21 test cases)
 - ✅ **Database architecture** (Sources table, code examples table, FK constraints with 100% data integrity)
 - ✅ **Contextual embeddings integration** (`src/utils.py` enhanced with strategy configuration, 16 integration tests)
+- ✅ **Strategy Manager implementation** (`src/strategies/manager.py` with lifecycle management, 32 unit tests)
+- ✅ **Conditional tool registration** (Tools appear/disappear based on enabled strategies)
 
 ### Environment Variables
 ```bash

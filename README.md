@@ -46,12 +46,20 @@ The Crawl4AI RAG MCP server is just the beginning. Here's where we're headed:
 
 ## Tools
 
-The server provides four essential web crawling and search tools:
+The server provides a dynamic set of tools that adapt based on your enabled RAG strategies:
 
+### Core Tools (Always Available)
 1. **`crawl_single_page`**: Quickly crawl a single web page and store its content in the vector database
 2. **`smart_crawl_url`**: Intelligently crawl a full website based on the type of URL provided (sitemap, llms-full.txt, or a regular webpage that needs to be crawled recursively)
 3. **`get_available_sources`**: Get a list of all available sources (domains) in the database
 4. **`perform_rag_query`**: Search for relevant content using semantic search with optional source filtering
+
+### Strategy-Specific Tools (Conditional)
+- **`perform_rag_query_with_reranking`**: Enhanced search with cross-encoder reranking (requires `USE_RERANKING=true`)
+- **`search_code_examples`**: Specialized code search with language and complexity filtering (requires `USE_AGENTIC_RAG=true`)
+- **`perform_contextual_rag_query`**: Context-enhanced search queries (requires `USE_CONTEXTUAL_EMBEDDINGS=true`)
+
+> **Note**: Strategy-specific tools automatically appear when their corresponding strategies are enabled via environment variables. This ensures optimal resource usage and a clean tool interface.
 
 ## Prerequisites
 
@@ -411,6 +419,59 @@ python tests/test_performance_regression.py --max-regression 25
 # Fails if performance degrades more than 25%
 ```
 
+## System Architecture
+
+### Strategy Manager
+
+The system uses a **Strategy Manager** to dynamically control which components are loaded and which tools are available based on your configuration:
+
+#### Component Lifecycle Management
+- **Resource Optimization**: Only initializes components for enabled strategies (saves memory and startup time)
+- **Automatic Cleanup**: Proper resource management during server shutdown
+- **Error Handling**: Graceful fallbacks when components fail to initialize
+- **Status Monitoring**: Real-time component health and configuration reporting
+
+#### Dynamic Tool Registration
+```bash
+# Example: Only base tools available
+USE_RERANKING=false
+# Tools: crawl_single_page, smart_crawl_url, get_available_sources, perform_rag_query
+
+# Example: Reranking enabled
+USE_RERANKING=true  
+# Tools: [base tools] + perform_rag_query_with_reranking
+
+# Example: Multiple strategies enabled
+USE_RERANKING=true
+USE_AGENTIC_RAG=true
+# Tools: [base tools] + perform_rag_query_with_reranking + search_code_examples
+```
+
+#### Strategy Validation
+- **Dependency Checking**: Validates required environment variables for each enabled strategy
+- **Configuration Validation**: Ensures strategy combinations are compatible
+- **Startup Validation**: Prevents server startup with invalid configurations
+
+#### Status Reporting
+```bash
+# Check strategy manager status
+python -c "
+from src.strategies.manager import get_strategy_manager
+manager = get_strategy_manager()
+if manager:
+    status = manager.get_status_report()
+    print(f'Enabled strategies: {status[\"enabled_strategies\"]}')
+    print(f'Available tools: {len(status[\"available_tools\"])}')
+    print(f'Component status: {status[\"components\"]}')
+"
+```
+
+### Benefits
+- **Efficient Resource Usage**: No wasted memory on unused components
+- **Clean Interface**: Users only see tools relevant to their configuration  
+- **Scalable Design**: Easy to add new strategies without affecting existing functionality
+- **Development-Friendly**: Comprehensive testing and status reporting for debugging
+
 ## Running the Server
 
 ### Using Docker
@@ -619,8 +680,14 @@ OPENAI_API_KEY = your_key  # ✗ Incorrect
 # Test configuration loading
 python -c "from src.config import get_strategy_config; print('✓ Configuration valid')"
 
+# Test strategy manager
+python -c "from src.strategies.manager import get_strategy_manager; print('✓ Strategy manager ready')"
+
 # Test performance
 python tests/test_performance_regression.py --quick
+
+# Run comprehensive tests
+uv run pytest tests/ -v
 ```
 
 #### Enable debug logging
