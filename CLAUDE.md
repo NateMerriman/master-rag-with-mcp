@@ -160,6 +160,16 @@ The enhancement follows a strict preservation-first approach:
 - **Organize code into clearly separated modules**, grouped by feature or responsibility.
 - **Use clear, consistent imports** (prefer relative imports within packages).
 
+## Documentation References
+
+### Enhanced Code Metadata System
+- **`METADATA_ENHANCEMENTS.md`** - Comprehensive documentation of the enhanced metadata system for code examples
+  - Details the 20+ metadata fields generated for each code block (statistics, code analysis, context intelligence, complexity indicators)
+  - Documents language-specific features for Python, JavaScript/TypeScript, SQL, Java, and other programming languages
+  - Explains performance characteristics and size optimization strategies (typically <2KB per code block)
+  - Provides integration guidance for AI systems and enhanced code discoverability
+  - Includes example metadata structures and future enhancement possibilities
+
 ## Commands
 
 ### Setup and Dependencies

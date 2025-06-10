@@ -450,12 +450,15 @@
   - [x] Modified `src/utils.py` in the `add_code_examples_to_supabase` function.
   - [x] The function now passes the `summary` to be stored in the database.
   - [x] The embedding is now generated from a combination of the code `content` and the AI-generated `summary`.
+- [x] **Search Function Update**:
+    - [x] Modified `create_hybrid_search_code_examples_function.sql` to include the `summary` in the search results.
 
 **Acceptance Criteria: ✅ ALL MET**
 - `code_examples` table includes a `summary` column. ✅
 - The code extraction pipeline calls the OpenAI API to generate summaries. ✅
 - Summaries are stored in the database. ✅
 - Embeddings are created from both code content and summary. ✅
+- Search results for code examples include the `summary`. ✅
 
 **Implementation Notes:**
 - This change deviates from the "Code Examples Refactoring" plan, which originally aimed to remove the summary. The `PLANNING.md` file has been updated to reflect this new direction.
@@ -535,6 +538,16 @@
 - **Supabase Client Edge Function Issue**: Python supabase client had compatibility issues with edge function calls, returning "Unexpected end of JSON input". Fixed by implementing direct requests approach.
 - **Empty Search Results**: Initial baseline capture returned 0 results due to edge function issues. After fixing search function, captured real baseline with 10 results per query.
 - **Performance Variation**: Search response times vary (25-50%) between runs, which is normal for hybrid search operations.
+
+## Documentation
+
+### Enhanced Metadata Documentation
+- **`METADATA_ENHANCEMENTS.md`** - Comprehensive documentation of the enhanced metadata system for code examples
+  - 20+ metadata fields organized into categories (statistics, code analysis, context intelligence, complexity indicators)
+  - Language-specific features for Python, JavaScript/TypeScript, SQL, Java, and 18+ programming languages
+  - Performance characteristics and size optimization strategies
+  - Integration benefits for AI systems and code discovery
+  - Example metadata structures and future enhancement possibilities
 
 ## Completed Tasks
 
