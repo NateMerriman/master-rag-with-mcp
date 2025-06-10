@@ -85,6 +85,7 @@ This codebase is undergoing a planned enhancement project to integrate 14 advanc
 
 **Phase 4: Advanced RAG Strategies - IN PROGRESS:**
 - ✅ **Task 4.1 Cross-Encoder Reranking Integration**: Complete pipeline integration preserving hybrid search benefits, performance monitoring, comprehensive testing
+- ✅ **Model Configuration Centralization**: Unified CONTEXTUAL_MODEL environment variable control across all contextualization features (code extraction, contextual embeddings), improved fallback to gpt-4o-mini-2024-07-18
 
 The enhancement follows a strict preservation-first approach:
 
@@ -125,7 +126,8 @@ The enhancement follows a strict preservation-first approach:
 - **Validate integration points with Supabase Docker stack and n8n workflows**
 - ✅ **Edge function compatibility verified**: Fixed search_documents() with direct requests approach
 - **Verify RPC function signatures remain consistent across changes**
-- Use existing patterns (e.g., MODEL_CHOICE) for new LLM integrations
+- Use existing patterns (e.g., MODEL_CHOICE, CONTEXTUAL_MODEL) for new LLM integrations
+- **Centralized Model Configuration**: All contextualization features now use CONTEXTUAL_MODEL environment variable for consistent model selection across code extraction and contextual embeddings
 - ✅ **Docker architecture tested**: Environment variables configured for local vs Docker networking
 - ✅ **Configuration management**: All new strategies controlled by environment variables with comprehensive validation
 - **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
@@ -277,6 +279,8 @@ supabase stop     # Stop Supabase services
 
 **Contextual Embeddings**: Optional feature that generates contextual summaries for chunks to improve retrieval accuracy when `MODEL_CHOICE` environment variable is set.
 
+**Centralized Model Configuration**: The `CONTEXTUAL_MODEL` environment variable now controls all contextualization models across the entire codebase, including code extraction summaries and contextual embeddings. This provides a single source of truth for model selection.
+
 **Chunking Strategy**: Smart markdown chunking that respects code blocks, paragraphs, and sentence boundaries while maintaining configurable chunk sizes.
 
 ### Environment Variables
@@ -301,7 +305,7 @@ USE_AGENTIC_RAG=false
 USE_RERANKING=false
 
 # Model configuration for enhancements
-CONTEXTUAL_MODEL=gpt-3.5-turbo
+CONTEXTUAL_MODEL=gpt-4o-mini-2024-07-18  # Default fallback, can be overridden
 RERANKING_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
 
 # IMPORTANT: For local testing, performance scripts temporarily override

@@ -1056,7 +1056,7 @@ async def get_strategy_status(ctx: Context) -> str:
                 "USE_HYBRID_SEARCH_ENHANCED": "Advanced hybrid search algorithms",
             },
             "model_settings": {
-                "CONTEXTUAL_MODEL": "LLM model for contextual embeddings (default: gpt-3.5-turbo)",
+                "CONTEXTUAL_MODEL": "LLM model for contextual embeddings (default: gpt-4o-mini-2024-07-18)",
                 "RERANKING_MODEL": "Cross-encoder model for reranking (default: ms-marco-MiniLM-L-6-v2)",
             },
         }

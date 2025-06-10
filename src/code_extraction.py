@@ -23,6 +23,15 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+# Import the centralized model configuration function
+try:
+    from utils import _get_contextual_model
+except ImportError:
+    # Fallback if utils import fails
+    def _get_contextual_model() -> Optional[str]:
+        return os.getenv("CONTEXTUAL_MODEL", "gpt-4o-mini-2024-07-18")
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -607,7 +616,10 @@ class CodeExtractor:
         Returns:
             A concise summary of what the code does
         """
-        if OPENAI_AVAILABLE:
+        # Get the model from centralized configuration
+        model_to_use = _get_contextual_model()
+
+        if OPENAI_AVAILABLE and model_to_use:
             try:
                 # Prepare the prompt with context
                 prompt = f"""
@@ -626,20 +638,27 @@ class CodeExtractor:
                 """
 
                 response = openai.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model=model_to_use,  # Use the configured model instead of hard-coded
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=150,
                     temperature=0.3,
                 )
 
+                logger.debug(f"Generated AI summary using model: {model_to_use}")
                 return response.choices[0].message.content.strip()
 
             except Exception as e:
-                logger.warning(f"Failed to generate AI summary for code: {e}")
+                logger.warning(
+                    f"Failed to generate AI summary using model {model_to_use}: {e}"
+                )
                 # Fallback to rule-based summary
                 return self._generate_rule_based_summary(code, language)
         else:
-            # OpenAI not available, use rule-based summary
+            # OpenAI not available or no model configured, use rule-based summary
+            if not OPENAI_AVAILABLE:
+                logger.debug("OpenAI not available, using rule-based summary")
+            elif not model_to_use:
+                logger.debug("No contextual model configured, using rule-based summary")
             return self._generate_rule_based_summary(code, language)
 
     def _generate_rule_based_summary(
