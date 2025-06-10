@@ -101,6 +101,54 @@ class CodeExtractor:
 
     INLINE_CODE_PATTERN = re.compile(r"`([^`\n]+)`")
 
+    COMPLEX_PATTERNS = {
+        ProgrammingLanguage.PYTHON: [
+            re.compile(r"\bclass\s"),
+            re.compile(r"\btry:"),
+            re.compile(r"\basync\s+def\b"),
+            re.compile(r"@[a-zA-Z0-9_.]+"),  # Decorators
+            re.compile(r"\byield\s"),
+            re.compile(r"with\s+"),
+        ],
+        ProgrammingLanguage.JAVASCRIPT: [
+            re.compile(r"\bclass\s"),
+            re.compile(r"\btry\s*\{"),
+            re.compile(r"\basync\s+function\b"),
+            re.compile(r"\bawait\s"),
+            re.compile(r"Promise\."),
+        ],
+        ProgrammingLanguage.TYPESCRIPT: [
+            re.compile(r"\bclass\s"),
+            re.compile(r"\binterface\s"),
+            re.compile(r"\btry\s*\{"),
+            re.compile(r"\basync\s+function\b"),
+            re.compile(r"\bawait\s"),
+            re.compile(r"<[A-Z][a-zA-Z0-9_]*>"),  # Generics
+        ],
+        ProgrammingLanguage.JAVA: [
+            re.compile(r"\bclass\s"),
+            re.compile(r"\binterface\s"),
+            re.compile(r"\btry\s*\{"),
+            re.compile(r"\bfinally\s*\{"),
+            re.compile(r"\bsynchronized\b"),
+            re.compile(r"<[A-Z][a-zA-Z0-9_]*>"),  # Generics
+        ],
+        ProgrammingLanguage.SQL: [
+            re.compile(r"\bJOIN\b", re.IGNORECASE),
+            re.compile(r"\bUNION\b", re.IGNORECASE),
+            re.compile(r"\bWITH\b", re.IGNORECASE),
+            re.compile(r"\bGROUP\s+BY\b", re.IGNORECASE),
+            re.compile(r"\(SELECT", re.IGNORECASE),  # Subquery
+        ],
+        ProgrammingLanguage.RUST: [
+            re.compile(r"\bunsafe\b"),
+            re.compile(r"\basync\b"),
+            re.compile(r"\bawait\b"),
+            re.compile(r"\btrait\b"),
+            re.compile(r"<\'"),  # Lifetimes
+        ],
+    }
+
     def __init__(self):
         self.min_code_length = 10  # Minimum characters for a valid code block
         self.max_code_length = 10000  # Maximum characters to avoid huge blocks
@@ -322,10 +370,55 @@ class CodeExtractor:
         self, code: str, language: ProgrammingLanguage
     ) -> int:
         """
-        Calculate a complexity score (1-10) for a given code block.
+        Calculates a complexity score (1-10) for a given code block.
+        The score is based on length, nesting, and language-specific keywords.
         """
-        # Default to a mid-range score if no specific metrics are met
-        return 5
+        score = 1
+        lines = code.split("\n")
+        num_lines = len(lines)
+
+        # 1. Length-based score (up to 3 points)
+        if num_lines > 50:
+            score += 3
+        elif num_lines > 20:
+            score += 2
+        elif num_lines > 10:
+            score += 1
+
+        # 2. Nesting-based score (up to 3 points)
+        max_nesting = 0
+        if language == ProgrammingLanguage.PYTHON:
+            # Use indentation for Python nesting
+            max_indent = 0
+            for line in lines:
+                stripped_line = line.lstrip()
+                if stripped_line:
+                    indent = len(line) - len(stripped_line)
+                    max_indent = max(max_indent, indent)
+            # Assume 4 spaces per indent level
+            max_nesting = max_indent // 4
+        else:
+            # Use curly braces for other languages
+            current_nesting = 0
+            for char in code:
+                if char == "{":
+                    current_nesting += 1
+                    max_nesting = max(max_nesting, current_nesting)
+                elif char == "}":
+                    current_nesting = max(0, current_nesting - 1)
+
+        score += min(3, max_nesting)  # Add up to 3 points for nesting
+
+        # 3. Keyword-based score (up to 4 points)
+        keyword_score = 0
+        if language in self.COMPLEX_PATTERNS:
+            for pattern in self.COMPLEX_PATTERNS[language]:
+                if pattern.search(code):
+                    keyword_score += 1
+
+        score += min(4, keyword_score)
+
+        return min(10, score)
 
     def generate_summary(
         self,
