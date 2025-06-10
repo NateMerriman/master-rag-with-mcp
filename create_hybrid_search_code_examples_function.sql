@@ -8,7 +8,7 @@ DROP FUNCTION IF EXISTS hybrid_search_code_examples(TEXT, VECTOR, INT, TEXT, INT
 
 -- Create the new custom composite type for return results, matching the new schema.
 CREATE TYPE hybrid_search_code_examples_result AS (
-    id BIGINT,
+    id INT,
     source_id INT,
     url TEXT,
     content TEXT,
@@ -18,8 +18,8 @@ CREATE TYPE hybrid_search_code_examples_result AS (
     metadata JSONB,
     similarity FLOAT,
     rrf_score FLOAT,
-    semantic_rank INT,
-    full_text_rank INT
+    semantic_rank BIGINT,
+    full_text_rank BIGINT
 );
 
 -- Create the updated RPC function for hybrid search.

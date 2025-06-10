@@ -353,7 +353,7 @@
 - Updated documentation with integration details and troubleshooting
 
 ### TASK 4.2: Cross-Strategy Integration Testing
-**Priority: HIGH | Estimated: 4 hours**
+**Priority: MEDIUM | Estimated: 4 hours**
 
 - [ ] Test multiple strategies enabled simultaneously
   - [ ] Contextual embeddings + reranking
@@ -566,6 +566,19 @@
 - [ ] **Integration testing with downstream n8n workflows**
 
 ## Discovered Issues / Notes
+
+### 🐛 Bug Fix: Type Mismatch in hybrid_search_code_examples Function
+**Date:** 2025-01-09  
+**Issue:** MCP server failing with SQL error: "Returned type integer does not match expected type bigint in column 1/11"
+**Root Cause:** Multiple type mismatches in `hybrid_search_code_examples_result`:
+- `id` was `BIGINT` but table uses `SERIAL` (`INTEGER`)
+- `semantic_rank` and `full_text_rank` were `INT` but `row_number()` returns `BIGINT`
+**Resolution:** Updated `create_hybrid_search_code_examples_function.sql`:
+- Changed `id BIGINT` to `id INT` 
+- Changed `semantic_rank INT` to `semantic_rank BIGINT`
+- Changed `full_text_rank INT` to `full_text_rank BIGINT`
+**Impact:** Code search functionality in n8n MCP integration now works correctly
+**Files Modified:** `create_hybrid_search_code_examples_function.sql`
 
 ### Task 1.0 - Performance Baseline Issues Resolved
 - **Environment Configuration**: Original .env used `host.docker.internal:54321` for Docker networking with n8n, but local testing required `localhost:54321`. Fixed with temporary override in test scripts.
