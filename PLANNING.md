@@ -227,3 +227,168 @@ RERANKING_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
 - Docker environment configuration
 - Existing crawling pipeline (minimal changes)
 - Current search tools (enhanced, not replaced)
+
+## Optional Improvements: Code Examples Contextualization Prompt Enhancements
+
+### Overview
+The current code examples contextualization system uses a basic prompt in `src/code_extraction.py` (lines 619-638). These optional enhancements would significantly improve the semantic search quality for code examples while maintaining backward compatibility.
+
+### Enhancement Ideas
+
+#### 1. Multi-Layered Context Analysis
+**Benefit**: Leverages existing metadata system for richer contextualization
+**Implementation**: Enhanced prompt that incorporates complexity scores, patterns, and identifiers
+```python
+def generate_enhanced_summary(
+    self,
+    code: str,
+    language: ProgrammingLanguage,
+    context_before: str = "",
+    context_after: str = "",
+    metadata: Dict[str, Any] = None,
+) -> str:
+    """Enhanced summary generation with multi-layered context analysis."""
+    
+    # Extract complexity and patterns from existing metadata
+    complexity_score = metadata.get('complexity_score', 1) if metadata else 1
+    patterns = metadata.get('patterns', []) if metadata else []
+    identifiers = metadata.get('identifiers', []) if metadata else []
+    
+    # Build context-aware prompt with technical context
+```
+
+#### 2. Domain-Specific Prompt Adaptation
+**Benefit**: Leverages existing content type detection system from `utils.py`
+**Implementation**: Use detected content types (technical, educational, forum, etc.) to adapt prompts
+```python
+def _get_code_specific_prompt(self, content_type: str, language: ProgrammingLanguage) -> str:
+    """Generate domain-specific prompts based on content type and language."""
+    
+    base_instructions = {
+        "technical": "Focus on API usage, integration patterns, and practical implementation details.",
+        "educational": "Emphasize learning objectives, step-by-step explanation, and beginner-friendly concepts.",
+        "forum": "Highlight problem-solving approach, common issues addressed, and community solutions.",
+        # ... more content types
+    }
+```
+
+#### 3. Semantic Intent Recognition
+**Benefit**: Detect code purpose to generate more targeted summaries
+**Implementation**: Pattern matching to identify API integration, tutorials, configuration, error handling
+```python
+def _detect_code_intent(self, code: str, context: str) -> List[str]:
+    """Detect the likely intent/purpose of the code block."""
+    intents = []
+    
+    # API/Integration patterns
+    if any(word in context.lower() for word in ['api', 'endpoint', 'request', 'response']):
+        intents.append("API Integration")
+    # ... more intent detection
+```
+
+#### 4. Progressive Summarization Strategy
+**Benefit**: Two-stage approach for complex code blocks
+**Implementation**: Quick analysis first, then detailed summary using analysis results
+```python
+def generate_progressive_summary(self, code: str, language: ProgrammingLanguage, context_before: str, context_after: str) -> str:
+    """Two-stage summarization: quick analysis then detailed summary."""
+    
+    # Stage 1: Quick analysis
+    analysis_prompt = f"""
+    Quickly analyze this {language.value} code and identify:
+    1. Primary function/purpose (1 phrase)
+    2. Key technologies/frameworks used (max 3)
+    3. Complexity level (1-3: simple, moderate, complex)
+    4. Target audience (beginner/intermediate/advanced)
+    """
+    # Stage 2: Detailed summary using analysis
+```
+
+#### 5. Template-Based Enhancement with Examples
+**Benefit**: Few-shot learning approach for consistent, high-quality outputs
+**Implementation**: Language-specific examples to guide AI response format
+```python
+def _get_enhanced_prompt_with_examples(self, code: str, language: ProgrammingLanguage, context_before: str, context_after: str) -> str:
+    """Enhanced prompt with few-shot examples for better output quality."""
+    
+    examples = {
+        ProgrammingLanguage.PYTHON: {
+            "example_code": "def authenticate_user(username, password):\n    return bcrypt.check_password_hash(stored_hash, password)",
+            "example_summary": "User authentication function that validates credentials using bcrypt hashing. Compares provided password against stored hash for secure login verification. Essential security component for user access control systems."
+        },
+        # ... more language examples
+    }
+```
+
+#### 6. Configuration-Driven Enhancement
+**Benefit**: Integrates with existing strategy system for controlled rollout
+**Implementation**: Add code summary configuration to existing config system
+```python
+@dataclass
+class CodeSummaryConfig:
+    """Configuration for code summary generation."""
+    use_progressive_summarization: bool = False
+    use_domain_specific_prompts: bool = True
+    use_intent_detection: bool = True
+    include_complexity_context: bool = True
+    max_context_chars: int = 300
+    summary_style: str = "practical"  # "practical", "academic", "tutorial"
+```
+
+#### 7. Retrieval-Optimized Summaries
+**Benefit**: Summaries specifically designed for semantic search discovery
+**Implementation**: Focus on action keywords, domain terms, use cases, and technical patterns
+```python
+def generate_retrieval_optimized_summary(self, code: str, language: ProgrammingLanguage, context_before: str, context_after: str) -> str:
+    """Generate summaries optimized for semantic search retrieval."""
+    
+    prompt = f"""
+    Create a search-optimized summary for this {language.value} code block.
+    
+    **Generate a summary that includes:**
+    1. **Action Keywords**: What this code DOES (verbs: creates, validates, processes, etc.)
+    2. **Domain Terms**: Specific technologies, frameworks, or concepts used
+    3. **Use Case Keywords**: When/why developers would need this
+    4. **Technical Patterns**: Design patterns, architectural concepts, or methodologies
+    """
+```
+
+### Technical Integration Points
+
+#### Environment Variables
+```bash
+# Code summary enhancement toggles (all default false for backward compatibility)
+USE_ENHANCED_CODE_SUMMARIES=false
+USE_PROGRESSIVE_CODE_SUMMARIZATION=false
+USE_DOMAIN_SPECIFIC_CODE_PROMPTS=true
+USE_CODE_INTENT_DETECTION=true
+USE_RETRIEVAL_OPTIMIZED_CODE_SUMMARIES=false
+
+# Code summary configuration
+CODE_SUMMARY_STYLE=practical  # "practical", "academic", "tutorial"
+CODE_SUMMARY_MAX_CONTEXT_CHARS=300
+CODE_SUMMARY_INCLUDE_COMPLEXITY=true
+```
+
+#### Integration with Existing Systems
+- **Content Type Detection**: Leverage existing `_detect_content_type()` in `utils.py`
+- **Configuration System**: Extend existing `StrategyConfig` in `config.py`
+- **Metadata System**: Use existing enhanced metadata from `METADATA_ENHANCEMENTS.md`
+- **Strategy Manager**: Add code summary strategy to `strategies/manager.py`
+- **Performance Monitoring**: Extend existing monitoring to track summary generation times
+
+### Expected Benefits
+1. **Improved Search Relevance**: Better semantic matching for code search queries
+2. **Enhanced Developer Experience**: More informative and actionable code summaries
+3. **Content-Aware Contextualization**: Adaptive prompts based on documentation type
+4. **Backward Compatibility**: All enhancements optional with existing behavior preserved
+5. **Performance Monitoring**: Integration with existing performance baseline system
+
+### Implementation Considerations
+- **API Cost Management**: Enhanced prompts may increase OpenAI API usage
+- **Processing Time**: Progressive summarization adds latency but improves quality
+- **Memory Usage**: Template-based approaches require storing example prompts
+- **Configuration Complexity**: More options require better documentation and validation
+- **Testing Requirements**: Each enhancement needs comprehensive test coverage
+
+## Strategy Integration Analysis

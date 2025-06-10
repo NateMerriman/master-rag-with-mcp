@@ -1,7 +1,20 @@
+# Environment files (ignore actual secrets, but allow templates/examples)
 .env
+!.env.example
+!.env.template
+!.env.sample
+
+# Virtual environment
 .venv
+
+# Python
 __pycache__
+
+# Project files
 crawl4ai_mcp.egg-info
 .DS_Store
 mcp-crawl4ai-rag.code-workspace
+
+# Cursor
+.cursorignore
 

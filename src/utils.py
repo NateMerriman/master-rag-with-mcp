@@ -183,13 +183,461 @@ def create_embedding(text: str) -> List[float]:
         return [0.0] * 1536
 
 
-def generate_contextual_embedding(full_document: str, chunk: str) -> Tuple[str, bool]:
+def _detect_content_type(content: str, url: str = "") -> str:
+    """
+    Detect the type of content to apply appropriate contextual embedding strategy.
+
+    Args:
+        content: The text content to analyze
+        url: Optional URL for additional context
+
+    Returns:
+        Content type category as string
+    """
+    content_lower = content.lower()
+    url_lower = url.lower()
+
+    # Technical documentation indicators
+    tech_indicators = [
+        "api",
+        "function",
+        "class",
+        "method",
+        "parameter",
+        "returns",
+        "example:",
+        "installation",
+        "configuration",
+        "setup",
+        "import",
+        "usage",
+        "```",
+        "endpoint",
+        "request",
+        "response",
+        "library",
+        "framework",
+    ]
+
+    # Academic/research indicators
+    academic_indicators = [
+        "abstract",
+        "methodology",
+        "hypothesis",
+        "conclusion",
+        "references",
+        "study",
+        "research",
+        "analysis",
+        "findings",
+        "literature review",
+        "experiment",
+        "data",
+        "results",
+        "discussion",
+        "journal",
+    ]
+
+    # Forum/discussion indicators
+    forum_indicators = [
+        "posted by",
+        "reply",
+        "comment",
+        "question:",
+        "answer:",
+        "solved",
+        "upvoted",
+        "downvoted",
+        "thread",
+        "forum",
+        "discussion",
+        "feedback",
+        "opinion",
+        "experience",
+        "issue",
+        "problem",
+        "help",
+    ]
+
+    # News/article indicators
+    news_indicators = [
+        "published",
+        "editor",
+        "reporter",
+        "breaking",
+        "update",
+        "announced",
+        "statement",
+        "press release",
+        "interview",
+        "according to",
+        "sources say",
+        "reuters",
+        "bloomberg",
+        "cnn",
+    ]
+
+    # Blog/opinion indicators
+    blog_indicators = [
+        "i think",
+        "in my opinion",
+        "personally",
+        "i believe",
+        "my experience",
+        "thoughts on",
+        "reflection",
+        "perspective",
+        "author:",
+        "written by",
+        "blog",
+        "post",
+    ]
+
+    # Social media indicators (non-forum)
+    social_media_indicators = [
+        "shared",
+        "retweet",
+        "like",
+        "follow",
+        "followers",
+        "trending",
+        "hashtag",
+        "#",
+        "@",
+        "posted on",
+        "social media",
+        "tweet",
+        "linkedin post",
+        "instagram",
+        "facebook",
+        "twitter",
+        "thread",
+        "viral",
+        "engagement",
+        "influencer",
+    ]
+
+    # Legal document indicators
+    legal_indicators = [
+        "whereas",
+        "therefore",
+        "hereby",
+        "pursuant to",
+        "section",
+        "subsection",
+        "clause",
+        "contract",
+        "agreement",
+        "terms and conditions",
+        "legal",
+        "law",
+        "statute",
+        "regulation",
+        "court",
+        "jurisdiction",
+        "plaintiff",
+        "defendant",
+        "attorney",
+        "counsel",
+        "liability",
+        "damages",
+        "breach",
+        "compliance",
+        "shall",
+        "may not",
+        "provided that",
+    ]
+
+    # Educational/instructional indicators (non-academic)
+    educational_indicators = [
+        "tutorial",
+        "how to",
+        "step by step",
+        "lesson",
+        "guide",
+        "course",
+        "learn",
+        "instruction",
+        "exercise",
+        "practice",
+        "assignment",
+        "module",
+        "chapter",
+        "beginner",
+        "intermediate",
+        "advanced",
+        "skill",
+        "training",
+        "workshop",
+        "walkthrough",
+        "demo",
+        "example",
+        "tip:",
+        "note:",
+        "important:",
+        "remember:",
+        "quick start",
+        "getting started",
+    ]
+
+    # URL-based detection
+    if any(
+        domain in url_lower for domain in ["github.com", "docs.", "api.", "developer."]
+    ):
+        return "technical"
+    elif any(
+        domain in url_lower
+        for domain in ["reddit.com", "stackoverflow", "forum", "discourse"]
+    ):
+        return "forum"
+    elif any(
+        domain in url_lower
+        for domain in ["arxiv.org", "scholar.google", "pubmed", "jstor"]
+    ):
+        return "academic"
+    elif any(
+        domain in url_lower for domain in ["news.", "cnn.com", "bbc.com", "reuters"]
+    ):
+        return "news"
+    elif any(domain in url_lower for domain in ["medium.com", "substack", "blog"]):
+        return "blog"
+    elif any(
+        domain in url_lower
+        for domain in [
+            "twitter.com",
+            "linkedin.com",
+            "instagram.com",
+            "facebook.com",
+            "x.com",
+        ]
+    ):
+        return "social_media"
+    elif any(
+        domain in url_lower
+        for domain in ["law.", "legal", "court", "gov", "laws", "legislation"]
+    ):
+        return "legal"
+    elif any(
+        domain in url_lower
+        for domain in [
+            "tutorial",
+            "course",
+            "learn",
+            "education",
+            "training",
+            "udemy",
+            "coursera",
+            "khan",
+        ]
+    ):
+        return "educational"
+
+    # Content-based detection
+    tech_score = sum(1 for indicator in tech_indicators if indicator in content_lower)
+    academic_score = sum(
+        1 for indicator in academic_indicators if indicator in content_lower
+    )
+    forum_score = sum(1 for indicator in forum_indicators if indicator in content_lower)
+    news_score = sum(1 for indicator in news_indicators if indicator in content_lower)
+    blog_score = sum(1 for indicator in blog_indicators if indicator in content_lower)
+    social_media_score = sum(
+        1 for indicator in social_media_indicators if indicator in content_lower
+    )
+    legal_score = sum(1 for indicator in legal_indicators if indicator in content_lower)
+    educational_score = sum(
+        1 for indicator in educational_indicators if indicator in content_lower
+    )
+
+    scores = {
+        "technical": tech_score,
+        "academic": academic_score,
+        "forum": forum_score,
+        "news": news_score,
+        "blog": blog_score,
+        "social_media": social_media_score,
+        "legal": legal_score,
+        "educational": educational_score,
+    }
+
+    # Return the category with highest score, default to 'general'
+    max_score = max(scores.values())
+    if max_score >= 2:  # Require at least 2 indicators for confident classification
+        return max(scores, key=scores.get)
+
+    return "general"
+
+
+def _get_contextual_prompt_and_system_message(
+    content_type: str, full_document: str, chunk: str
+) -> tuple[str, str]:
+    """
+    Generate appropriate prompt and system message based on content type.
+
+    Args:
+        content_type: Detected content type
+        full_document: Full document content
+        chunk: Individual chunk content
+
+    Returns:
+        Tuple of (user_prompt, system_message)
+    """
+    base_prompt = f"""<document> 
+{full_document[:25000]} 
+</document>
+Here is the chunk we want to situate within the whole document 
+<chunk> 
+{chunk}
+</chunk>"""
+
+    if content_type == "technical":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this technical chunk within the overall document for better search retrieval. Focus on the technical concepts, APIs, or procedures discussed."""
+
+        system_message = (
+            "You are a technical documentation specialist.\n"
+            "Given a chunk from technical content, return 1-2 sentences that capture:\n\n"
+            "• The main technical concept, API, or procedure\n"
+            "• How it relates to the broader technical context\n"
+            "• Key terms, commands, or parameters mentioned\n"
+            "• The chunk's role (setup, example, reference, troubleshooting)\n\n"
+            "Preserve technical terminology and be precise.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    elif content_type == "academic":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this academic/research chunk within the overall document for better search retrieval. Focus on the research concepts, methodology, or findings discussed."""
+
+        system_message = (
+            "You are an academic content specialist.\n"
+            "Given a chunk from academic or research content, return 1-2 sentences that capture:\n\n"
+            "• The main research concept, hypothesis, or finding\n"
+            "• How it fits into the overall research narrative\n"
+            "• Key methodology, data, or theoretical frameworks\n"
+            "• The chunk's role (introduction, methodology, results, discussion)\n\n"
+            "Use precise academic language and preserve key terms.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    elif content_type == "forum":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this forum/discussion chunk within the overall thread for better search retrieval. Focus on the problem, solution, or discussion point being addressed."""
+
+        system_message = (
+            "You are a discussion thread specialist.\n"
+            "Given a chunk from forum or discussion content, return 1-2 sentences that capture:\n\n"
+            "• The main problem, question, or discussion point\n"
+            "• Whether it's a question, answer, or commentary\n"
+            "• Key solutions, insights, or opinions expressed\n"
+            "• How it relates to the broader discussion thread\n\n"
+            "Preserve the conversational context and key insights.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    elif content_type == "news":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this news chunk within the overall article for better search retrieval. Focus on the key events, people, or developments discussed."""
+
+        system_message = (
+            "You are a news content specialist.\n"
+            "Given a chunk from news content, return 1-2 sentences that capture:\n\n"
+            "• The main event, development, or news angle\n"
+            "• Key people, organizations, or locations involved\n"
+            "• The temporal context (when, sequence of events)\n"
+            "• How it fits into the broader news story\n\n"
+            "Maintain journalistic objectivity and preserve key facts.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    elif content_type == "blog":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this blog chunk within the overall post for better search retrieval. Focus on the main ideas, opinions, or experiences shared."""
+
+        system_message = (
+            "You are a blog content specialist.\n"
+            "Given a chunk from blog or opinion content, return 1-2 sentences that capture:\n\n"
+            "• The main idea, opinion, or experience shared\n"
+            "• The author's perspective or argument\n"
+            "• Key insights, recommendations, or lessons\n"
+            "• How it fits into the overall narrative or argument\n\n"
+            "Preserve the author's voice and key insights.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    elif content_type == "social_media":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this social media content within the overall post or thread for better search retrieval. Focus on the key message, engagement, or discussion points."""
+
+        system_message = (
+            "You are a social media content specialist.\n"
+            "Given a chunk from social media content, return 1-2 sentences that capture:\n\n"
+            "• The main message, announcement, or discussion point\n"
+            "• The tone and engagement style (professional, casual, promotional)\n"
+            "• Key hashtags, mentions, or trending topics referenced\n"
+            "• The content's purpose (share, promote, discuss, network)\n\n"
+            "Preserve the social context and engagement elements.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    elif content_type == "legal":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this legal content within the overall document for better search retrieval. Focus on the legal concepts, obligations, or procedural elements discussed."""
+
+        system_message = (
+            "You are a legal document specialist.\n"
+            "Given a chunk from legal content, return 1-2 sentences that capture:\n\n"
+            "• The main legal concept, obligation, or right described\n"
+            "• Key parties, jurisdictions, or legal frameworks involved\n"
+            "• Important terms, conditions, or procedural requirements\n"
+            "• The chunk's role (definition, obligation, exception, procedure)\n\n"
+            "Preserve precise legal terminology and maintain formal tone.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    elif content_type == "educational":
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this educational content within the overall material for better search retrieval. Focus on the learning objectives, skills, or instructional elements covered."""
+
+        system_message = (
+            "You are an educational content specialist.\n"
+            "Given a chunk from instructional content, return 1-2 sentences that capture:\n\n"
+            "• The main skill, concept, or learning objective taught\n"
+            "• The instructional approach (tutorial, exercise, example, explanation)\n"
+            "• Key steps, procedures, or techniques demonstrated\n"
+            "• The difficulty level and target audience context\n\n"
+            "Preserve instructional clarity and learning-focused language.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    else:  # general content
+        user_prompt = f"""{base_prompt}
+Please provide a concise context that situates this content chunk within the overall document for better search retrieval. Focus on the main concepts, themes, or information discussed."""
+
+        system_message = (
+            "You are a general content specialist.\n"
+            "Given a chunk of content, return 1-2 sentences that capture:\n\n"
+            "• The main concept, theme, or information presented\n"
+            "• How it relates to the broader document context\n"
+            "• Key terms, names, or ideas mentioned\n"
+            "• The chunk's role in the overall narrative\n\n"
+            "Be concise and preserve important terminology.\n"
+            "Output only the contextual summary—nothing else."
+        )
+
+    return user_prompt, system_message
+
+
+def generate_contextual_embedding(
+    full_document: str, chunk: str, url: str = ""
+) -> Tuple[str, bool]:
     """
     Generate contextual information for a chunk within a document to improve retrieval.
+    Now includes content-type detection for adaptive prompting strategies.
 
     Args:
         full_document: The complete document text
         chunk: The specific chunk of text to generate context for
+        url: Optional URL for additional content type detection context
 
     Returns:
         Tuple containing:
@@ -204,8 +652,25 @@ def generate_contextual_embedding(full_document: str, chunk: str) -> Tuple[str, 
         return chunk, False
 
     try:
-        # Create the prompt for generating contextual information
-        prompt = f"""<document> 
+        # Import here to avoid circular imports
+        from config import get_config
+
+        config = get_config()
+
+        # Detect content type for adaptive prompting (if enabled)
+        if config.contextual_content_type_detection:
+            content_type = _detect_content_type(chunk, url)
+        else:
+            content_type = "general"
+
+        # Get appropriate prompt and system message for content type (if adaptive prompts enabled)
+        if config.use_adaptive_contextual_prompts:
+            user_prompt, system_message = _get_contextual_prompt_and_system_message(
+                content_type, full_document, chunk
+            )
+        else:
+            # Use legacy prompt for backward compatibility
+            user_prompt = f"""<document> 
 {full_document[:25000]} 
 </document>
 Here is the chunk we want to situate within the whole document 
@@ -214,25 +679,24 @@ Here is the chunk we want to situate within the whole document
 </chunk> 
 Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else."""
 
+            system_message = (
+                "You are a concise technical summarizer.\n"
+                "Given a chunk from a document, return 1-2 plain-English sentences that capture:\n\n"
+                "• the main concept conveyed in the chunk\n"
+                "• key terms, names, or ideas mentioned\n"
+                "• the chunk's role in the wider document\n\n"
+                "Avoid marketing language or personal opinions.\n"
+                "Retain original terminology and be precise.\n"
+                "Output only the summary text—nothing else."
+            )
+
         # Call the OpenAI API to generate contextual information
         response = _retry_with_backoff(
             openai.chat.completions.create,
             model=model_choice,
             messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a concise technical summarizer.\n"
-                        "Given a markdown chunk from a documentation page, return **one or two plain-English sentences** that capture:\n\n"
-                        "• the main concept conveyed in the chunk  \n"
-                        "• any APIs, commands, or parameter names mentioned  \n"
-                        '• the chunk\'s role in the wider doc set (e.g. "prerequisite", "example", "configuration reference")\n\n'
-                        "Avoid marketing language or personal opinions.\n"
-                        "Retain original terminology and code style.\n"
-                        "Output only the summary text—nothing else."
-                    ),
-                },
-                {"role": "user", "content": prompt},
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_prompt},
             ],
             temperature=0.3,
             max_tokens=200,
@@ -242,7 +706,13 @@ Please give a short succinct context to situate this chunk within the overall do
         context = response.choices[0].message.content.strip()
 
         # Combine the context with the original chunk
-        contextual_text = f"{context}\n---\n{chunk}"
+        if (
+            config.contextual_include_content_type_tag
+            and config.contextual_content_type_detection
+        ):
+            contextual_text = f"[{content_type.upper()}] {context}\n---\n{chunk}"
+        else:
+            contextual_text = f"{context}\n---\n{chunk}"
 
         return contextual_text, True
 
@@ -267,7 +737,7 @@ def process_chunk_with_context(args):
         - Boolean indicating if contextual embedding was performed
     """
     url, content, full_document = args
-    return generate_contextual_embedding(full_document, content)
+    return generate_contextual_embedding(full_document, content, url)
 
 
 def add_documents_to_supabase(

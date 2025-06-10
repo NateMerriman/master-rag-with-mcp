@@ -760,3 +760,120 @@ This implementation provides a foundation for building more complex MCP servers 
 2. Create your own lifespan function to add your own dependencies
 3. Modify the `utils.py` file for any helper functions you need
 4. Extend the crawling capabilities by adding more specialized crawlers
+
+# Enhanced Contextual Embeddings Configuration
+
+The enhanced contextual embeddings system now includes adaptive prompting strategies that automatically detect content types and use specialized prompts for different kinds of content.
+
+## Content Type Detection
+
+The system automatically detects 9 content types:
+
+- **Technical**: Documentation, APIs, code guides (e.g., from GitHub, docs sites)
+- **Academic**: Research papers, studies, scholarly articles (e.g., from arXiv, PubMed)
+- **Forum**: Discussion threads, Q&A posts (e.g., Reddit, StackOverflow)
+- **News**: News articles, press releases (e.g., CNN, Reuters, Bloomberg)
+- **Blog**: Opinion pieces, personal blogs (e.g., Medium, Substack)
+- **Social Media**: Posts, threads, content from social platforms (e.g., Twitter/X, LinkedIn, Instagram)
+- **Legal**: Legal documents, contracts, terms of service, statutes (e.g., law sites, court documents)
+- **Educational**: Tutorials, how-to guides, online course materials (e.g., Udemy, Coursera, Khan Academy)
+- **General**: Fallback for other content types
+
+## Adaptive Prompting Configuration
+
+```bash
+# Enable content-type-aware prompting (default: true)
+USE_ADAPTIVE_CONTEXTUAL_PROMPTS=true
+
+# Enable automatic content type detection (default: true)
+CONTEXTUAL_CONTENT_TYPE_DETECTION=true
+
+# Include content type tags in contextual text (default: true)
+CONTEXTUAL_INCLUDE_CONTENT_TYPE_TAG=true
+```
+
+## Configuration Examples
+
+### Full Enhanced Setup (Recommended)
+```bash
+# Core strategies
+USE_CONTEXTUAL_EMBEDDINGS=true
+USE_RERANKING=true
+USE_AGENTIC_RAG=true
+
+# Enhanced contextual embeddings
+USE_ADAPTIVE_CONTEXTUAL_PROMPTS=true
+CONTEXTUAL_CONTENT_TYPE_DETECTION=true
+CONTEXTUAL_INCLUDE_CONTENT_TYPE_TAG=true
+CONTEXTUAL_MODEL=gpt-4o-mini
+```
+
+### Legacy Compatibility Mode
+```bash
+# Use enhanced contextual embeddings but with legacy prompting
+USE_CONTEXTUAL_EMBEDDINGS=true
+USE_ADAPTIVE_CONTEXTUAL_PROMPTS=false
+CONTEXTUAL_CONTENT_TYPE_DETECTION=false
+```
+
+### Content-Type Detection Only
+```bash
+# Detect content types but use general prompting
+USE_CONTEXTUAL_EMBEDDINGS=true
+USE_ADAPTIVE_CONTEXTUAL_PROMPTS=false
+CONTEXTUAL_CONTENT_TYPE_DETECTION=true
+CONTEXTUAL_INCLUDE_CONTENT_TYPE_TAG=true
+```
+
+## Specialized Prompting Strategies
+
+### Technical Content
+- Focuses on APIs, procedures, technical concepts
+- Preserves technical terminology and code references
+- Identifies setup, examples, reference, troubleshooting contexts
+
+### Academic Content  
+- Emphasizes research concepts, methodology, findings
+- Preserves academic language and theoretical frameworks
+- Identifies introduction, methodology, results, discussion sections
+
+### Forum Content
+- Captures problems, solutions, discussion points
+- Distinguishes questions vs. answers vs. commentary
+- Preserves conversational context and key insights
+
+### News Content
+- Highlights events, people, developments
+- Maintains journalistic objectivity
+- Captures temporal context and key facts
+
+### Blog Content
+- Focuses on ideas, opinions, experiences
+- Preserves author's voice and perspective
+- Identifies insights, recommendations, lessons
+
+### Social Media Content
+- Captures key messages, announcements, discussion points
+- Analyzes tone and engagement style (professional, casual, promotional)
+- Preserves hashtags, mentions, and trending topics
+- Identifies content purpose (share, promote, discuss, network)
+
+### Legal Content
+- Focuses on legal concepts, obligations, and procedural elements
+- Preserves precise legal terminology and formal tone
+- Identifies key parties, jurisdictions, and legal frameworks
+- Distinguishes definitions, obligations, exceptions, and procedures
+
+### Educational Content
+- Emphasizes learning objectives, skills, and instructional elements
+- Preserves instructional clarity and learning-focused language
+- Identifies difficulty levels and target audience context
+- Distinguishes tutorials, exercises, examples, and explanations
+
+## Benefits of Enhanced Contextual Embeddings
+
+1. **Better Semantic Understanding**: Content-aware prompts generate more relevant context
+2. **Improved Search Quality**: Type-specific context enhances embedding quality
+3. **Diverse Content Support**: Works well with technical docs, research, forums, news, blogs
+4. **Backward Compatibility**: Can be disabled to use legacy prompting
+5. **Debugging Support**: Content type tags help monitor classification accuracy

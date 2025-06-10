@@ -107,6 +107,68 @@ class CodeExtractor:
         "htm": ProgrammingLanguage.HTML,
     }
 
+    # Language-specific examples for template-based enhancement
+    LANGUAGE_EXAMPLES = {
+        ProgrammingLanguage.PYTHON: {
+            "example_code": """def authenticate_user(username, password):
+    if not username or not password:
+        return False
+    return bcrypt.check_password_hash(stored_hash, password)""",
+            "example_summary": "User authentication function that validates credentials using bcrypt hashing. Checks for empty inputs and compares provided password against stored hash for secure login verification. Essential security component for user access control systems.",
+        },
+        ProgrammingLanguage.JAVASCRIPT: {
+            "example_code": """const fetchData = async (url) => {
+    try {
+        const response = await fetch(url);
+        return await response.json();
+    } catch (error) {
+        console.error('API call failed:', error);
+        throw error;
+    }
+}""",
+            "example_summary": "Asynchronous data fetching function using modern async/await syntax and error handling. Retrieves JSON data from specified URL endpoint with comprehensive error logging and exception propagation. Common pattern for API communication in web applications.",
+        },
+        ProgrammingLanguage.TYPESCRIPT: {
+            "example_code": """interface User {
+    id: number;
+    email: string;
+    roles: string[];
+}
+
+function validateUser(user: User): boolean {
+    return user.id > 0 && user.email.includes('@');
+}""",
+            "example_summary": "TypeScript user validation system with strict type checking and interface definition. Defines User interface with required fields and implements validation logic for ID and email format. Demonstrates type safety and structural validation patterns.",
+        },
+        ProgrammingLanguage.SQL: {
+            "example_code": """SELECT u.name, COUNT(o.id) as order_count, SUM(o.total) as total_spent
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.created_at >= '2024-01-01'
+GROUP BY u.id, u.name
+HAVING COUNT(o.id) > 5
+ORDER BY total_spent DESC;""",
+            "example_summary": "Complex SQL query analyzing user purchasing behavior with aggregation and filtering. Joins users and orders tables to calculate order counts and total spending per user since 2024. Filters for active customers with more than 5 orders and ranks by spending.",
+        },
+        ProgrammingLanguage.JAVA: {
+            "example_code": """public class UserService {
+    private final UserRepository repository;
+    
+    @Autowired
+    public UserService(UserRepository repository) {
+        this.repository = repository;
+    }
+    
+    @Transactional
+    public User createUser(String email, String name) {
+        validateEmail(email);
+        return repository.save(new User(email, name));
+    }
+}""",
+            "example_summary": "Spring Boot service class implementing user creation with dependency injection and transaction management. Uses constructor injection for UserRepository and validates email before persisting new users. Demonstrates enterprise Java patterns with annotations and proper separation of concerns.",
+        },
+    }
+
     # Patterns for different code block types
     FENCED_CODE_PATTERN = re.compile(r"```(\w+)?\n(.*?)```", re.DOTALL | re.MULTILINE)
 
@@ -566,36 +628,137 @@ class CodeExtractor:
         return 0
 
     def _calculate_yaml_complexity(self, code: str) -> int:
-        """
-        Calculate complexity specific to YAML structures.
-        Returns 0-2 points based on depth and list complexity.
-        """
-        lines = [
-            line
-            for line in code.split("\n")
-            if line.strip() and not line.strip().startswith("#")
-        ]
+        """Calculate complexity for YAML content."""
+        lines = [line.strip() for line in code.split("\n") if line.strip()]
+        complexity = 1
 
-        # Calculate indentation levels
-        max_indent = 0
-        list_count = 0
-
+        # Nested structures (indentation levels)
+        indent_levels = set()
         for line in lines:
-            if line.strip():
+            if ":" in line:
                 indent = len(line) - len(line.lstrip())
-                max_indent = max(max_indent, indent)
-                if line.strip().startswith("-"):
-                    list_count += 1
+                indent_levels.add(indent)
 
-        # Estimate complexity based on nesting and lists
-        nesting_levels = max_indent // 2  # YAML typically uses 2-space indentation
+        complexity += min(len(indent_levels), 3)
 
-        if nesting_levels > 3 or list_count > 5:
-            return 2
-        elif nesting_levels > 1 or list_count > 2:
-            return 1
+        # Arrays and complex values
+        if any("[" in line or "-" in line.lstrip()[:1] for line in lines):
+            complexity += 1
 
-        return 0
+        # References and anchors
+        if any("&" in line or "*" in line or "<<" in line for line in lines):
+            complexity += 2
+
+        # Multiline values
+        if any("|" in line or ">" in line for line in lines):
+            complexity += 1
+
+        # Multiple documents
+        if "---" in code:
+            complexity += 1
+
+        return min(complexity, 10)
+
+    def generate_enhanced_summary(
+        self,
+        code: str,
+        language: ProgrammingLanguage,
+        context_before: str = "",
+        context_after: str = "",
+    ) -> str:
+        """
+        Generate an enhanced AI-powered summary using template-based few-shot learning.
+
+        Args:
+            code: The code content to summarize
+            language: The detected programming language
+            context_before: Context before the code block
+            context_after: Context after the code block
+
+        Returns:
+            A high-quality, consistent summary of what the code does
+        """
+        # Get the model from centralized configuration
+        model_to_use = _get_contextual_model()
+
+        if not OPENAI_AVAILABLE or not model_to_use:
+            # Fallback to rule-based summary
+            return self._generate_rule_based_summary(code, language)
+
+        try:
+            # Import config here to avoid circular imports
+            from .config import get_config
+
+            config = get_config()
+
+            # Get example for this language or fallback to Python
+            example = self.LANGUAGE_EXAMPLES.get(
+                language, self.LANGUAGE_EXAMPLES[ProgrammingLanguage.PYTHON]
+            )
+
+            # Limit context based on configuration
+            max_context = config.code_summary_max_context_chars
+            context_before_limited = (
+                context_before[-max_context:] if context_before else "No prior context"
+            )
+            context_after_limited = (
+                context_after[:max_context] if context_after else "No following context"
+            )
+
+            # Build enhanced prompt with few-shot example
+            prompt = f"""You are an expert code documentation assistant. Analyze code blocks and provide clear, actionable summaries for developers.
+
+**Example:**
+Language: {language.value}
+Code:
+{example["example_code"]}
+
+Summary: {example["example_summary"]}
+
+**Your Task:**
+Language: {language.value}
+Context Before: {context_before_limited}
+
+Code:
+{code}
+
+Context After: {context_after_limited}
+
+**Requirements:**
+- Write exactly 2-3 sentences
+- First sentence: Describe what the code DOES (action/purpose)
+- Second sentence: Explain HOW it works or what makes it notable
+- Third sentence (if needed): Mention its role in broader context or special characteristics
+- Use active voice and clear technical terminology
+- Focus on practical understanding for developers searching for similar solutions
+- Mention specific frameworks/libraries if relevant
+- Include key technical patterns or methodologies used
+
+Summary:"""
+
+            response = openai.chat.completions.create(
+                model=model_to_use,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a technical documentation specialist focused on creating search-optimized code summaries. Provide precise, actionable descriptions that help developers understand both functionality and implementation approach.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=200,
+                temperature=0.2,  # Lower temperature for more consistent results
+            )
+
+            summary = response.choices[0].message.content.strip()
+            logger.debug(f"Generated enhanced AI summary using model: {model_to_use}")
+            return summary
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to generate enhanced AI summary using model {model_to_use}: {e}"
+            )
+            # Fallback to basic summary generation
+            return self.generate_summary(code, language, context_before, context_after)
 
     def generate_summary(
         self,
@@ -616,6 +779,19 @@ class CodeExtractor:
         Returns:
             A concise summary of what the code does
         """
+        # Check if enhanced summaries are enabled
+        try:
+            from .config import get_config
+
+            config = get_config()
+            if config.use_enhanced_code_summaries:
+                return self.generate_enhanced_summary(
+                    code, language, context_before, context_after
+                )
+        except Exception:
+            # If config fails, continue with basic summary
+            pass
+
         # Get the model from centralized configuration
         model_to_use = _get_contextual_model()
 
