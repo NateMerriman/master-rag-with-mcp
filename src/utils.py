@@ -1,3 +1,5 @@
+print("--- LOADING LATEST VERSION OF UTILS.PY ---")
+
 """
 Utility functions for the Crawl4AI MCP server.
 """
@@ -56,10 +58,10 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 def _should_use_contextual_embeddings() -> bool:
     """
     Determine if contextual embeddings should be used based on configuration.
-    
+
     Checks both the new USE_CONTEXTUAL_EMBEDDINGS flag and the existing MODEL_CHOICE
     behavior for backward compatibility.
-    
+
     Returns:
         bool: True if contextual embeddings should be used
     """
@@ -72,7 +74,7 @@ def _should_use_contextual_embeddings() -> bool:
         except Exception:
             # Fall through to legacy check if config fails
             pass
-    
+
     # Backward compatibility: check MODEL_CHOICE
     model_choice = os.getenv("MODEL_CHOICE")
     return bool(model_choice)
@@ -81,7 +83,7 @@ def _should_use_contextual_embeddings() -> bool:
 def _get_contextual_model() -> Optional[str]:
     """
     Get the model to use for contextual embeddings.
-    
+
     Returns:
         str: Model name to use, or None if contextual embeddings disabled
     """
@@ -94,7 +96,7 @@ def _get_contextual_model() -> Optional[str]:
         except Exception:
             # Fall through to legacy check if config fails
             pass
-    
+
     # Backward compatibility: use MODEL_CHOICE
     model_choice = os.getenv("MODEL_CHOICE")
     return model_choice if model_choice else None
@@ -103,7 +105,7 @@ def _get_contextual_model() -> Optional[str]:
 def _should_use_agentic_rag() -> bool:
     """
     Determine if agentic RAG (code extraction) should be used based on configuration.
-    
+
     Returns:
         bool: True if agentic RAG should be used
     """
@@ -113,7 +115,7 @@ def _should_use_agentic_rag() -> bool:
             return config.use_agentic_rag
         except Exception:
             pass
-    
+
     # Fallback to environment variable
     return os.getenv("USE_AGENTIC_RAG", "false").lower() in ("true", "1", "yes", "on")
 
@@ -196,7 +198,7 @@ def generate_contextual_embedding(full_document: str, chunk: str) -> Tuple[str, 
     """
     # Determine which model to use based on configuration
     model_choice = _get_contextual_model()
-    
+
     # Return original chunk if no model configured
     if not model_choice:
         return chunk, False
@@ -224,7 +226,7 @@ Please give a short succinct context to situate this chunk within the overall do
                         "Given a markdown chunk from a documentation page, return **one or two plain-English sentences** that capture:\n\n"
                         "• the main concept conveyed in the chunk  \n"
                         "• any APIs, commands, or parameter names mentioned  \n"
-                        "• the chunk’s role in the wider doc set (e.g. “prerequisite”, “example”, “configuration reference”)\n\n"
+                        '• the chunk\'s role in the wider doc set (e.g. "prerequisite", "example", "configuration reference")\n\n'
                         "Avoid marketing language or personal opinions.\n"
                         "Retain original terminology and code style.\n"
                         "Output only the summary text—nothing else."
@@ -275,6 +277,7 @@ def add_documents_to_supabase(
     contents: List[str],
     metadatas: List[Dict[str, Any]],
     url_to_full_document: Dict[str, str],
+    strategy_config: Optional["StrategyConfig"],
     batch_size: int = 20,
 ) -> None:
     """
@@ -288,6 +291,7 @@ def add_documents_to_supabase(
         contents: List of document contents
         metadatas: List of document metadata
         url_to_full_document: Dictionary mapping URLs to their full document content
+        strategy_config: Strategy configuration for agentic RAG
         batch_size: Size of each batch for insertion
     """
     # Get unique URLs to delete existing records
@@ -314,7 +318,7 @@ def add_documents_to_supabase(
         # Get all content chunks for this URL to calculate word count
         url_contents = [contents[i] for i, u in enumerate(urls) if u == url]
         url_metadatas = [metadatas[i] for i, u in enumerate(urls) if u == url]
-        
+
         source_id = get_or_create_source(client, url, url_contents, url_metadatas)
         if source_id is not None:
             url_to_source_id[url] = source_id
@@ -393,7 +397,9 @@ def add_documents_to_supabase(
                 "embedding": batch_embeddings[
                     j
                 ],  # Use embedding from contextual content
-                "source_id": url_to_source_id.get(batch_urls[j]),  # Set source_id from our mapping
+                "source_id": url_to_source_id.get(
+                    batch_urls[j]
+                ),  # Set source_id from our mapping
             }
 
             batch_data.append(data)
@@ -405,44 +411,45 @@ def add_documents_to_supabase(
             print(f"Error inserting batch into Supabase: {e}")
 
     # Extract and store code examples if agentic RAG is enabled
-    if _should_use_agentic_rag() and extract_code_from_content is not None:
+    should_extract_code = (
+        strategy_config
+        and strategy_config.use_agentic_rag
+        and extract_code_from_content is not None
+    )
+
+    if should_extract_code:
         # Group content by URL to extract code from full documents
         url_to_content = {}
         for i, url in enumerate(urls):
             if url not in url_to_content:
                 url_to_content[url] = []
             url_to_content[url].append(contents[i])
-        
+
         # Process each URL's content for code extraction
         for url, url_contents in url_to_content.items():
             try:
                 # Get source_id from our pre-created mapping
                 source_id = url_to_source_id.get(url)
                 if source_id is None:
-                    print(f"⚠️ No source_id found for URL {url}, skipping code extraction")
+                    print(
+                        f"⚠️ No source_id found for URL {url}, skipping code extraction"
+                    )
                     continue
-                
+
                 # Combine all chunks for this URL to get full document content
                 full_content = "\n\n".join(url_contents)
-                
-                # Extract code examples from the full content
-                extracted_codes = extract_code_from_content(full_content)
-                
+
+                # Extract code examples from the full content, providing the source_url
+                extracted_codes = extract_code_from_content(full_content, url)
+
                 if extracted_codes:
-                    # Convert to format expected by add_code_examples_to_supabase
-                    code_examples = []
-                    for code in extracted_codes:
-                        code_examples.append({
-                            "code_content": code.code_content,
-                            "summary": code.summary,
-                            "programming_language": code.programming_language,
-                            "complexity_score": code.complexity_score,
-                        })
-                    
-                    # Store code examples with dual embeddings
-                    add_code_examples_to_supabase(client, code_examples, source_id)
-                    print(f"🔧 Extracted {len(code_examples)} code examples from {url}")
-                
+                    # The 'extracted_codes' are already the correct ExtractedCode objects.
+                    # No need to convert them.
+                    add_code_examples_to_supabase(client, extracted_codes, source_id)
+                    print(
+                        f"🔧 Extracted and stored {len(extracted_codes)} code examples from {url}"
+                    )
+
             except Exception as e:
                 print(f"Error extracting code from URL {url}: {e}")
                 continue
@@ -450,94 +457,100 @@ def add_documents_to_supabase(
 
 def add_code_examples_to_supabase(
     client: Client,
-    code_examples: List[Dict[str, Any]],
+    code_examples: List["ExtractedCode"],
     source_id: int,
     batch_size: int = 10,
 ) -> None:
     """
-    Add extracted code examples to the Supabase code_examples table with dual embeddings.
-    
+    Add extracted code examples to the 'code_examples' table in Supabase.
+
     Args:
-        client: Supabase client
-        code_examples: List of extracted code examples from code_extraction.py
-        source_id: The source_id from the sources table
-        batch_size: Size of each batch for insertion
+        client: The Supabase client.
+        code_examples: A list of ExtractedCode objects.
+        source_id: The ID of the source document.
+        batch_size: The number of items to process in each batch.
     """
-    if not code_examples or CodeExample is None:
+    if not code_examples:
         return
-    
-    # Process in batches to avoid memory and API rate limit issues
-    for i in range(0, len(code_examples), batch_size):
-        batch_end = min(i + batch_size, len(code_examples))
-        batch_examples = code_examples[i:batch_end]
-        
-        # Prepare texts for batch embedding generation
-        code_contents = [example["code_content"] for example in batch_examples]
-        summaries = [example["summary"] for example in batch_examples]
-        
-        # Create embeddings in batches
+
+    records_to_insert = []
+
+    # Generate embeddings for all code examples in a single batch
+    # Combine content and summary for a single, powerful embedding
+    combined_texts = [f"{ex.content}\n\nSummary: {ex.summary}" for ex in code_examples]
+    embeddings = create_embeddings_batch(combined_texts)
+
+    for i, example in enumerate(code_examples):
+        embedding = embeddings[i]
+
+        record = {
+            "source_id": source_id,
+            "url": example.url,
+            "chunk_number": example.chunk_number,
+            "content": example.content,
+            "summary": example.summary,
+            "programming_language": example.programming_language,
+            "complexity_score": example.complexity_score,
+            "embedding": embedding,
+            "metadata": json.dumps(example.metadata or {}),
+        }
+        records_to_insert.append(record)
+
+    # Insert records in batches
+    for i in range(0, len(records_to_insert), batch_size):
+        batch = records_to_insert[i : i + batch_size]
         try:
-            code_embeddings = create_embeddings_batch(code_contents)
-            summary_embeddings = create_embeddings_batch(summaries)
+            response = client.table("code_examples").insert(batch).execute()
+            if hasattr(response, "error") and response.error:
+                # More detailed error logging
+                print(
+                    f"Error inserting code examples batch into Supabase: {response.error}"
+                )
+            else:
+                print(f"Successfully inserted {len(batch)} code examples.")
         except Exception as e:
-            print(f"Error creating embeddings for code examples: {e}")
-            continue
-        
-        # Prepare batch data for insertion
-        batch_data = []
-        for j, example in enumerate(batch_examples):
-            # Create CodeExample model instance
-            code_example = CodeExample(
-                source_id=source_id,
-                code_content=example["code_content"],
-                summary=example["summary"],
-                programming_language=example["programming_language"],
-                complexity_score=example["complexity_score"],
-                embedding=code_embeddings[j] if j < len(code_embeddings) else None,
-                summary_embedding=summary_embeddings[j] if j < len(summary_embeddings) else None,
-            )
-            
-            batch_data.append(code_example.to_dict())
-        
-        # Insert batch into Supabase
-        try:
-            client.table("code_examples").insert(batch_data).execute()
-            print(f"✅ Inserted {len(batch_data)} code examples from source_id {source_id}")
-        except Exception as e:
-            print(f"Error inserting code examples batch into Supabase: {e}")
+            print(f"An exception occurred during code example insertion: {e}")
 
 
 def get_source_id_from_url(client: Client, url: str) -> Optional[int]:
     """
     Get the source_id for a given URL from the sources table.
-    
+
     Args:
         client: Supabase client
         url: The URL to look up
-        
+
     Returns:
         source_id if found, None otherwise
     """
     try:
-        response = client.table("sources").select("source_id").eq("url", url).limit(1).execute()
+        response = (
+            client.table("sources")
+            .select("source_id")
+            .eq("url", url)
+            .limit(1)
+            .execute()
+        )
         if response.data and len(response.data) > 0:
             return response.data[0]["source_id"]
     except Exception as e:
         print(f"Error getting source_id for URL {url}: {e}")
-    
+
     return None
 
 
-def get_or_create_source(client: Client, url: str, contents: List[str], metadatas: List[Dict[str, Any]]) -> Optional[int]:
+def get_or_create_source(
+    client: Client, url: str, contents: List[str], metadatas: List[Dict[str, Any]]
+) -> Optional[int]:
     """
     Get existing source_id for a URL or create a new source entry.
-    
+
     Args:
         client: Supabase client
         url: The URL to get or create source for
         contents: List of content chunks for this URL (for word count calculation)
         metadatas: List of metadata dicts for this URL
-        
+
     Returns:
         source_id if successful, None if error
     """
@@ -545,20 +558,22 @@ def get_or_create_source(client: Client, url: str, contents: List[str], metadata
     existing_source_id = get_source_id_from_url(client, url)
     if existing_source_id is not None:
         return existing_source_id
-    
+
     try:
         # Calculate total word count from all chunks for this URL
         total_word_count = sum(len(content.split()) for content in contents)
-        
+
         # Prepare source data (no 'name' column in sources table)
         source_data = {
             "url": url,
             "total_word_count": total_word_count,
         }
-        
+
         # Insert new source (use upsert to handle race conditions)
-        response = client.table("sources").upsert(source_data, on_conflict="url").execute()
-        
+        response = (
+            client.table("sources").upsert(source_data, on_conflict="url").execute()
+        )
+
         if response.data and len(response.data) > 0:
             source_id = response.data[0]["source_id"]
             print(f"✅ Created new source: {url} (ID: {source_id})")
@@ -566,7 +581,7 @@ def get_or_create_source(client: Client, url: str, contents: List[str], metadata
         else:
             print(f"⚠️ Failed to create source for URL {url}: No data returned")
             return None
-            
+
     except Exception as e:
         print(f"Error creating source for URL {url}: {e}")
         # Try to get it again in case another process created it
@@ -603,30 +618,32 @@ def search_documents(
     # (workaround for Supabase Python client issue)
     try:
         import requests
-        
+
         # Get connection details from client
         supabase_url = os.getenv("SUPABASE_URL", "http://localhost:54321")
         supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
-        
+
         if not supabase_key:
             print("[search_documents] Missing SUPABASE_SERVICE_KEY")
             return []
-        
+
         # Make direct request to edge function
         url = f"{supabase_url}/functions/v1/hybrid-search-crawled-pages"
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {supabase_key}"
+            "Authorization": f"Bearer {supabase_key}",
         }
-        
+
         response = requests.post(url, json=params, headers=headers, timeout=30)
-        
+
         if response.status_code == 200:
             rows = response.json()
         else:
-            print(f"[search_documents] Edge function failed with status {response.status_code}: {response.text}")
+            print(
+                f"[search_documents] Edge function failed with status {response.status_code}: {response.text}"
+            )
             return []
-            
+
     except Exception as e:
         print(f"[search_documents] Edge function failed: {e}")
         return []

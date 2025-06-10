@@ -13,13 +13,14 @@ class Source:
     Model for the sources table.
     Represents a crawled source (website/document) with metadata.
     """
+
     source_id: Optional[int] = None
     url: str = ""
     summary: Optional[str] = None
     total_word_count: int = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for Supabase insertion."""
         result = {
@@ -27,16 +28,16 @@ class Source:
             "summary": self.summary,
             "total_word_count": self.total_word_count,
         }
-        
+
         if self.source_id is not None:
             result["source_id"] = self.source_id
         if self.created_at is not None:
             result["created_at"] = self.created_at.isoformat()
         if self.updated_at is not None:
             result["updated_at"] = self.updated_at.isoformat()
-            
+
         return result
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Source":
         """Create Source from dictionary."""
@@ -45,8 +46,12 @@ class Source:
             url=data.get("url", ""),
             summary=data.get("summary"),
             total_word_count=data.get("total_word_count", 0),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+            created_at=datetime.fromisoformat(data["created_at"])
+            if data.get("created_at")
+            else None,
+            updated_at=datetime.fromisoformat(data["updated_at"])
+            if data.get("updated_at")
+            else None,
         )
 
 
@@ -56,6 +61,7 @@ class CrawledPage:
     Model for the crawled_pages table.
     Represents a chunk of content from a crawled source.
     """
+
     id: Optional[int] = None
     url: Optional[str] = None
     chunk_number: Optional[int] = None
@@ -63,11 +69,11 @@ class CrawledPage:
     metadata: Optional[Dict[str, Any]] = None
     embedding: Optional[list] = None
     source_id: Optional[int] = None  # New FK to sources table
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for Supabase insertion."""
         result = {}
-        
+
         if self.id is not None:
             result["id"] = self.id
         if self.url is not None:
@@ -82,9 +88,9 @@ class CrawledPage:
             result["embedding"] = self.embedding
         if self.source_id is not None:
             result["source_id"] = self.source_id
-            
+
         return result
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CrawledPage":
         """Create CrawledPage from dictionary."""
@@ -105,65 +111,60 @@ class CodeExample:
     Model for the code_examples table.
     Represents extracted code blocks with metadata and embeddings.
     """
+
     id: Optional[int] = None
     source_id: Optional[int] = None
-    code_content: str = ""
-    summary: Optional[str] = None
+    url: str = ""
+    chunk_number: int = 0
+    content: str = ""
     programming_language: Optional[str] = None
     complexity_score: Optional[int] = None
     embedding: Optional[List[float]] = None
-    summary_embedding: Optional[List[float]] = None
     created_at: Optional[datetime] = None
-    
+    metadata: Optional[Dict[str, Any]] = None
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for Supabase insertion."""
-        result = {}
-        
+        result = {
+            "url": self.url,
+            "chunk_number": self.chunk_number,
+            "content": self.content,
+        }
+
         if self.id is not None:
             result["id"] = self.id
         if self.source_id is not None:
             result["source_id"] = self.source_id
-        if self.code_content:
-            result["code_content"] = self.code_content
-        if self.summary is not None:
-            result["summary"] = self.summary
         if self.programming_language is not None:
             result["programming_language"] = self.programming_language
         if self.complexity_score is not None:
             result["complexity_score"] = self.complexity_score
         if self.embedding is not None:
             result["embedding"] = self.embedding
-        if self.summary_embedding is not None:
-            result["summary_embedding"] = self.summary_embedding
         if self.created_at is not None:
             result["created_at"] = self.created_at.isoformat()
-            
+        if self.metadata is not None:
+            result["metadata"] = self.metadata
+
         return result
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CodeExample":
         """Create CodeExample from dictionary."""
         return cls(
             id=data.get("id"),
             source_id=data.get("source_id"),
-            code_content=data.get("code_content", ""),
-            summary=data.get("summary"),
+            url=data.get("url", ""),
+            chunk_number=data.get("chunk_number", 0),
+            content=data.get("content", ""),
             programming_language=data.get("programming_language"),
             complexity_score=data.get("complexity_score"),
             embedding=data.get("embedding"),
-            summary_embedding=data.get("summary_embedding"),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
+            created_at=datetime.fromisoformat(data["created_at"])
+            if data.get("created_at")
+            else None,
+            metadata=data.get("metadata"),
         )
-    
-    def to_extracted_code_format(self) -> Dict[str, Any]:
-        """Convert to format expected by code extraction pipeline."""
-        return {
-            "code_content": self.code_content,
-            "summary": self.summary or "",
-            "programming_language": self.programming_language or "unknown",
-            "complexity_score": self.complexity_score or 1,
-            "context": ""  # Context not stored in database model
-        }
 
 
 # SQL Schema Definitions for future migrations
@@ -191,25 +192,26 @@ ADD COLUMN IF NOT EXISTS source_id INTEGER;
 CREATE INDEX IF NOT EXISTS idx_crawled_pages_source_id ON crawled_pages(source_id);
 """
 
-# Code examples table schema (Task 2.2)
+# Code examples table schema (Task 2.2) - Aligned with 002_create_code_examples_table.sql
 CODE_EXAMPLES_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS code_examples (
     id SERIAL PRIMARY KEY,
     source_id INTEGER REFERENCES sources(source_id) ON DELETE CASCADE,
-    code_content TEXT NOT NULL,
-    summary TEXT,
+    url TEXT NOT NULL,
+    chunk_number INTEGER NOT NULL,
+    content TEXT NOT NULL,
     programming_language TEXT,
     complexity_score INTEGER CHECK (complexity_score >= 1 AND complexity_score <= 10),
-    embedding vector(1536),  -- OpenAI text-embedding-3-small
-    summary_embedding vector(1536),  -- For natural language queries about code
-    content_tokens tsvector,  -- For full-text search
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    embedding vector(1536),
+    content_tokens TSVECTOR,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT code_examples_url_chunk_number_key UNIQUE(url, chunk_number)
 );
 """
 
 CODE_EXAMPLES_INDEXES_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_code_examples_embedding_hnsw ON code_examples USING hnsw (embedding vector_ip_ops) WITH (m = 16, ef_construction = 64);",
-    "CREATE INDEX IF NOT EXISTS idx_code_examples_summary_embedding_hnsw ON code_examples USING hnsw (summary_embedding vector_ip_ops) WITH (m = 16, ef_construction = 64);",
     "CREATE INDEX IF NOT EXISTS idx_code_examples_content_tokens_gin ON code_examples USING gin(content_tokens);",
     "CREATE INDEX IF NOT EXISTS idx_code_examples_source_id ON code_examples(source_id);",
     "CREATE INDEX IF NOT EXISTS idx_code_examples_programming_language ON code_examples(programming_language);",

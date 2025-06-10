@@ -1,20 +1,27 @@
--- RPC function for hybrid search on code examples using Reciprocal Rank Fusion
--- Adapted from hybrid_search_crawled_pages for code_examples table schema
+-- RPC function for hybrid search on code examples using Reciprocal Rank Fusion.
+-- This version is updated for the new schema of the 'code_examples' table.
 
--- First create the custom composite type for return results
+-- Drop the old type and function if they exist to ensure a clean update.
+DROP TYPE IF EXISTS hybrid_search_code_examples_result CASCADE;
+DROP FUNCTION IF EXISTS hybrid_search_code_examples(TEXT, VECTOR, INT, TEXT, INT) CASCADE;
+
+
+-- Create the new custom composite type for return results, matching the new schema.
 CREATE TYPE hybrid_search_code_examples_result AS (
     id BIGINT,
     source_id INT,
-    code_content TEXT,
-    summary TEXT,
+    url TEXT,
+    content TEXT,
     programming_language TEXT,
     complexity_score INT,
+    metadata JSONB,
     similarity FLOAT,
     rrf_score FLOAT,
     semantic_rank INT,
     full_text_rank INT
 );
 
+-- Create the updated RPC function for hybrid search.
 CREATE OR REPLACE FUNCTION hybrid_search_code_examples(
     query_text TEXT,
     query_embedding VECTOR(1536),
@@ -33,9 +40,9 @@ BEGIN
     RETURN QUERY
     WITH full_text AS (
         SELECT ce.id,
-               row_number() OVER (ORDER BY ts_rank_cd(ce.fts, websearch_to_tsquery(query_text)) DESC) AS rank_ix
+               row_number() OVER (ORDER BY ts_rank_cd(ce.content_tokens, websearch_to_tsquery(query_text)) DESC) AS rank_ix
         FROM code_examples ce
-        WHERE ce.fts @@ websearch_to_tsquery(query_text)
+        WHERE ce.content_tokens @@ websearch_to_tsquery(query_text)
             AND (language_filter IS NULL OR ce.programming_language = language_filter)
             AND ce.complexity_score <= max_complexity
         LIMIT LEAST(match_count, 30) * 2
@@ -61,10 +68,11 @@ BEGIN
     )
     SELECT c.doc_id,
            ce.source_id,
-           ce.code_content,
-           ce.summary,
+           ce.url,
+           ce.content,
            ce.programming_language,
            ce.complexity_score,
+           ce.metadata,
            c.similarity,
            c.rrf_score,
            c.semantic_rank,

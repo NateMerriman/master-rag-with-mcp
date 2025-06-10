@@ -386,6 +386,81 @@
 - Multiple search modalities work correctly
 - Results formatted appropriately for coding scenarios
 
+## Phase 5: Code Examples Refactoring (Hybrid Approach)
+**Goal**: Simplify the `code_examples` implementation by adopting a hybrid approach that aligns with the reference repository's simplicity in some areas while preserving advanced features like hybrid search, language detection, and complexity scoring.
+
+### ✅ TASK 5.1 COMPLETE: Database Schema Migration for Code Examples
+**Priority: HIGH | Estimated: 4 hours**
+
+- [x] Create a migration script (`002_create_code_examples_table.sql`) to set up the `code_examples` table with its final, correct schema.
+  - [x] Rename `code_content` column to `content`.
+  - [x] Drop the `summary_embedding` and `summary` columns.
+  - [x] Add `url` (TEXT) and `chunk_number` (INTEGER) columns.
+  - [x] Add `metadata` (JSONB) column with a default value.
+  - [x] Add a `UNIQUE` constraint on `(url, chunk_number)`.
+- [x] Create a corresponding rollback script.
+- [x] Clean up obsolete migration scripts from the repository.
+- [x] Update `README.md` to reflect the simplified database setup.
+
+### ✅ TASK 5.2 COMPLETE: Update Code Extraction and Storage Pipeline
+**Priority: HIGH | Estimated: 6 hours**
+
+- [x] Modify the code processing logic in `src/code_extraction.py`.
+  - [x] Update `ExtractedCode` dataclass to match the new schema (`content`, `url`, `chunk_number`, `metadata`).
+  - [x] Remove the `generate_summary` method.
+  - [x] Update `process_code_blocks` to populate the new fields.
+- [x] Modify `add_code_examples_to_supabase` in `src/utils.py`.
+  - [x] Update function to accept a list of `ExtractedCode` objects.
+  - [x] Remove summary embedding logic.
+  - [x] Map new fields to the database columns correctly.
+
+### ✅ TASK 5.3 COMPLETE: Adapt Hybrid Search Function
+**Priority: HIGH | Estimated: 2 hours**
+
+- [x] Update the `hybrid_search_code_examples` SQL function.
+  - [x] Modify the function's return type (`hybrid_search_code_examples_result`) to match the new schema.
+  - [x] Remove logic related to `summary_embedding`.
+  - [x] Update the query to use `content_tokens` for full-text search.
+  - [x] Ensure the final SELECT returns the new fields like `url` and `metadata`.
+
+### ✅ TASK 5.4 COMPLETE: End-to-End Testing and Validation
+**Priority: HIGH | Estimated: 4 hours**
+
+- [x] Create a new test file `tests/test_code_examples_flow.py`.
+- [x] Write a comprehensive test to validate the full extraction and storage pipeline.
+  - [x] Mock external dependencies (Supabase, OpenAI).
+  - [x] Simulate adding a document with code blocks.
+  - [x] Assert that the data being sent to the database has the correct, new structure.
+- [x] Run the tests and ensure they pass.
+
+## Post-Refactoring Enhancements
+
+### ✅ TASK 6.1: Re-introduce AI-Generated Code Summaries - COMPLETED
+**Priority: HIGH | Estimated: 2 hours | Status: COMPLETED**
+
+- **Goal**: Restore the AI-generated `summary` for code examples to provide better context. This functionality was previously removed during a refactoring phase but is considered essential.
+- [x] **Database Schema Update**:
+  - [x] Modified `002_create_code_examples_table.sql` to re-add the `summary` TEXT column.
+  - [x] Updated the `update_code_examples_content_tokens` trigger to include the `summary` in the full-text search index.
+- [x] **Code Extraction Enhancement**:
+  - [x] Modified `src/code_extraction.py` to add a `generate_summary` method to the `CodeExtractor`.
+  - [x] This method uses the OpenAI API to generate a contextual summary for each code block.
+  - [x] Updated the `ExtractedCode` dataclass to include the `summary`.
+- [x] **Data Storage Pipeline Update**:
+  - [x] Modified `src/utils.py` in the `add_code_examples_to_supabase` function.
+  - [x] The function now passes the `summary` to be stored in the database.
+  - [x] The embedding is now generated from a combination of the code `content` and the AI-generated `summary`.
+
+**Acceptance Criteria: ✅ ALL MET**
+- `code_examples` table includes a `summary` column. ✅
+- The code extraction pipeline calls the OpenAI API to generate summaries. ✅
+- Summaries are stored in the database. ✅
+- Embeddings are created from both code content and summary. ✅
+
+**Implementation Notes:**
+- This change deviates from the "Code Examples Refactoring" plan, which originally aimed to remove the summary. The `PLANNING.md` file has been updated to reflect this new direction.
+- The implementation uses a single embedding for the combined text, which is consistent with the refactoring's goal of moving away from a dual-embedding system.
+
 ## Cross-Strategy Testing Requirements
 
 ### Strategy Combination Matrix

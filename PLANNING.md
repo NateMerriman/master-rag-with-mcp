@@ -21,6 +21,7 @@ Add 14 targeted enhancements that provide new capabilities without duplicating e
 3. **Database Architecture** - Sources table + Code examples table + FK constraints
 4. **Agentic RAG** - Code extraction pipeline for AI coding assistant scenarios
 5. **Contextual Embeddings** - Document-level context for improved semantic understanding
+6. **AI-Generated Code Summaries** - Re-introduction of AI-powered summaries for code examples to enhance contextual understanding and search.
 
 ## Technical Architecture
 
@@ -90,6 +91,22 @@ Enhanced Strategies (configurable):
    - **✅ Task 3.2 Complete**: Code extraction pipeline integration with dual embeddings and agentic RAG configuration
    - **✅ Task 3.3 Complete**: Conditional tool registration with strategy-aware availability
 4. **Advanced RAG** (5-7 days): ✅ **TASK 4.1 COMPLETE** - Reranking integration + cross-strategy testing
+5. **Code Examples Refactoring & Enhancement** (3-5 days): IN PROGRESS
+   - **Goal**: Refactor the `code_examples` functionality to simplify its implementation, while preserving advanced features. A recent enhancement restored AI-powered summaries for better context.
+   - **Key Implementation Details**:
+     - **Database Schema**:
+       - **Re-introduce `summary` column**: Added a `summary` TEXT column to store AI-generated summaries for each code example.
+       - **Single Combined Embedding**: Use a single `embedding` field for the combined code `content` and `summary`, moving away from a dual-embedding model.
+       - **Granular Tracking**: Use `url` and `chunk_number` columns for better data tracking and to prevent duplicates.
+       - **Preserved Strengths**: Retain `programming_language`, `complexity_score`, `content_tokens` (for FTS), and the efficient integer-based `source_id` foreign key.
+     - **Code Extraction & Processing**:
+       - **Restore AI Summary Generation**: The `CodeExtractor` now generates a concise summary for each code block using the OpenAI API.
+       - **Adapt Embedding Strategy**: The embedding process in `src/utils.py` combines the code `content` and the new `summary` to create a single, contextually rich embedding.
+       - **Preserve Advanced Extractor**: The existing `CodeExtractor` with its language detection and complexity scoring capabilities is retained.
+     - **Search Functionality**:
+       - **Enhanced Full-Text Search**: The `content_tokens` trigger is updated to index both `content` and `summary` fields, improving keyword search.
+       - **Update Hybrid Search**: The `hybrid_search_code_examples` SQL function works with the updated table schema.
+       - **Preserve RRF**: The core Reciprocal Rank Fusion logic for combining semantic and full-text search is maintained.
 
 ### Code Organization
 ```

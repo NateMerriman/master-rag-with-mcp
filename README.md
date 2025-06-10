@@ -123,10 +123,10 @@ Before running the server, you need to set up the database with the pgvector ext
 
 3. Run the query to create the core tables and functions
 
-4. **For advanced features**: If you plan to use agentic RAG code extraction, also run the migration scripts in `src/database/migrations/` to set up the enhanced schema:
-   - `001_create_sources_table.sql` - Creates centralized source management
-   - `002_create_code_examples_table.sql` - Creates specialized code storage with hybrid search
-   - Run scripts in numerical order for proper dependencies
+4. **For advanced features**: If you plan to use agentic RAG code extraction, also run the migration scripts in `src/database/migrations/` to set up the enhanced schema. Run scripts in numerical order for proper dependencies:
+   - `001_create_sources_table.sql` - Creates centralized source management.
+   - `002_create_code_examples_table.sql` - Creates the specialized table for storing code examples with the latest hybrid-search schema.
+   - `003_populate_source_ids.sql` - A utility script to backfill `source_id` in the `crawled_pages` table if you have existing data from before the multi-source system was added.
 
 > **Note**: The core `crawled_pages` table is sufficient for basic functionality. Advanced tables are only needed when using specific RAG strategies.
 
