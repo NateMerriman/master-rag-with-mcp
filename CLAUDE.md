@@ -63,7 +63,7 @@ This project is derived from an older version of a reference repository, but has
 
 ## Enhancement Project Context
 
-### Current Enhancement Phase: Phase 3 Complete ✅ - Ready for Phase 4
+### Current Enhancement Phase: Phase 4 Partial Complete ✅ - Agentic RAG Implementation Done
 This codebase is undergoing a planned enhancement project to integrate 14 advanced RAG strategies from the reference repository. Refer to `PLANNING.md` and `TASKS.md` for full context of the enhancement plan.
 
 **Phase 1: Foundation Enhancements - COMPLETED:**
@@ -83,8 +83,9 @@ This codebase is undergoing a planned enhancement project to integrate 14 advanc
 - ✅ **Task 3.2 Code Extraction Pipeline**: Automatic code detection and storage with dual embeddings, integrated with agentic RAG configuration system
 - ✅ **Task 3.3 Conditional Tool Registration**: Strategy-aware MCP tool availability with comprehensive error handling and dynamic documentation
 
-**Phase 4: Advanced RAG Strategies - IN PROGRESS:**
+**Phase 4: Advanced RAG Strategies - PARTIAL COMPLETE:**
 - ✅ **Task 4.1 Cross-Encoder Reranking Integration**: Complete pipeline integration preserving hybrid search benefits, performance monitoring, comprehensive testing
+- ✅ **Task 4.3 Agentic RAG Tools Implementation**: Complete `search_code_examples` tool with hybrid search integration, 10 comprehensive tests, production-ready code search functionality
 - ✅ **Model Configuration Centralization**: Unified CONTEXTUAL_MODEL environment variable control across all contextualization features (code extraction, contextual embeddings), improved fallback to gpt-4o-mini-2024-07-18
 
 The enhancement follows a strict preservation-first approach:
@@ -110,6 +111,7 @@ The enhancement follows a strict preservation-first approach:
 6. **✅ Strategy Manager Implementation** - Centralized component lifecycle management with conditional tool registration
 7. **✅ Agentic RAG Code Extraction** - Automatic code detection, processing, and storage with dual embeddings for enhanced code search
 8. **✅ Conditional Tool Registration** - Strategy-aware MCP tool availability with dynamic documentation and comprehensive error handling
+9. **✅ Agentic RAG Tools Implementation** - Production-ready `search_code_examples` tool with hybrid search integration and comprehensive testing
 
 ### Development Guidelines for Enhancements
 - Always test rollback procedures before implementing database changes
@@ -205,7 +207,7 @@ python tests/test_performance_regression.py --quick
 python -c "from src.performance_monitor import validate_against_baseline; from src.utils import get_supabase_client; print('✅ No regressions' if validate_against_baseline(get_supabase_client()) else '⚠️ Regressions detected')"
 ```
 
-### Testing Commands (Tasks 1.1, 1.2, & 3.1 Complete)
+### Testing Commands (Tasks 1.1, 1.2, 3.1 & 4.3 Complete)
 ```bash
 # Run all tests
 uv run pytest
@@ -215,6 +217,7 @@ uv run pytest tests/test_config.py -v               # Configuration system tests
 uv run pytest tests/test_reranking.py -v           # Reranking functionality tests (22 tests)
 uv run pytest tests/test_strategy_manager.py -v    # Strategy Manager tests (32 tests)
 uv run pytest tests/test_contextual_integration.py -v # Contextual embeddings integration tests (16 tests)
+uv run pytest tests/test_task_4_3_code_search.py -v # Agentic RAG code search tests (10 tests)
 
 # Run tests with coverage
 uv run pytest --cov=src tests/
@@ -359,7 +362,7 @@ Supports both SSE (Server-Sent Events) and stdio transport modes for different M
 
 ### Strategy-Specific Tools
 **Agentic RAG Tools** (require `USE_AGENTIC_RAG=true`):
-- `search_code_examples` - Search for code examples with language and complexity filtering
+- `search_code_examples` - ✅ **PRODUCTION READY** - Search for code examples with hybrid search, language filtering, complexity scoring, and enhanced query generation
 
 **Reranking Tools** (require `USE_RERANKING=true`):
 - `perform_rag_query_with_reranking` - Enhanced RAG query with cross-encoder reranking

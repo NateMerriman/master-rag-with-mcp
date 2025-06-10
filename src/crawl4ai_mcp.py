@@ -30,7 +30,11 @@ from crawl4ai import (
     CacheMode,
     MemoryAdaptiveDispatcher,
 )
-from utils import get_supabase_client, add_documents_to_supabase, search_documents
+from utils import (
+    get_supabase_client,
+    add_documents_to_supabase,
+    search_documents,
+)
 from config import get_config, ConfigurationError, StrategyConfig, RAGStrategy
 from strategies import StrategyManager
 from strategies.manager import (
@@ -761,29 +765,146 @@ async def search_code_examples(
     Search for code examples using hybrid search (semantic + full-text).
 
     This tool searches the code_examples table for relevant code snippets based on
-    natural language queries or code-to-code similarity.
+    natural language queries or code-to-code similarity using advanced hybrid search
+    with Reciprocal Rank Fusion (RRF) that combines semantic vector search with
+    full-text search for optimal results.
 
     Args:
         ctx: The MCP server provided context
-        query: Search query for code examples
-        programming_language: Optional filter by programming language
-        complexity_min: Minimum complexity score (1-10)
-        complexity_max: Maximum complexity score (1-10)
-        match_count: Maximum number of results to return
+        query: Search query for code examples (natural language or code fragments)
+        programming_language: Optional filter by programming language (e.g., 'python', 'javascript')
+        complexity_min: Minimum complexity score (1-10, default: 1)
+        complexity_max: Maximum complexity score (1-10, default: 10)
+        match_count: Maximum number of results to return (default: 5, max: 30)
 
     Returns:
-        JSON string with code search results
+        JSON string with code search results including content, summaries, and metadata
     """
     try:
         supabase_client = ctx.request_context.lifespan_context.supabase_client
 
-        # TODO: Implement actual code search using hybrid_search_code_examples
-        # For now, return a placeholder response indicating the feature is ready
+        # Validate parameters
+        match_count = min(max(match_count, 1), 30)  # Clamp between 1 and 30
+        complexity_min = max(min(complexity_min, 10), 1)  # Clamp between 1 and 10
+        complexity_max = max(
+            min(complexity_max, 10), complexity_min
+        )  # Ensure max >= min
+
+        # Create enhanced query for better code search results
+        # Combine the original query with context that helps with code understanding
+        enhanced_query = f"Code example: {query}"
+        if programming_language:
+            enhanced_query += f" in {programming_language}"
+
+        # Create embedding for the enhanced query
+        from utils import create_embedding
+
+        query_embedding = create_embedding(enhanced_query)
+
+        # Prepare parameters for the hybrid search function
+        search_params = {
+            "query_text": query,  # Use original query for full-text search
+            "query_embedding": query_embedding,
+            "match_count": match_count,
+            "language_filter": programming_language if programming_language else None,
+            "max_complexity": complexity_max,
+        }
+
+        # Execute hybrid search using the RPC function
+        response = supabase_client.rpc(
+            "hybrid_search_code_examples", search_params
+        ).execute()
+
+        if not response.data:
+            return json.dumps(
+                {
+                    "success": True,
+                    "query": query,
+                    "enhanced_query": enhanced_query,
+                    "filters": {
+                        "programming_language": programming_language,
+                        "complexity_range": [complexity_min, complexity_max],
+                        "match_count": match_count,
+                    },
+                    "results": [],
+                    "count": 0,
+                    "message": "No code examples found matching your criteria",
+                },
+                indent=2,
+            )
+
+        # Filter results by complexity_min (SQL function only filters by max)
+        filtered_results = [
+            result
+            for result in response.data
+            if result.get("complexity_score", 1) >= complexity_min
+        ]
+
+        # Format results for optimal readability and usability
+        formatted_results = []
+        for i, result in enumerate(filtered_results[:match_count]):
+            # Extract metadata safely
+            metadata = result.get("metadata", {})
+            if isinstance(metadata, str):
+                try:
+                    import json as json_lib
+
+                    metadata = json_lib.loads(metadata)
+                except:
+                    metadata = {}
+
+            formatted_result = {
+                "id": result.get("id"),
+                "url": result.get("url"),
+                "content": result.get("content", ""),
+                "summary": result.get("summary", ""),
+                "programming_language": result.get("programming_language"),
+                "complexity_score": result.get("complexity_score"),
+                "similarity": round(result.get("similarity", 0.0), 4),
+                "rrf_score": round(result.get("rrf_score", 0.0), 4),
+                "ranking": {
+                    "position": i + 1,
+                    "semantic_rank": result.get("semantic_rank"),
+                    "full_text_rank": result.get("full_text_rank"),
+                },
+                "metadata": metadata,
+            }
+            formatted_results.append(formatted_result)
+
+        # Calculate search statistics
+        total_found = len(response.data)
+        after_complexity_filter = len(filtered_results)
+        returned_count = len(formatted_results)
+
         return json.dumps(
             {
                 "success": True,
-                "message": "Code search functionality ready - hybrid search implementation coming in Task 4.3",
                 "query": query,
+                "enhanced_query": enhanced_query,
+                "filters": {
+                    "programming_language": programming_language,
+                    "complexity_range": [complexity_min, complexity_max],
+                    "match_count": match_count,
+                },
+                "results": formatted_results,
+                "count": returned_count,
+                "search_stats": {
+                    "total_found": total_found,
+                    "after_complexity_filter": after_complexity_filter,
+                    "returned": returned_count,
+                    "search_type": "hybrid_rrf",
+                },
+                "message": f"Found {returned_count} code examples using hybrid search (RRF)",
+            },
+            indent=2,
+        )
+
+    except Exception as e:
+        return json.dumps(
+            {
+                "success": False,
+                "query": query,
+                "error": f"Code search failed: {str(e)}",
                 "filters": {
                     "programming_language": programming_language,
                     "complexity_range": [complexity_min, complexity_max],
@@ -792,9 +913,6 @@ async def search_code_examples(
             },
             indent=2,
         )
-
-    except Exception as e:
-        return json.dumps({"success": False, "error": str(e)}, indent=2)
 
 
 @mcp.tool()

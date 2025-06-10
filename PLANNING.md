@@ -90,7 +90,7 @@ Enhanced Strategies (configurable):
    - **✅ Task 3.1 Complete**: Strategy Manager implementation with component lifecycle management
    - **✅ Task 3.2 Complete**: Code extraction pipeline integration with dual embeddings and agentic RAG configuration
    - **✅ Task 3.3 Complete**: Conditional tool registration with strategy-aware availability
-4. **Advanced RAG** (5-7 days): ✅ **TASK 4.1 COMPLETE** - Reranking integration + cross-strategy testing
+4. **Advanced RAG** (5-7 days): ✅ **PHASE 4 PARTIAL COMPLETE** - Reranking integration + agentic RAG tools implementation
 5. ✅ **Code Examples Refactoring & Enhancement** (3-5 days): COMPLETE
    - **Goal**: Refactor the `code_examples` functionality to simplify its implementation, while preserving advanced features. A recent enhancement restored AI-powered summaries for better context.
    - **Key Implementation Details**:
@@ -158,11 +158,14 @@ sentence-transformers = ">=3.0.0"  # ✅ IMPLEMENTED - For cross-encoder reranki
 pytest = ">=8.3.5"  # ✅ IMPLEMENTED - For comprehensive testing
 ```
 
-### Phase 1, 2, 3 & 4.1 Completed Deliverables
+### Phase 1, 2, 3 & 4 Completed Deliverables
 - ✅ **Performance monitoring framework** (`src/performance_baseline.py`, `src/performance_monitor.py`)
 - ✅ **Strategy configuration system** (`src/config.py` with comprehensive validation)
 - ✅ **Cross-encoder reranking infrastructure** (`src/reranking.py` with 22 unit tests)
 - ✅ **Cross-encoder reranking integration** (`perform_rag_query_with_reranking` tool, hybrid search preservation, 7 integration tests)
+- ✅ **Agentic RAG tools implementation** (`search_code_examples` tool with hybrid search integration, 10 comprehensive tests)
+  - ⚠️ **Note**: Currently uses hybrid search (RRF) only; reranking NOT integrated for code search
+  - 🔄 **Future Enhancement**: Could add `search_code_examples_with_reranking` combining both strategies
 - ✅ **Enhanced documentation** (README.md with strategy guides, troubleshooting, performance tuning)
 - ✅ **Regression testing** (`tests/test_performance_regression.py`)
 - ✅ **Configuration testing** (`tests/test_config.py` with 21 test cases)
@@ -188,10 +191,26 @@ RERANKING_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
 ## Success Criteria
 - All 14 enhancements implemented and tested
 - No regression in existing functionality
-- Improved search quality with reranking enabled
-- Successful code extraction and search for programming content
+- Improved search quality with reranking enabled (for `crawled_pages` table)
+- Successful code extraction and search for programming content (hybrid search only)
 - Clean configuration system with comprehensive validation
 - Complete documentation for new features
+
+## Strategy Integration Analysis
+
+### Current Search Tool Coverage:
+- **`crawled_pages` table**: Hybrid Search (RRF) + Optional Cross-Encoder Reranking ✅
+- **`code_examples` table**: Hybrid Search (RRF) only ⚠️
+
+### Cross-Strategy Opportunities:
+1. **Agentic RAG + Reranking**: Not currently integrated
+   - Current: `search_code_examples` uses hybrid search only
+   - Opportunity: `search_code_examples_with_reranking` combining both pipelines
+   - Requirements: `USE_AGENTIC_RAG=true` AND `USE_RERANKING=true`
+   
+2. **Specialized Code Reranking Models**: 
+   - Current reranking uses general-purpose `cross-encoder/ms-marco-MiniLM-L-6-v2`
+   - Opportunity: Code-specific models like CodeBERT-based cross-encoders for better code similarity
 
 ## Risk Mitigation
 - **Pre-migration safety**: Comprehensive backup + rollback testing + data integrity checks
