@@ -29,7 +29,7 @@ try:
 except ImportError:
     # Fallback if utils import fails
     def _get_contextual_model() -> Optional[str]:
-        return os.getenv("CONTEXTUAL_MODEL", "gpt-4o-mini-2024-07-18")
+        return os.getenv("CONTEXTUAL_MODEL", "gpt-4.1-nano")
 
 
 logger = logging.getLogger(__name__)

@@ -47,7 +47,7 @@ class StrategyConfig:
     use_reranking: bool = False
 
     # Model configuration
-    contextual_model: str = "gpt-4o-mini-2024-07-18"
+    contextual_model: str = "gpt-4.1-nano"
     reranking_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # Contextual embedding configuration
@@ -115,7 +115,7 @@ class StrategyConfig:
             ),
             use_agentic_rag=str_to_bool(os.getenv("USE_AGENTIC_RAG", "false")),
             use_reranking=str_to_bool(os.getenv("USE_RERANKING", "false")),
-            contextual_model=os.getenv("CONTEXTUAL_MODEL", "gpt-4o-mini-2024-07-18"),
+            contextual_model=os.getenv("CONTEXTUAL_MODEL", "gpt-4.1-nano"),
             reranking_model=os.getenv(
                 "RERANKING_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"
             ),
