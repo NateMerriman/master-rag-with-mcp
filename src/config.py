@@ -87,6 +87,25 @@ class StrategyConfig:
             """Convert string environment variable to boolean."""
             return value.lower() in ("true", "1", "yes", "on")
 
+        def clean_env_value(value: str) -> str:
+            """Clean environment variable value by removing inline comments."""
+            # Remove inline comments (anything after # character)
+            if "#" in value:
+                value = value.split("#")[0]
+            return value.strip()
+
+        def safe_int(value: str, var_name: str, default: str) -> int:
+            """Safely convert environment variable to integer with helpful error messages."""
+            try:
+                cleaned_value = clean_env_value(value)
+                return int(cleaned_value)
+            except ValueError as e:
+                raise ValueError(
+                    f"Invalid integer value for {var_name}: '{value}'. "
+                    f"Expected integer, got: '{cleaned_value}'. "
+                    f"Make sure there are no comments or extra characters in the value."
+                ) from e
+
         return cls(
             use_contextual_embeddings=str_to_bool(
                 os.getenv("USE_CONTEXTUAL_EMBEDDINGS", "false")
@@ -125,15 +144,23 @@ class StrategyConfig:
             use_retrieval_optimized_code_summaries=str_to_bool(
                 os.getenv("USE_RETRIEVAL_OPTIMIZED_CODE_SUMMARIES", "false")
             ),
-            code_summary_style=os.getenv("CODE_SUMMARY_STYLE", "practical"),
-            code_summary_max_context_chars=int(
-                os.getenv("CODE_SUMMARY_MAX_CONTEXT_CHARS", "300")
+            code_summary_style=clean_env_value(
+                os.getenv("CODE_SUMMARY_STYLE", "practical")
+            ),
+            code_summary_max_context_chars=safe_int(
+                os.getenv("CODE_SUMMARY_MAX_CONTEXT_CHARS", "300"),
+                "CODE_SUMMARY_MAX_CONTEXT_CHARS",
+                "300",
             ),
             code_summary_include_complexity=str_to_bool(
-                os.getenv("CODE_SUMMARY_INCLUDE_COMPLEXITY", "true")
+                clean_env_value(os.getenv("CODE_SUMMARY_INCLUDE_COMPLEXITY", "true"))
             ),
-            max_reranking_results=int(os.getenv("MAX_RERANKING_RESULTS", "20")),
-            reranking_timeout_ms=int(os.getenv("RERANKING_TIMEOUT_MS", "500")),
+            max_reranking_results=safe_int(
+                os.getenv("MAX_RERANKING_RESULTS", "20"), "MAX_RERANKING_RESULTS", "20"
+            ),
+            reranking_timeout_ms=safe_int(
+                os.getenv("RERANKING_TIMEOUT_MS", "500"), "RERANKING_TIMEOUT_MS", "500"
+            ),
         )
 
     def get_enabled_strategies(self) -> Set[RAGStrategy]:
