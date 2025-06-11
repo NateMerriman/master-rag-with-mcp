@@ -227,42 +227,93 @@ ORDER BY total_spent DESC;""",
     }
 
     def __init__(self):
-        self.min_code_length = 10  # Minimum characters for a valid code block
+        self.min_code_length = 25  # Lower minimum that allows small functions but filters out very short text
         self.max_code_length = 10000  # Maximum characters to avoid huge blocks
 
     def extract_code_blocks(self, content: str) -> List[CodeBlock]:
         """Extract all code blocks from the given content."""
         code_blocks = []
+
         lines = content.split("\n")
 
-        # Extract fenced code blocks only. This is a stricter approach to avoid false positives.
-        code_blocks.extend(self._extract_fenced_blocks(content, lines))
+        # Extract only fenced code blocks. This is a stricter approach to avoid false positives.
+        extracted_blocks = self._extract_fenced_blocks_improved(
+            content, lines, 0
+        )  # Always start from 0
+        code_blocks.extend(extracted_blocks)
 
-        # Filter valid code blocks
-        return [block for block in code_blocks if self._is_valid_code_block(block)]
+        # Filter valid code blocks with improved validation
+        valid_blocks = []
+        for i, block in enumerate(code_blocks):
+            is_valid = self._is_valid_code_block_improved(block)
+            if is_valid:
+                valid_blocks.append(block)
+        return valid_blocks
 
-    def _extract_fenced_blocks(self, content: str, lines: List[str]) -> List[CodeBlock]:
-        """Extract fenced code blocks (```language ... ```)."""
+    def _extract_fenced_blocks_improved(
+        self, content: str, lines: List[str], start_offset: int = 0
+    ) -> List[CodeBlock]:
+        """Extract fenced code blocks using improved logic from reference implementation."""
         blocks = []
 
-        for match in self.FENCED_CODE_PATTERN.finditer(content):
-            language_str = match.group(1) or ""  # Default to empty string if no hint
-            code_content = match.group(2).strip()
+        # Find all occurrences of triple backticks
+        backtick_positions = []
+        pos = start_offset
+        while True:
+            pos = content.find("```", pos)
+            if pos == -1:
+                break
+            backtick_positions.append(pos)
+            pos += 3
+
+        # Process pairs of backticks
+        i = 0
+        while i < len(backtick_positions) - 1:
+            start_pos = backtick_positions[i]
+            end_pos = backtick_positions[i + 1]
+
+            # Extract the content between backticks
+            code_section = content[start_pos + 3 : end_pos]
+
+            # Check if there's a language specifier on the first line
+            lines_in_block = code_section.split("\n", 1)
+            if len(lines_in_block) > 1:
+                # Check if first line is a language specifier (no spaces, common language names)
+                first_line = lines_in_block[0].strip()
+                if first_line and not " " in first_line and len(first_line) < 20:
+                    language_hint = first_line
+                    code_content = (
+                        lines_in_block[1].strip() if len(lines_in_block) > 1 else ""
+                    )
+                else:
+                    language_hint = ""
+                    code_content = code_section.strip()
+            else:
+                language_hint = ""
+                code_content = code_section.strip()
 
             if not code_content:
+                i += 2  # Move to next pair
                 continue
 
-            language = self._detect_language(language_str, code_content)
+            # Skip if code block is too short (using reference implementation threshold)
+            if len(code_content) < self.min_code_length:
+                i += 2  # Move to next pair
+                continue
+
+            language = self._detect_language(language_hint, code_content)
 
             # Find line numbers
-            start_pos = match.start()
             start_line = content[:start_pos].count("\n")
             end_line = start_line + code_content.count("\n")
 
-            # Get context
-            context_before, context_after = self._get_context(
-                lines, start_line, end_line
-            )
+            # Extract context before (1000 chars like reference implementation)
+            context_start = max(0, start_pos - 1000)
+            context_before = content[context_start:start_pos].strip()
+
+            # Extract context after (1000 chars like reference implementation)
+            context_end = min(len(content), end_pos + 3 + 1000)
+            context_after = content[end_pos + 3 : context_end].strip()
 
             blocks.append(
                 CodeBlock(
@@ -275,6 +326,9 @@ ORDER BY total_spent DESC;""",
                     context_after=context_after,
                 )
             )
+
+            # Move to next pair (skip the closing backtick we just processed)
+            i += 2
 
         return blocks
 
@@ -436,22 +490,184 @@ ORDER BY total_spent DESC;""",
         context_after = "\n".join(lines[end_line + 1 : end_line + 11])
         return context_before, context_after
 
-    def _is_valid_code_block(self, block: CodeBlock) -> bool:
-        """Check if a code block is valid for processing."""
+    def _is_valid_code_block_improved(self, block: CodeBlock) -> bool:
+        """Check if a code block is valid for processing with improved validation logic."""
+        content = block.content.strip()
+
         # Basic length checks
-        if not (self.min_code_length <= len(block.content) <= self.max_code_length):
+        if not (self.min_code_length <= len(content) <= self.max_code_length):
             return False
 
         # Check for a minimum number of lines
-        if block.content.count("\n") < 1:  # At least 2 lines of code
+        lines = content.split("\n")
+        if len(lines) < 2:  # At least 2 lines of code
             return False
 
-        # Sanity check for common code characters. This helps filter out plain text lists.
-        code_chars = {"(", ")", "{", "}", "[", "]", "=", ":", ";", "<", ">"}
-        if not any(char in block.content for char in code_chars):
+        # Filter out common non-code patterns that appear in documentation
+
+        # 1. Check for tree/directory structures (like your examples)
+        tree_indicators = ["├──", "└──", "│", "┌─", "┐", "┘", "└─"]
+        if any(indicator in content for indicator in tree_indicators):
             return False
+
+        # 2. Check for simple lists without code characteristics
+        non_empty_lines = [line.strip() for line in lines if line.strip()]
+        if len(non_empty_lines) >= 3:  # Only check if we have enough lines
+            # If most lines are just simple text without code chars, it's likely a list
+            code_chars = {
+                "(",
+                ")",
+                "{",
+                "}",
+                "[",
+                "]",
+                "=",
+                ":",
+                ";",
+                "<",
+                ">",
+                "->",
+                "=>",
+                "+=",
+                "-=",
+            }
+            lines_with_code_chars = 0
+            for line in non_empty_lines:
+                if any(char in line for char in code_chars):
+                    lines_with_code_chars += 1
+
+            # If less than 30% of lines have code characteristics, it's probably not code
+            if lines_with_code_chars / len(non_empty_lines) < 0.3:
+                return False
+
+        # 3. Check for configuration-like content that might not be actual code
+        # If all lines follow pattern "key: value" or "key = value" without complex logic
+        config_pattern_count = 0
+        for line in non_empty_lines:
+            if ":" in line and line.count(":") == 1:
+                parts = line.split(":")
+                if len(parts) == 2 and parts[0].strip() and parts[1].strip():
+                    # Simple key: value pattern
+                    if not any(
+                        code_indicator in line
+                        for code_indicator in [
+                            "(",
+                            ")",
+                            "{",
+                            "}",
+                            ";",
+                            "function",
+                            "def ",
+                            "class ",
+                            "if ",
+                            "for ",
+                            "while ",
+                        ]
+                    ):
+                        config_pattern_count += 1
+
+        # If more than 80% are simple config lines, it might be config, not code
+        if (
+            len(non_empty_lines) > 3
+            and config_pattern_count / len(non_empty_lines) > 0.8
+        ):
+            # But allow it if it's a known config language
+            if block.language not in [
+                ProgrammingLanguage.YAML,
+                ProgrammingLanguage.JSON,
+                ProgrammingLanguage.XML,
+            ]:
+                return False
+
+        # 4. Check for flowchart/diagram patterns
+        diagram_keywords = [
+            "flowchart",
+            "graph",
+            "sequenceDiagram",
+            "classDiagram",
+            "gantt",
+            "pie",
+        ]
+        if any(keyword in content.lower() for keyword in diagram_keywords):
+            return False
+
+        # 5. Enhanced code characteristic check
+        # Must have some programming constructs, not just basic punctuation
+        programming_indicators = [
+            r"\bdef\s+\w+\s*\(",  # Python function
+            r"\bfunction\s+\w+\s*\(",  # JavaScript function
+            r"\bclass\s+\w+",  # Class definition
+            r"\bif\s*\(",  # Conditional
+            r"\bfor\s*\(",  # Loop
+            r"\bwhile\s*\(",  # Loop
+            r"\breturn\s+",  # Return statement
+            r"\bimport\s+\w+",  # Import statement
+            r"console\.log\(",  # JavaScript log
+            r"print\s*\(",  # Print statement
+            r"SELECT\s+.*FROM",  # SQL
+            r"INSERT\s+INTO",  # SQL
+            r"<\w+[^>]*>.*</\w+>",  # HTML tags
+            r"\w+\s*\{[^}]*\}",  # CSS/object syntax
+            r"@\w+",  # Decorator/annotation
+            r"=>",  # Arrow function
+            r"async\s+",  # Async keyword
+            r"await\s+",  # Await keyword
+        ]
+
+        has_programming_construct = any(
+            re.search(pattern, content, re.IGNORECASE)
+            for pattern in programming_indicators
+        )
+
+        # If it's not a known data format and has no programming constructs, reject it
+        if not has_programming_construct and block.language not in [
+            ProgrammingLanguage.JSON,
+            ProgrammingLanguage.YAML,
+            ProgrammingLanguage.XML,
+        ]:
+            return False
+
+        # 6. Additional filter for very short "code" that's likely just text
+        if len(content) < 200:  # For shorter blocks, be more strict but not too strict
+            # Must have multiple code indicators
+            basic_code_chars = {"(", ")", "{", "}", "[", "]", "=", ";"}
+            if not any(char in content for char in basic_code_chars):
+                return False
+
+            # Must not be just a simple list of items (but be more lenient for code)
+            # Only reject if ALL lines are very short AND there are no clear code patterns
+            if all(len(line.strip().split()) < 5 for line in non_empty_lines):
+                # If all lines are extremely short (< 5 words), check for code patterns
+                code_patterns_in_short = [
+                    r"\bdef\s+",  # Python function definition
+                    r"\bfunction\s+",  # JavaScript function
+                    r"\breturn\s+",  # Return statement
+                    r"\bif\s+",  # Conditional
+                    r"\bfor\s+",  # Loop
+                    r"\bwhile\s+",  # Loop
+                    r"print\s*\(",  # Print function
+                    r"console\.",  # Console methods
+                    r"=\s*\w+\s*\(",  # Function assignment
+                    r"\binterface\s+",  # TypeScript interface
+                    r"\bclass\s+",  # Class definition
+                    r"\btype\s+\w+\s*=",  # TypeScript type alias
+                    r":\s*(string|number|boolean)",  # TypeScript type annotations
+                ]
+
+                # If we have clear code patterns, allow it even with short lines
+                has_code_patterns = any(
+                    re.search(pattern, content, re.IGNORECASE)
+                    for pattern in code_patterns_in_short
+                )
+
+                if not has_code_patterns:
+                    return False
 
         return True
+
+    def _is_valid_code_block(self, block: CodeBlock) -> bool:
+        """Legacy method for backward compatibility - redirects to improved validation."""
+        return self._is_valid_code_block_improved(block)
 
     def calculate_complexity_score(
         self, code: str, language: ProgrammingLanguage

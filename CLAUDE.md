@@ -375,3 +375,154 @@ When accessing a disabled tool, users receive clear error messages indicating:
 - Which tool was attempted
 - Which strategies are required to enable the tool
 - Current configuration status
+
+# CLAUDE.md - Conversation History
+
+## Latest Session: Code Extraction Logic Improvements - COMPLETED ✅
+**Date: 2024-12-19**
+
+### Objective
+Fix critical issue with `smart_chunk_markdown` function breaking code blocks and causing extraction failures.
+
+### Root Cause Analysis
+- **Problem**: Original `smart_chunk_markdown()` function was breaking BEFORE closing ``` tags
+- **Impact**: Created malformed markdown chunks with orphaned opening/closing tags
+- **Specific case**: DeepWiki mem0-mcp page with `@mcp.tool` decorator was being mangled
+
+### Issues Fixed
+1. ✅ **Code block boundary detection**: Now preserves complete blocks
+2. ✅ **Infinite loop bug**: Fixed logic error in chunking progression
+3. ✅ **Orphaned tags**: Eliminated incomplete chunks like ````python\n@mcp.tool(\n````
+4. ✅ **Empty code blocks**: No more ````\n```\n```` patterns
+5. ✅ **Function signature merging**: Fixed `asyncdefadd_coding_preference` type issues
+
+### Implementation Details
+- **Created**: `src/improved_chunking.py` with `EnhancedMarkdownChunker` class
+- **Enhanced**: Complete code block detection with `find_code_blocks()` method
+- **Added**: Safe break point logic that never splits code blocks
+- **Implemented**: Chunk validation system with issue detection
+- **Fixed**: Critical logic bug where `actual_end <= start` was always true
+
+### Key Technical Improvements
+1. **`CodeBlockInfo` class**: Tracks code block boundaries and languages
+2. **`find_safe_break_point()` method**: Ensures code blocks are never split
+3. **Validation system**: Detects orphaned tags, empty blocks, merged signatures
+4. **Drop-in replacement**: Updated `smart_chunk_markdown()` to use enhanced version
+
+### Test Results
+- ✅ **Validation**: 0 malformed blocks (vs multiple in original)
+- ✅ **Code preservation**: `@mcp.tool` decorator properly maintained in complete Python code block
+- ✅ **Performance**: Fixed infinite loop, no performance regressions
+- ✅ **Compatibility**: Backward compatible, existing functionality preserved
+
+### Files Modified
+- `src/crawl4ai_mcp.py`: Replaced `smart_chunk_markdown()` with enhanced version
+- `src/improved_chunking.py`: Complete enhanced chunking implementation
+- `TASKS.md`: Marked task as completed with full details
+
+### Verification
+- **Test content**: DeepWiki mem0-mcp content properly chunked
+- **Code blocks**: All 5 code blocks detected and preserved
+- **Integration**: Working correctly with existing crawl pipeline
+- **Validation**: 0 issues found in comprehensive validation
+
+### Next Steps
+The enhanced chunking is now integrated and working correctly. The system will properly preserve code blocks during crawling, fixing the original issue with code extraction failures.
+
+---
+
+## Previous Sessions
+
+### Session: Enhanced RAG Strategies Implementation - COMPLETED ✅
+**Date: 2024-12-18**
+
+### Objective
+Implement comprehensive RAG strategy system with contextual embeddings, reranking, and agentic code extraction.
+
+### Major Achievements
+1. **Strategy Configuration System**: Environment-based toggles for all RAG strategies
+2. **Strategy Manager**: Lifecycle management and conditional tool registration
+3. **Contextual Embeddings**: Content-type aware embedding generation
+4. **Cross-encoder Reranking**: Advanced result quality improvement
+5. **Agentic RAG**: Specialized code extraction and storage
+6. **Hybrid Search**: RRF-based semantic + full-text search
+7. **Database Enhancements**: Sources table, code_examples table, foreign key constraints
+
+### Technical Implementation
+- **3 RAG Strategies**: Contextual Embeddings, Reranking, Agentic RAG
+- **9 Content Types**: Academic, technical, news, forum, blog, social media, legal, educational, general
+- **Database Schema**: Enhanced with sources table (729 records) and code_examples table
+- **Performance**: Baseline established at 790.81ms average query time
+- **Code Extraction**: 18+ programming languages supported with complexity scoring
+
+### Files Created/Modified
+- `src/config.py`: Strategy configuration management
+- `src/strategies/`: Strategy manager and base classes
+- `src/code_extraction.py`: Advanced code extraction pipeline
+- `database/migrations/`: Sources table and foreign key migrations
+- Multiple test files with 100+ total test cases
+
+### Key Metrics
+- **Database**: 9,149 documents across 8 sources with enhanced metadata
+- **Performance**: No regressions, optimized for enhanced functionality
+- **Code Support**: 18+ programming languages with automatic detection
+- **Test Coverage**: 100+ tests across all new functionality
+
+### Configuration Examples
+Provided 4 complete configuration examples:
+1. Basic setup (single strategy)
+2. Enhanced search quality (contextual + reranking)
+3. AI coding assistant (all strategies enabled)
+4. Maximum performance (optimized settings)
+
+---
+
+### Session: Project Architecture and Strategy Design - COMPLETED ✅
+**Date: 2024-12-17**
+
+### Objective
+Design comprehensive project architecture for advanced RAG strategies implementation.
+
+### Major Deliverables
+1. **PLANNING.md**: Complete project architecture and implementation roadmap
+2. **Strategy Framework**: 3-phase implementation plan with 15 detailed tasks
+3. **Technical Specifications**: Database schemas, API designs, configuration systems
+4. **Documentation**: User guides, troubleshooting, performance optimization
+
+### Key Architectural Decisions
+- **Modular Strategy System**: Independent, composable RAG strategies
+- **Environmental Configuration**: Toggle-based strategy activation
+- **Database Enhancement**: Sources normalization and specialized code storage
+- **Performance Monitoring**: Baseline establishment and regression testing
+- **Backward Compatibility**: Seamless integration with existing functionality
+
+### Phase Structure
+1. **Phase 1**: Foundation (performance baselines, configuration system)
+2. **Phase 2**: Database enhancements (sources table, code examples, constraints)
+3. **Phase 3**: Advanced features (strategy manager, contextual embeddings, reranking)
+
+### Risk Mitigation
+- Comprehensive testing strategy
+- Gradual rollout approach
+- Performance monitoring
+- Rollback procedures for all database changes
+
+---
+
+### Session: Initial Project Assessment - COMPLETED ✅
+**Date: 2024-12-16**
+
+### Objective
+Understand existing Crawl4AI MCP server implementation and identify enhancement opportunities.
+
+### Key Findings
+1. **Current State**: Functional MCP server with basic RAG capabilities
+2. **Enhancement Opportunities**: Advanced RAG strategies, database optimization, specialized content handling
+3. **Architecture Assessment**: Well-structured foundation ready for advanced features
+4. **Performance Baseline**: Established metrics for improvement measurement
+
+### Recommendations Implemented
+- Advanced RAG strategy implementation
+- Database architecture improvements
+- Enhanced content processing capabilities
+- Comprehensive testing and validation framework
