@@ -441,6 +441,7 @@ class EnhancedCrawler:
     ) -> List[CrawlResult]:
         """
         Recursively crawl internal links from start URLs up to a maximum depth using enhanced crawling.
+        Only crawls URLs that start with the same path as the original start URLs.
         
         Args:
             start_urls: List of starting URLs
@@ -475,6 +476,15 @@ class EnhancedCrawler:
         def normalize_url(url):
             return urldefrag(url)[0]
         
+        def is_within_allowed_paths(url: str, allowed_prefixes: List[str]) -> bool:
+            """Check if URL starts with any of the allowed path prefixes."""
+            normalized = normalize_url(url)
+            return any(normalized.startswith(prefix) for prefix in allowed_prefixes)
+        
+        # Extract allowed path prefixes from start URLs
+        allowed_prefixes = [normalize_url(url) for url in start_urls]
+        logger.info(f"🔒 Enhanced recursive crawling restricted to paths: {allowed_prefixes}")
+        
         current_urls = set([normalize_url(u) for u in start_urls])
         enhanced_results = []
         
@@ -504,10 +514,11 @@ class EnhancedCrawler:
                     enhanced_result = await self._create_enhanced_result(result, custom_config)
                     enhanced_results.append(enhanced_result)
                     
-                    # Extract internal links for next level
+                    # Extract internal links for next level (only within allowed paths)
                     for link in result.links.get("internal", []):
                         next_url = normalize_url(link["href"])
-                        if next_url not in visited:
+                        if (next_url not in visited and 
+                            is_within_allowed_paths(next_url, allowed_prefixes)):
                             next_level_urls.add(next_url)
             
             current_urls = next_level_urls

@@ -546,6 +546,7 @@ async def crawl_recursive_internal_links(
 ) -> List[Dict[str, Any]]:
     """
     Recursively crawl internal links from start URLs up to a maximum depth.
+    Only crawls URLs that start with the same path as the original start URLs.
 
     Args:
         crawler: AsyncWebCrawler instance
@@ -567,6 +568,15 @@ async def crawl_recursive_internal_links(
 
     def normalize_url(url):
         return urldefrag(url)[0]
+    
+    def is_within_allowed_paths(url: str, allowed_prefixes: List[str]) -> bool:
+        """Check if URL starts with any of the allowed path prefixes."""
+        normalized = normalize_url(url)
+        return any(normalized.startswith(prefix) for prefix in allowed_prefixes)
+    
+    # Extract allowed path prefixes from start URLs
+    allowed_prefixes = [normalize_url(url) for url in start_urls]
+    print(f"🔒 Recursive crawling restricted to paths: {allowed_prefixes}")
 
     current_urls = set([normalize_url(u) for u in start_urls])
     results_all = []
@@ -593,7 +603,8 @@ async def crawl_recursive_internal_links(
                 results_all.append({"url": result.url, "markdown": result.markdown})
                 for link in result.links.get("internal", []):
                     next_url = normalize_url(link["href"])
-                    if next_url not in visited:
+                    if (next_url not in visited and 
+                        is_within_allowed_paths(next_url, allowed_prefixes)):
                         next_level_urls.add(next_url)
 
         current_urls = next_level_urls
