@@ -7,10 +7,29 @@ This script supports all enhanced RAG strategies via environment variable config
 All enhancements from the MCP server are available during manual crawling:
 - Contextual embeddings (USE_CONTEXTUAL_EMBEDDINGS=true)
 - Agentic RAG code extraction (USE_AGENTIC_RAG=true)
+- Enhanced crawling with framework detection (USE_ENHANCED_CRAWLING=true)
+- Cross-encoder reranking (USE_RERANKING=true)
 - Enhanced hybrid search capabilities
+
+Enhanced crawling features:
+- Framework detection (Material Design, ReadMe.io, GitBook, Docusaurus, etc.)
+- Quality validation with automatic fallback mechanisms
+- Smart CSS selector targeting for better content extraction
+- Navigation noise reduction (70-80% to 20-30%)
+- Quality metrics reporting and monitoring
+
+Usage examples:
+  # Basic enhanced crawling
+  python src/manual_crawl.py --url https://docs.n8n.io --enhanced
+  
+  # Force baseline crawling
+  python src/manual_crawl.py --url https://example.com --baseline
+  
+  # Use environment variable control
+  USE_ENHANCED_CRAWLING=true python src/manual_crawl.py --url https://docs.example.com
 """
 
-import argparse, asyncio, json, datetime
+import argparse, asyncio, json, datetime, os
 from urllib.parse import urlparse
 from tqdm import tqdm
 import datetime, zoneinfo  # add zoneinfo
@@ -84,6 +103,37 @@ except (ConfigurationError, ImportError) as e:
     logger.info("📊 Manual crawl will use baseline functionality only")
     strategy_config = None
 
+# Enhanced crawling integration (requires USE_ENHANCED_CRAWLING=true)
+use_enhanced_crawling = os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true"
+
+if use_enhanced_crawling:
+    try:
+        # Add current directory to Python path for imports
+        import sys
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+        
+        # Import enhanced crawling modules
+        from smart_crawler_factory import (
+            EnhancedCrawler,
+            CrawlResult,
+            crawl_single_page_enhanced,
+            smart_crawl_url_enhanced,
+            crawl_recursive_internal_links_enhanced
+        )
+        logger.info("🚀 Enhanced crawling modules loaded successfully")
+        
+    except ImportError as e:
+        logger.error(f"❌ Enhanced crawling modules not available: {e}")
+        logger.info("📊 Manual crawl will use baseline crawling functionality")
+        use_enhanced_crawling = False
+    except Exception as e:
+        logger.error(f"❌ Unexpected error loading enhanced crawling: {e}")
+        logger.info("📊 Manual crawl will use baseline crawling functionality") 
+        use_enhanced_crawling = False
+else:
+    logger.info("📊 Enhanced crawling disabled (USE_ENHANCED_CRAWLING=false)")
 
 DEFAULT_CHUNK_SIZE = 5_000
 DEFAULT_BATCH_SIZE = 20
@@ -91,13 +141,131 @@ DEFAULT_DEPTH = 3
 DEFAULT_CONCURRENCY = 10
 
 
-async def _crawl_and_store(
+async def _crawl_and_store_enhanced(
     url: str,
     max_depth: int,
     max_concurrent: int,
     chunk_size: int,
     batch_size: int,
 ):
+    """Enhanced crawling with framework detection and quality validation."""
+    supabase = get_supabase_client()
+
+    try:
+        # 1️⃣ Enhanced crawling ----------------------------------------------------
+        if is_txt(url) or is_sitemap(url):
+            # For txt files and sitemaps, use smart crawl enhanced
+            crawl_results = await smart_crawl_url_enhanced(url)
+        else:
+            # For regular URLs, use enhanced recursive crawling
+            crawl_results = await crawl_recursive_internal_links_enhanced(
+                start_urls=[url],
+                max_depth=max_depth,
+                max_concurrent=max_concurrent
+            )
+        
+        if not crawl_results or not any(r.success for r in crawl_results):
+            logger.warning("Enhanced crawling failed - no successful results")
+            return
+
+        # Convert enhanced results to legacy format for compatibility
+        pages = []
+        total_quality_score = 0
+        successful_pages = 0
+        
+        for result in crawl_results:
+            if result.success and result.markdown.strip():
+                pages.append({
+                    "url": result.url,
+                    "markdown": result.markdown
+                })
+                if result.quality_metrics:
+                    total_quality_score += result.quality_metrics.overall_quality_score
+                    successful_pages += 1
+                    logger.info(f"✅ Enhanced crawl: {result.url} - Quality: {result.quality_metrics.quality_category} ({result.quality_metrics.overall_quality_score:.3f})")
+                    if result.used_fallback:
+                        logger.info(f"   🔄 Used fallback after {result.extraction_attempts} attempts")
+        
+        if successful_pages > 0:
+            avg_quality = total_quality_score / successful_pages
+            logger.info(f"📊 Enhanced crawling summary: {successful_pages} pages, avg quality: {avg_quality:.3f}")
+
+        if not pages:
+            logger.warning("No pages with content extracted")
+            return
+
+        # 2️⃣ Pre-scan to know how many chunks we'll handle ---------------------------
+        total_chunks = 0
+        for p in pages:
+            total_chunks += len(
+                smart_chunk_markdown(p["markdown"], chunk_size=chunk_size)
+            )
+
+        page_bar = tqdm(pages, desc="enhanced pages", unit="page")
+        chunk_bar = tqdm(total=total_chunks, desc="chunking", unit="chunk")
+
+        # 3️⃣ Chunk + build payload ------------------------------------------
+        urls, idxs, contents, metas = [], [], [], []
+        for page in page_bar:
+            chunks = smart_chunk_markdown(page["markdown"], chunk_size=chunk_size)
+            for i, chunk in enumerate(chunks):
+                urls.append(page["url"])
+                idxs.append(i)
+                contents.append(chunk)
+                metas.append(
+                    {
+                        **extract_section_info(chunk),
+                        "chunk_index": i,
+                        "url": page["url"],
+                        "source": urlparse(page["url"]).netloc,
+                        "manual_run": True,
+                        "enhanced_crawling": True,
+                        "crawl_time": datetime.datetime.now(
+                            UTC
+                        ).isoformat(),
+                    }
+                )
+                chunk_bar.update(1)
+        chunk_bar.close()
+
+        # 4️⃣ Store in Supabase ----------------------------------------------
+        add_documents_to_supabase(
+            supabase,
+            urls,
+            idxs,
+            contents,
+            metas,
+            {p["url"]: p["markdown"] for p in pages},
+            strategy_config,
+            batch_size=batch_size,
+        )
+        logger.info(
+            json.dumps(
+                {
+                    "success": True,
+                    "pages_crawled": len(pages),
+                    "chunks_stored": len(contents),
+                    "enhanced_crawling": True,
+                    "avg_quality_score": avg_quality if successful_pages > 0 else None,
+                },
+            )
+        )
+    
+    except Exception as e:
+        logger.error(f"Enhanced crawling failed: {e}")
+        logger.info("Falling back to baseline crawling")
+        # Fall back to baseline crawling
+        await _crawl_and_store_baseline(url, max_depth, max_concurrent, chunk_size, batch_size)
+
+
+async def _crawl_and_store_baseline(
+    url: str,
+    max_depth: int,
+    max_concurrent: int,
+    chunk_size: int,
+    batch_size: int,
+):
+    """Baseline crawling functionality (original implementation)."""
     crawler = AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False))
     await crawler.__aenter__()
     supabase = get_supabase_client()
@@ -125,7 +293,7 @@ async def _crawl_and_store(
                 smart_chunk_markdown(p["markdown"], chunk_size=chunk_size)
             )
 
-        page_bar = tqdm(pages, desc="pages", unit="page")
+        page_bar = tqdm(pages, desc="baseline pages", unit="page")
         chunk_bar = tqdm(total=total_chunks, desc="chunking", unit="chunk")
 
         # 3️⃣ Chunk + build payload ------------------------------------------
@@ -145,10 +313,10 @@ async def _crawl_and_store(
                         "manual_run": True,
                         "crawl_time": datetime.datetime.now(
                             UTC
-                        ).isoformat(),  # no warning
+                        ).isoformat(),
                     }
                 )
-                chunk_bar.update(1)  # <-- advance chunk bar
+                chunk_bar.update(1)
         chunk_bar.close()
 
         # 4️⃣ Store in Supabase ----------------------------------------------
@@ -175,14 +343,60 @@ async def _crawl_and_store(
         await crawler.__aexit__(None, None, None)
 
 
+async def _crawl_and_store(
+    url: str,
+    max_depth: int,
+    max_concurrent: int,
+    chunk_size: int,
+    batch_size: int,
+):
+    """Main crawl function that dispatches to enhanced or baseline crawling."""
+    if use_enhanced_crawling:
+        logger.info("🚀 Using enhanced crawling with framework detection")
+        await _crawl_and_store_enhanced(url, max_depth, max_concurrent, chunk_size, batch_size)
+    else:
+        logger.info("📊 Using baseline crawling")
+        await _crawl_and_store_baseline(url, max_depth, max_concurrent, chunk_size, batch_size)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Manual Crawl → Chunk → Supabase")
     p.add_argument("--url", required=True, help="Target URL or sitemap.txt")
-    p.add_argument("--max-depth", type=int, default=DEFAULT_DEPTH)
-    p.add_argument("--max-concurrent", type=int, default=DEFAULT_CONCURRENCY)
-    p.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
-    p.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
+    p.add_argument("--max-depth", type=int, default=DEFAULT_DEPTH, 
+                   help=f"Max crawl depth (default: {DEFAULT_DEPTH})")
+    p.add_argument("--max-concurrent", type=int, default=DEFAULT_CONCURRENCY,
+                   help=f"Max concurrent requests (default: {DEFAULT_CONCURRENCY})")
+    p.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE,
+                   help=f"Chunk size for content splitting (default: {DEFAULT_CHUNK_SIZE})")
+    p.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE,
+                   help=f"Batch size for database insertion (default: {DEFAULT_BATCH_SIZE})")
+    
+    # Enhanced crawling options
+    p.add_argument("--enhanced", action="store_true", 
+                   help="Force enable enhanced crawling (overrides USE_ENHANCED_CRAWLING env var)")
+    p.add_argument("--baseline", action="store_true", 
+                   help="Force disable enhanced crawling (overrides USE_ENHANCED_CRAWLING env var)")
+    
     args = p.parse_args()
+    
+    # Handle enhanced crawling override flags
+    global use_enhanced_crawling
+    if args.enhanced and args.baseline:
+        logger.error("Cannot specify both --enhanced and --baseline flags")
+        return
+    elif args.enhanced:
+        use_enhanced_crawling = True
+        logger.info("🚀 Enhanced crawling forced via --enhanced flag")
+    elif args.baseline:
+        use_enhanced_crawling = False
+        logger.info("📊 Baseline crawling forced via --baseline flag")
+    
+    # Log current configuration
+    if use_enhanced_crawling:
+        logger.info("📋 Mode: Enhanced crawling with framework detection and quality validation")
+    else:
+        logger.info("📋 Mode: Baseline crawling (original functionality)")
+    
     asyncio.run(
         _crawl_and_store(
             args.url,

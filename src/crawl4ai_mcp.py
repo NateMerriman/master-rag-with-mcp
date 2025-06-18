@@ -1126,6 +1126,10 @@ async def get_strategy_status(ctx: Context) -> str:
             "smart_crawl_url": "Intelligently crawl URLs (sitemaps, txt files, or regular pages)",
             "get_available_sources": "Get all available sources in the database",
             "perform_rag_query": "Perform basic RAG query with hybrid search",
+            # Enhanced crawling tools (require USE_ENHANCED_CRAWLING=true)
+            "crawl_single_page_enhanced": "Enhanced single page crawling with framework detection and quality validation (requires ENHANCED_CRAWLING)",
+            "smart_crawl_url_enhanced": "Enhanced smart URL crawling with quality metrics (requires ENHANCED_CRAWLING)",
+            "analyze_site_framework": "Analyze documentation site framework and configuration (requires ENHANCED_CRAWLING)",
             # Strategy-specific tools
             "search_code_examples": "Search for code examples (requires AGENTIC_RAG)",
             "perform_rag_query_with_reranking": "Enhanced RAG query with reranking (requires RERANKING)",
@@ -1135,6 +1139,7 @@ async def get_strategy_status(ctx: Context) -> str:
         # Add configuration guide
         status_report["configuration_guide"] = {
             "enable_strategies": {
+                "USE_ENHANCED_CRAWLING": "Enhanced documentation site crawling with framework detection and quality validation",
                 "USE_CONTEXTUAL_EMBEDDINGS": "Enhanced semantic understanding with document context",
                 "USE_RERANKING": "Improved result quality with cross-encoder reranking",
                 "USE_AGENTIC_RAG": "Code extraction and specialized code search capabilities",
@@ -1144,12 +1149,486 @@ async def get_strategy_status(ctx: Context) -> str:
                 "CONTEXTUAL_MODEL": "LLM model for contextual embeddings (default: gpt-4o-mini-2024-07-18)",
                 "RERANKING_MODEL": "Cross-encoder model for reranking (default: ms-marco-MiniLM-L-6-v2)",
             },
+            "enhanced_crawling_features": {
+                "framework_detection": "Automatic detection of documentation frameworks (Material Design, ReadMe.io, GitBook, etc.)",
+                "quality_validation": "Content quality metrics with automatic fallback strategies",
+                "css_targeting": "Framework-specific CSS selectors for optimal content extraction",
+                "performance_monitoring": "Detailed extraction metrics and performance tracking"
+            }
         }
 
         return json.dumps(status_report, indent=2)
 
     except Exception as e:
         return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+# Enhanced Crawling Integration (requires USE_ENHANCED_CRAWLING=true)
+# Load enhanced crawling modules conditionally
+if os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true":
+    try:
+        # Try relative imports first, then absolute imports for Docker compatibility
+        try:
+            from .smart_crawler_factory import (
+                EnhancedCrawler, 
+                CrawlResult,
+                crawl_single_page_enhanced as crawl_enhanced_func,
+                smart_crawl_url_enhanced as smart_crawl_enhanced_func
+            )
+            from .enhanced_crawler_config import detect_framework
+            from .content_quality import log_quality_metrics
+        except ImportError:
+            # Fallback to absolute imports for Docker environment
+            import sys
+            import os as os_module
+            current_dir = os_module.path.dirname(os_module.path.abspath(__file__))
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            
+            from smart_crawler_factory import (
+                EnhancedCrawler, 
+                CrawlResult,
+                crawl_single_page_enhanced as crawl_enhanced_func,
+                smart_crawl_url_enhanced as smart_crawl_enhanced_func
+            )
+            from enhanced_crawler_config import detect_framework
+            from content_quality import log_quality_metrics
+        
+        ENHANCED_CRAWLING_AVAILABLE = True
+        print("🚀 Enhanced crawling modules loaded successfully")
+    except ImportError as e:
+        ENHANCED_CRAWLING_AVAILABLE = False
+        print(f"❌ Enhanced crawling modules not available: {e}")
+    except Exception as e:
+        ENHANCED_CRAWLING_AVAILABLE = False
+        print(f"❌ Unexpected error loading enhanced crawling: {e}")
+else:
+    ENHANCED_CRAWLING_AVAILABLE = False
+
+
+def is_enhanced_crawling_enabled() -> bool:
+    """Check if enhanced crawling is enabled and available."""
+    return (
+        os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true" 
+        and ENHANCED_CRAWLING_AVAILABLE
+    )
+
+
+@mcp.tool()
+async def crawl_single_page_enhanced(ctx: Context, url: str) -> str:
+    """
+    Crawl a single web page with enhanced extraction and quality validation.
+    
+    This enhanced version automatically detects the documentation framework,
+    applies optimized CSS selectors, validates content quality, and uses 
+    fallback strategies if needed. Requires USE_ENHANCED_CRAWLING=true.
+    
+    Key improvements over basic crawling:
+    - Framework detection (Material Design, ReadMe.io, GitBook, etc.)
+    - Intelligent CSS targeting to focus on main content
+    - Content quality validation with metrics
+    - Automatic fallback to alternative extraction methods
+    - Reduced navigation noise (target 80:20 content-to-navigation ratio)
+    
+    Args:
+        ctx: The MCP server provided context
+        url: URL of the web page to crawl
+        
+    Returns:
+        JSON string with enhanced crawl results and quality metrics
+    """
+    if not is_enhanced_crawling_enabled():
+        return json.dumps({
+            "success": False,
+            "error": "Enhanced crawling requires USE_ENHANCED_CRAWLING=true",
+            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
+        }, indent=2)
+    
+    try:
+        supabase_client = ctx.request_context.lifespan_context.supabase_client
+        
+        # Use the enhanced crawler
+        async with EnhancedCrawler() as enhanced_crawler:
+            result = await enhanced_crawler.crawl_single_page_enhanced(url)
+        
+        if not result.success:
+            return json.dumps({
+                "success": False,
+                "url": url,
+                "error": "Enhanced crawling failed",
+                "framework": result.framework.value,
+                "attempts": result.extraction_attempts
+            }, indent=2)
+        
+        # Process and store the enhanced result
+        if result.markdown:
+            # Chunk the content using the enhanced markdown
+            chunks = smart_chunk_markdown(result.markdown)
+            
+            # Prepare data for Supabase
+            urls = []
+            chunk_numbers = []
+            contents = []
+            metadatas = []
+            
+            for i, chunk in enumerate(chunks):
+                urls.append(url)
+                chunk_numbers.append(i)
+                contents.append(chunk)
+                
+                # Enhanced metadata with quality metrics
+                meta = extract_section_info(chunk)
+                meta["chunk_index"] = i
+                meta["url"] = url
+                meta["source"] = urlparse(url).netloc
+                meta["crawl_type"] = "enhanced_single_page"
+                meta["framework"] = result.framework.value
+                meta["used_fallback"] = result.used_fallback
+                meta["extraction_attempts"] = result.extraction_attempts
+                
+                # Add quality metrics to metadata
+                if result.quality_metrics:
+                    meta["quality_score"] = result.quality_metrics.overall_quality_score
+                    meta["content_nav_ratio"] = result.quality_metrics.content_to_navigation_ratio
+                    meta["link_density"] = result.quality_metrics.link_density
+                    meta["quality_category"] = result.quality_metrics.quality_category
+                
+                metadatas.append(meta)
+            
+            # Create url_to_full_document mapping
+            url_to_full_document = {url: result.markdown}
+            
+            # Add to Supabase
+            add_documents_to_supabase(
+                supabase_client,
+                urls,
+                chunk_numbers,
+                contents,
+                metadatas,
+                url_to_full_document,
+            )
+            
+            # Prepare response with enhanced metrics
+            response_data = {
+                "success": True,
+                "url": url,
+                "framework": result.framework.value,
+                "chunks_stored": len(chunks),
+                "content_length": len(result.markdown),
+                "extraction_attempts": result.extraction_attempts,
+                "used_fallback": result.used_fallback,
+                "performance": {
+                    "total_time_seconds": round(result.total_time_seconds, 3),
+                    "framework_detection_ms": round(result.framework_detection_time_ms, 1),
+                    "quality_analysis_ms": round(result.quality_analysis_time_ms, 1) if result.quality_metrics else 0
+                }
+            }
+            
+            # Add quality metrics if available
+            if result.quality_metrics:
+                response_data["quality_metrics"] = {
+                    "overall_score": round(result.quality_metrics.overall_quality_score, 3),
+                    "category": result.quality_metrics.quality_category,
+                    "content_to_navigation_ratio": round(result.quality_metrics.content_to_navigation_ratio, 3),
+                    "link_density": round(result.quality_metrics.link_density, 3),
+                    "word_count": result.quality_metrics.word_count,
+                    "navigation_elements": result.quality_metrics.navigation_element_count,
+                    "improvement_suggestions": result.quality_metrics.improvement_suggestions
+                }
+            
+            return json.dumps(response_data, indent=2)
+        else:
+            return json.dumps({
+                "success": False,
+                "url": url,
+                "error": "No content extracted",
+                "framework": result.framework.value
+            }, indent=2)
+            
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "url": url,
+            "error": f"Enhanced crawling error: {str(e)}"
+        }, indent=2)
+
+
+@mcp.tool()
+async def smart_crawl_url_enhanced(
+    ctx: Context,
+    url: str,
+    max_concurrent: int = 5
+) -> str:
+    """
+    Intelligently crawl URLs with enhanced extraction for documentation sites.
+    
+    This enhanced version automatically detects URL types (sitemaps, text files, 
+    regular pages) and applies framework-specific optimizations. Each page gets
+    quality validation and fallback extraction if needed.
+    
+    Requires USE_ENHANCED_CRAWLING=true.
+    
+    Key improvements:
+    - Framework-aware extraction for each crawled page
+    - Quality validation with automatic retries
+    - Reduced navigation noise across all crawled content
+    - Performance monitoring and detailed metrics
+    - Concurrent processing with quality control
+    
+    Args:
+        ctx: The MCP server provided context
+        url: URL to crawl (sitemap, text file, or regular webpage)
+        max_concurrent: Maximum concurrent crawling sessions (default: 5)
+        
+    Returns:
+        JSON string with enhanced crawl results and aggregated quality metrics
+    """
+    if not is_enhanced_crawling_enabled():
+        return json.dumps({
+            "success": False,
+            "error": "Enhanced crawling requires USE_ENHANCED_CRAWLING=true",
+            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
+        }, indent=2)
+    
+    try:
+        supabase_client = ctx.request_context.lifespan_context.supabase_client
+        
+        # Use the enhanced crawler with limited concurrency
+        async with EnhancedCrawler(max_fallback_attempts=3) as enhanced_crawler:
+            enhanced_crawler.factory._crawler_cache = {}  # Reset cache
+            results = await enhanced_crawler.smart_crawl_url_enhanced(url)
+        
+        if not results:
+            return json.dumps({
+                "success": False,
+                "url": url,
+                "error": "No content found or all crawls failed"
+            }, indent=2)
+        
+        # Process all results and store in Supabase
+        urls = []
+        chunk_numbers = []
+        contents = []
+        metadatas = []
+        total_chunks = 0
+        successful_crawls = 0
+        quality_stats = {"excellent": 0, "good": 0, "fair": 0, "poor": 0}
+        frameworks_detected = {}
+        
+        for result in results:
+            if not result.success or not result.markdown:
+                continue
+                
+            successful_crawls += 1
+            
+            # Track framework usage
+            framework_name = result.framework.value
+            frameworks_detected[framework_name] = frameworks_detected.get(framework_name, 0) + 1
+            
+            # Track quality distribution
+            if result.quality_metrics:
+                quality_stats[result.quality_metrics.quality_category] += 1
+            
+            # Chunk the content
+            chunks = smart_chunk_markdown(result.markdown)
+            
+            for i, chunk in enumerate(chunks):
+                urls.append(result.url)
+                chunk_numbers.append(i)
+                contents.append(chunk)
+                
+                # Enhanced metadata
+                meta = extract_section_info(chunk)
+                meta["chunk_index"] = i
+                meta["url"] = result.url
+                meta["source"] = urlparse(result.url).netloc
+                meta["crawl_type"] = "enhanced_smart_crawl"
+                meta["framework"] = result.framework.value
+                meta["used_fallback"] = result.used_fallback
+                meta["extraction_attempts"] = result.extraction_attempts
+                
+                # Add quality metrics
+                if result.quality_metrics:
+                    meta["quality_score"] = result.quality_metrics.overall_quality_score
+                    meta["content_nav_ratio"] = result.quality_metrics.content_to_navigation_ratio
+                    meta["link_density"] = result.quality_metrics.link_density
+                    meta["quality_category"] = result.quality_metrics.quality_category
+                
+                metadatas.append(meta)
+                total_chunks += 1
+        
+        if total_chunks == 0:
+            return json.dumps({
+                "success": False,
+                "url": url,
+                "error": "No content chunks created from crawled pages"
+            }, indent=2)
+        
+        # Create url_to_full_document mapping
+        url_to_full_document = {}
+        for result in results:
+            if result.success and result.markdown:
+                url_to_full_document[result.url] = result.markdown
+        
+        # Add to Supabase in batches
+        batch_size = 20
+        add_documents_to_supabase(
+            supabase_client,
+            urls,
+            chunk_numbers,
+            contents,
+            metadatas,
+            url_to_full_document,
+            batch_size=batch_size,
+        )
+        
+        # Calculate aggregate metrics
+        total_attempts = len(results)
+        total_time = sum(result.total_time_seconds for result in results if result.success)
+        avg_quality_score = sum(
+            result.quality_metrics.overall_quality_score 
+            for result in results 
+            if result.success and result.quality_metrics
+        ) / max(successful_crawls, 1)
+        
+        return json.dumps({
+            "success": True,
+            "url": url,
+            "summary": {
+                "pages_attempted": total_attempts,
+                "pages_successful": successful_crawls,
+                "chunks_stored": total_chunks,
+                "frameworks_detected": frameworks_detected,
+                "quality_distribution": quality_stats
+            },
+            "performance": {
+                "total_time_seconds": round(total_time, 2),
+                "average_quality_score": round(avg_quality_score, 3),
+                "pages_with_fallback": sum(1 for r in results if r.success and r.used_fallback)
+            },
+            "crawled_urls": [
+                result.url for result in results 
+                if result.success
+            ][:10] + (["..."] if successful_crawls > 10 else [])
+        }, indent=2)
+        
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "url": url,
+            "error": f"Enhanced smart crawl error: {str(e)}"
+        }, indent=2)
+
+
+@mcp.tool()
+async def analyze_site_framework(ctx: Context, url: str) -> str:
+    """
+    Analyze a documentation site to detect its framework and suggest optimal extraction settings.
+    
+    This diagnostic tool helps understand how the enhanced crawler will process a site
+    without actually crawling it. Useful for troubleshooting extraction issues.
+    
+    Requires USE_ENHANCED_CRAWLING=true.
+    
+    Args:
+        ctx: The MCP server provided context
+        url: URL to analyze
+        
+    Returns:
+        JSON string with framework detection results and configuration recommendations
+    """
+    if not is_enhanced_crawling_enabled():
+        return json.dumps({
+            "success": False,
+            "error": "Site analysis requires USE_ENHANCED_CRAWLING=true",
+            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
+        }, indent=2)
+    
+    try:
+        # Use a basic crawler to get the HTML for analysis
+        crawler = ctx.request_context.lifespan_context.crawler
+        
+        # Simple crawl to get HTML
+        run_config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, stream=False)
+        result = await crawler.arun(url=url, config=run_config)
+        
+        if not result.success:
+            return json.dumps({
+                "success": False,
+                "url": url,
+                "error": f"Failed to fetch page for analysis: {result.error_message}"
+            }, indent=2)
+        
+        # Detect framework
+        framework = detect_framework(url, result.html)
+        
+        # Get configuration recommendations
+        from .enhanced_crawler_config import config_manager
+        framework_config = config_manager.get_framework_config(framework)
+        quality_thresholds = config_manager.get_quality_thresholds(framework)
+        
+        # Analyze HTML for potential issues
+        html_lower = result.html.lower()
+        analysis = {
+            "has_navigation": any(nav in html_lower for nav in ["nav>", "navigation", "sidebar", "menu"]),
+            "navigation_indicators": [],
+            "content_indicators": [],
+            "potential_issues": []
+        }
+        
+        # Check for specific navigation patterns
+        nav_patterns = ["md-nav", "md-sidebar", "rm-sidebar", "hub-sidebar", "gitbook", "navbar"]
+        for pattern in nav_patterns:
+            if pattern in html_lower:
+                analysis["navigation_indicators"].append(pattern)
+        
+        # Check for content patterns
+        content_patterns = ["md-main", "md-content", "rm-guides", "article", "main", ".content"]
+        for pattern in content_patterns:
+            if pattern in html_lower:
+                analysis["content_indicators"].append(pattern)
+        
+        # Identify potential issues
+        if len(analysis["navigation_indicators"]) > 3:
+            analysis["potential_issues"].append("High navigation complexity detected")
+        
+        if not analysis["content_indicators"]:
+            analysis["potential_issues"].append("No clear content containers found")
+        
+        return json.dumps({
+            "success": True,
+            "url": url,
+            "analysis": {
+                "detected_framework": framework.value,
+                "confidence": "high" if framework.value != "generic" else "low",
+                "html_analysis": analysis,
+                "recommended_config": {
+                    "target_elements": framework_config.target_elements,
+                    "excluded_selectors": framework_config.excluded_selectors,
+                    "excluded_tags": framework_config.excluded_tags,
+                    "word_count_threshold": framework_config.word_count_threshold
+                },
+                "quality_thresholds": {
+                    "min_content_ratio": quality_thresholds[0],
+                    "max_link_density": quality_thresholds[1]
+                },
+                "framework_specific_notes": {
+                    "material_design": "Used by n8n, MkDocs sites. Target md-main containers.",
+                    "readme_io": "Used by VirusTotal, API docs. Target rm-Guides containers.",
+                    "gitbook": "GitBook hosted documentation. Target gitbook-content.",
+                    "docusaurus": "Facebook's framework. Target docMainContainer.",
+                    "sphinx": "Python documentation. Target .document containers.",
+                    "generic": "Fallback configuration. May need manual tuning."
+                }.get(framework.value, "No specific notes available")
+            }
+        }, indent=2)
+        
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "url": url,
+            "error": f"Site analysis error: {str(e)}"
+        }, indent=2)
 
 
 async def main():

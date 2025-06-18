@@ -219,6 +219,90 @@ You should see your recent crawl data with enhanced features applied.
 
 ---
 
+## Alternative: Local Development Mode (Non-Containerized)
+
+For development and testing, you can run manual crawling directly on your local machine without Docker. This approach is faster for iteration but requires local dependencies.
+
+### Prerequisites
+
+1. **Install dependencies:**
+```bash
+# Install uv if not already installed
+pip install uv
+
+# Install project dependencies
+uv pip install -e .
+
+# Install Playwright browsers (required for crawling)
+uv run playwright install
+```
+
+2. **Set up enhanced crawling environment variables in your `.env`:**
+```bash
+# Enable enhanced crawling features
+USE_ENHANCED_CRAWLING=true
+USE_CONTEXTUAL_EMBEDDINGS=true  
+USE_AGENTIC_RAG=true
+USE_RERANKING=true
+
+# Required for local development
+CONTEXTUAL_MODEL=gpt-4o-mini-2024-07-18
+OPENAI_API_KEY=your_key_here
+SUPABASE_URL=http://localhost:54321  # Points to local Supabase
+SUPABASE_SERVICE_KEY=your_service_key
+```
+
+### Running Local Manual Crawl
+
+```bash
+# Basic enhanced crawling
+USE_ENHANCED_CRAWLING=true uv run python src/manual_crawl.py --url https://e2b.dev/docs --max-depth 3
+
+# Single page with enhanced features
+USE_ENHANCED_CRAWLING=true uv run python src/manual_crawl.py --url https://example.com/page --max-depth 1
+
+# All strategies enabled
+USE_ENHANCED_CRAWLING=true USE_CONTEXTUAL_EMBEDDINGS=true USE_AGENTIC_RAG=true uv run python src/manual_crawl.py --url https://docs.example.com --max-depth 2
+```
+
+### What You'll See
+
+Enhanced crawling shows additional logs:
+```
+🚀 Enhanced crawling modules loaded successfully
+📋 Mode: Enhanced crawling with framework detection and quality validation
+INFO Detected framework generic for domain example.com
+INFO Content quality analysis for https://example.com
+INFO Overall quality: excellent (0.808)
+✅ Enhanced crawl: https://example.com - Quality: excellent (0.808)
+📊 Enhanced crawling summary: 1 pages, avg quality: 0.808
+```
+
+Progress bars will show "enhanced pages" instead of "baseline pages".
+
+### Local vs Container Differences
+
+| Feature | Local Development | Docker Container |
+|---------|------------------|------------------|
+| **Setup Speed** | Fast (no rebuild) | Slower (image rebuild) |
+| **Dependencies** | Manual install | Pre-configured |
+| **Debugging** | Direct IDE access | Container logs only |
+| **Supabase Connection** | localhost:54321 | host.docker.internal:54321 |
+| **Environment** | Your local Python | Isolated container |
+| **Use Case** | Development/testing | Production/deployment |
+
+### Troubleshooting Local Mode
+
+| Issue | Solution |
+|-------|----------|
+| **`ModuleNotFoundError: No module named 'tqdm'`** | Run `uv add tqdm` |
+| **`Executable doesn't exist at .../Chromium`** | Run `uv run playwright install` |
+| **`Enhanced crawling modules not available`** | Set `USE_ENHANCED_CRAWLING=true` environment variable |
+| **Supabase connection errors** | Ensure local Supabase is running on `localhost:54321` |
+| **Import errors with smart_crawler_factory** | Dependencies installed correctly with `uv pip install -e .` |
+
+---
+
 ## Recap
 
 1. **Build** image → 2. **Run** container → 3. **Exec** shell → 4. **Call** `manual_crawl.py` with the right flags → 5. **Verify** rows.

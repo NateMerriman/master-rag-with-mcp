@@ -1,0 +1,28 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install minimal browser dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# Copy only what we need for testing
+COPY pyproject.toml .
+COPY src/manual_crawl.py src/
+COPY src/utils.py src/
+COPY src/config.py src/
+COPY src/crawl4ai_mcp.py src/
+COPY src/strategies/ src/strategies/
+COPY .env .
+
+# Install just playwright and crawl4ai 
+RUN uv pip install --system playwright crawl4ai && \
+    playwright install chromium
+
+# Test command
+CMD ["python", "src/manual_crawl.py", "--url", "https://e2b.dev/docs", "--max-depth", "1", "--baseline"]
