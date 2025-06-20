@@ -11,7 +11,7 @@ from pathlib import Path
 # Add the src directory to Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils import get_supabase_client
+from ..utils import get_supabase_client
 
 
 def run_sql_file(supabase, sql_file_path: str):

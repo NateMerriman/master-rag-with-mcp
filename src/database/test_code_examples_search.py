@@ -15,7 +15,7 @@ import traceback
 # Add parent directories to path to import modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from src.utils import get_supabase_client
+from ..utils import get_supabase_client
 
 
 def test_code_examples_search():

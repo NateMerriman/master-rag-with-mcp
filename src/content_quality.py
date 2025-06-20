@@ -383,7 +383,8 @@ def log_quality_metrics(metrics: ContentQualityMetrics, url: str = "", framework
     """Log quality metrics for monitoring and debugging."""
     logger.info(f"Content quality analysis for {url or 'unknown URL'}")
     logger.info(f"Framework: {framework}")
-    logger.info(f"Overall quality: {metrics.quality_category} ({metrics.overall_quality_score:.3f})")
+    quality_category = getattr(metrics, 'quality_category', 'unknown')
+    logger.info(f"Overall quality: {quality_category} ({metrics.overall_quality_score:.3f})")
     logger.info(f"Content/Nav ratio: {metrics.content_to_navigation_ratio:.3f}")
     logger.info(f"Link density: {metrics.link_density:.3f}")
     logger.info(f"Word count: {metrics.word_count}")

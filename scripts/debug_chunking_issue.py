@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Debug the specific break point issue in enhanced chunking.
+Debug script to understand the enhanced chunking issue.
 """
 
 import os
 import sys
 
-# Add src to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+# Add project root to Python path
+project_root = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, project_root)
 
 from src.improved_chunking import EnhancedMarkdownChunker
 
 
-def debug_break_point_issue():
-    """Debug the specific break point that's causing infinite loop."""
-
-    content = '''# Adding Coding Preferences
+def get_test_content():
+    """Get the test content."""
+    return '''# Adding Coding Preferences
 
 This document details the functionality and implementation of the tools that add coding preferences and memories to the mem0 system. Both the Python and Node.js implementations provide mechanisms to store code snippets, implementation patterns, and programming knowledge for later semantic retrieval.
 
@@ -123,84 +123,38 @@ async def add_coding_preference(text: str) -> str:
 These instructions are applied to the mem0 project using `mem0_client.update_project(custom_instructions=CUSTOM_INSTRUCTIONS)`.
 '''
 
-    print("🔍 Debugging Break Point Issue")
-    print("=" * 40)
+
+def debug_enhanced_chunking():
+    """Debug the enhanced chunking issue step by step."""
+    content = get_test_content()
+
+    print("🔍 Debugging Enhanced Chunking Issue")
+    print("=" * 50)
 
     chunker = EnhancedMarkdownChunker(chunk_size=2000)
+
+    # First, find code blocks
+    print("📋 Finding code blocks...")
     code_blocks = chunker.find_code_blocks(content)
+    print(f"Found {len(code_blocks)} code blocks:")
 
-    # The problematic case: position 1882 (from error message)
-    start = 1882
-    max_end = start + 2000  # 3882
-
-    print(f"Content length: {len(content)}")
-    print(f"Problematic start: {start}")
-    print(f"Target max_end: {max_end}")
-    print(f"Min chunk size: {chunker.min_chunk_size}")
-    print()
-
-    print("Code blocks found:")
     for i, block in enumerate(code_blocks):
         print(
             f"  Block {i}: {block.start}-{block.end} (len={block.length}), lang='{block.language}'"
         )
+        print(f"    Content preview: {repr(content[block.start : block.start + 50])}")
 
     print()
-    print("Checking for conflicts with code blocks:")
 
-    for i, block in enumerate(code_blocks):
-        print(f"\nBlock {i} ({block.start}-{block.end}):")
-
-        # Check conflict Type 1: Block starts in chunk but ends after
-        if block.start >= start and block.start < max_end and block.end > max_end:
-            print(
-                f"  ❌ Conflict Type 1: Block starts in chunk ({block.start}) but ends after max_end ({max_end})"
-            )
-            if block.start > start + chunker.min_chunk_size:
-                preferred_end = block.start
-                print(f"     Should break BEFORE block at {preferred_end}")
-            else:
-                preferred_end = block.end
-                print(
-                    f"     Block starts too early, should include entire block and break at {preferred_end}"
-                )
-
-            # This would call _find_paragraph_break
-            actual_break = chunker._find_paragraph_break(content, start, preferred_end)
-            print(
-                f"     _find_paragraph_break({start}, {preferred_end}) returns: {actual_break}"
-            )
-
-        # Check conflict Type 2: Block starts before chunk but ends within
-        elif block.start < start and block.end > start and block.end < max_end:
-            print(
-                f"  ❌ Conflict Type 2: Block starts before chunk ({block.start}) but ends within ({block.end})"
-            )
-            preferred_end = block.end
-            actual_break = chunker._find_paragraph_break(content, start, preferred_end)
-            print(f"     Should break at {preferred_end}")
-            print(
-                f"     _find_paragraph_break({start}, {preferred_end}) returns: {actual_break}"
-            )
-
-        else:
-            print(f"  ✅ No conflict")
-
-    print()
-    print("Testing find_safe_break_point directly:")
-    actual_end = chunker.find_safe_break_point(content, start, max_end, code_blocks)
-    print(f"find_safe_break_point({start}, {max_end}) returned: {actual_end}")
-    print(f"Progress would be: {actual_end - start}")
-
-    if actual_end <= start:
-        print("❌ This is the bug!")
-
-        # Let's test _find_natural_break as fallback
-        print("\nTesting _find_natural_break as fallback:")
-        natural_break = chunker._find_natural_break(content, start, max_end)
-        print(f"_find_natural_break({start}, {max_end}) returned: {natural_break}")
-        print(f"Natural break progress: {natural_break - start}")
+    # Test the problematic chunking
+    try:
+        chunks = chunker.chunk_text(content)
+        print(f"Successfully created {len(chunks)} chunks")
+        for i, chunk in enumerate(chunks):
+            print(f"  Chunk {i}: {len(chunk)} chars")
+    except Exception as e:
+        print(f"Error during chunking: {e}")
 
 
 if __name__ == "__main__":
-    debug_break_point_issue()
+    debug_enhanced_chunking()

@@ -27,7 +27,7 @@ except ImportError:
     def load_dotenv(*args, **kwargs):
         pass
 
-from utils import search_documents, create_embedding
+from .utils import search_documents, create_embedding
 
 # Load environment variables
 project_root = Path(__file__).resolve().parent.parent

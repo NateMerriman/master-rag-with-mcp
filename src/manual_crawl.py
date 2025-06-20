@@ -50,10 +50,10 @@ load_dotenv(dotenv_path, override=True)
 from crawl4ai import AsyncWebCrawler, BrowserConfig
 
 # keep Supabase helpers from utils.py (these now include all enhancements)
-import utils
+from . import utils
 
 importlib.reload(utils)
-from utils import (
+from .utils import (
     get_supabase_client,
     add_documents_to_supabase,
     add_code_examples_to_supabase,
@@ -61,7 +61,7 @@ from utils import (
 )
 
 # bring the crawl helpers in from crawl4ai_mcp.py
-from crawl4ai_mcp import (
+from .crawl4ai_mcp import (
     is_sitemap,
     is_txt,
     parse_sitemap,
@@ -81,9 +81,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def safe_get_quality_category(quality_metrics) -> str:
+    """
+    Safely extract quality category from quality_metrics.
+    
+    This defensive function handles cases where quality_metrics might be:
+    - None
+    - A ContentQualityMetrics object (expected)
+    - A string (unexpected but should be handled gracefully)
+    - Any other type (unexpected)
+    
+    Returns:
+        str: The quality category or a safe default
+    """
+    if quality_metrics is None:
+        return "unknown"
+    
+    # Check if it has the expected attribute
+    if hasattr(quality_metrics, 'quality_category'):
+        return quality_metrics.quality_category
+    
+    # If it's a string, it might be a serialized version - log and return it
+    if isinstance(quality_metrics, str):
+        logger.warning(f"quality_metrics is unexpectedly a string: {quality_metrics}")
+        return "error_string"
+    
+    # For any other unexpected type
+    logger.error(f"quality_metrics has unexpected type {type(quality_metrics)}: {quality_metrics}")
+    return "error_type"
+
+
 # Load and validate configuration for enhanced features
 try:
-    from config import get_config, ConfigurationError
+    from .config import get_config, ConfigurationError
 
     strategy_config = get_config()
     logger.info(f"✅ {strategy_config}")
@@ -115,7 +146,7 @@ if use_enhanced_crawling:
             sys.path.insert(0, current_dir)
         
         # Import enhanced crawling modules
-        from smart_crawler_factory import (
+        from .smart_crawler_factory import (
             EnhancedCrawler,
             CrawlResult,
             crawl_single_page_enhanced,
@@ -182,7 +213,8 @@ async def _crawl_and_store_enhanced(
                 if result.quality_metrics:
                     total_quality_score += result.quality_metrics.overall_quality_score
                     successful_pages += 1
-                    logger.info(f"✅ Enhanced crawl: {result.url} - Quality: {result.quality_metrics.quality_category} ({result.quality_metrics.overall_quality_score:.3f})")
+                    quality_category = safe_get_quality_category(result.quality_metrics)
+                    logger.info(f"✅ Enhanced crawl: {result.url} - Quality: {quality_category} ({result.quality_metrics.overall_quality_score:.3f})")
                     if result.used_fallback:
                         logger.info(f"   🔄 Used fallback after {result.extraction_attempts} attempts")
         

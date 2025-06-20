@@ -8,8 +8,9 @@ import os
 import sys
 import re
 
-# Add src to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+# Add project root to Python path
+project_root = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, project_root)
 
 from src.improved_chunking import (
     smart_chunk_markdown_enhanced,

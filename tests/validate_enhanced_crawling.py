@@ -23,6 +23,36 @@ from content_quality import calculate_content_quality, ContentQualityMetrics
 from smart_crawler_factory import EnhancedCrawler
 
 
+def safe_get_quality_category(quality_metrics) -> str:
+    """
+    Safely extract quality category from quality_metrics.
+    
+    This defensive function handles cases where quality_metrics might be:
+    - None
+    - A ContentQualityMetrics object (expected)
+    - A string (unexpected but should be handled gracefully)
+    - Any other type (unexpected)
+    
+    Returns:
+        str: The quality category or a safe default
+    """
+    if quality_metrics is None:
+        return "unknown"
+    
+    # Check if it has the expected attribute
+    if hasattr(quality_metrics, 'quality_category'):
+        return quality_metrics.quality_category
+    
+    # If it's a string, it might be a serialized version - log and return it
+    if isinstance(quality_metrics, str):
+        print(f"Warning: quality_metrics is unexpectedly a string: {quality_metrics}")
+        return "error_string"
+    
+    # For any other unexpected type
+    print(f"Error: quality_metrics has unexpected type {type(quality_metrics)}: {quality_metrics}")
+    return "error_type"
+
+
 @dataclass
 class ValidationResult:
     """Results from enhanced crawling validation."""
@@ -157,7 +187,8 @@ class EnhancedCrawlingValidator:
                     total_link_densities.append(quality.link_density)
                     
                     # Track quality distribution
-                    results["quality_distribution"][quality.quality_category] += 1
+                    quality_category = safe_get_quality_category(quality)
+                    results["quality_distribution"][quality_category] += 1
                     
                     # Validate against expectations
                     validation_result = ValidationResult(
@@ -169,7 +200,7 @@ class EnhancedCrawlingValidator:
                             "content_navigation_ratio": quality.content_to_navigation_ratio,
                             "link_density": quality.link_density,
                             "word_count": quality.word_count,
-                            "category": quality.quality_category
+                            "category": safe_get_quality_category(quality)
                         },
                         performance_metrics={
                             "extraction_time_seconds": extraction_time,
@@ -186,7 +217,8 @@ class EnhancedCrawlingValidator:
                     
                     print(f"✅ {url}")
                     print(f"   Framework: {result.framework.value}")
-                    print(f"   Quality: {quality.quality_category} ({quality.overall_quality_score:.3f})")
+                    quality_category = safe_get_quality_category(quality)
+                    print(f"   Quality: {quality_category} ({quality.overall_quality_score:.3f})")
                     print(f"   Content/Nav ratio: {quality.content_to_navigation_ratio:.3f}")
                     print(f"   Extraction time: {extraction_time:.2f}s")
                     

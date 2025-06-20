@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-Debug script to understand the enhanced chunking issue.
+Debug the chunk_text method step by step to understand the infinite loop.
 """
 
 import os
 import sys
 
-# Add src to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+# Add project root to Python path
+project_root = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, project_root)
 
 from src.improved_chunking import EnhancedMarkdownChunker
 
 
-def get_test_content():
-    """Get the test content."""
-    return '''# Adding Coding Preferences
+def debug_chunk_text_method():
+    """Debug the chunk_text method step by step."""
+
+    content = '''# Adding Coding Preferences
 
 This document details the functionality and implementation of the tools that add coding preferences and memories to the mem0 system. Both the Python and Node.js implementations provide mechanisms to store code snippets, implementation patterns, and programming knowledge for later semantic retrieval.
 
@@ -122,38 +124,86 @@ async def add_coding_preference(text: str) -> str:
 These instructions are applied to the mem0 project using `mem0_client.update_project(custom_instructions=CUSTOM_INSTRUCTIONS)`.
 '''
 
-
-def debug_enhanced_chunking():
-    """Debug the enhanced chunking issue step by step."""
-    content = get_test_content()
-
-    print("🔍 Debugging Enhanced Chunking Issue")
+    print("🔍 Debugging chunk_text Method Execution")
     print("=" * 50)
 
     chunker = EnhancedMarkdownChunker(chunk_size=2000)
 
-    # First, find code blocks
-    print("📋 Finding code blocks...")
-    code_blocks = chunker.find_code_blocks(content)
-    print(f"Found {len(code_blocks)} code blocks:")
-
-    for i, block in enumerate(code_blocks):
-        print(
-            f"  Block {i}: {block.start}-{block.end} (len={block.length}), lang='{block.language}'"
-        )
-        print(f"    Content preview: {repr(content[block.start : block.start + 50])}")
-
+    # Manually implement the chunk_text logic with debug output
+    print(f"Content length: {len(content)}")
+    print(f"Chunk size: {chunker.chunk_size}")
     print()
 
-    # Test the problematic chunking
-    try:
-        chunks = chunker.chunk_text(content)
-        print(f"Successfully created {len(chunks)} chunks")
-        for i, chunk in enumerate(chunks):
-            print(f"  Chunk {i}: {len(chunk)} chars")
-    except Exception as e:
-        print(f"Error during chunking: {e}")
+    if not content or len(content) <= chunker.chunk_size:
+        print("Content fits in single chunk")
+        return
+
+    # Find all code blocks first
+    code_blocks = chunker.find_code_blocks(content)
+    print(f"Found {len(code_blocks)} code blocks")
+
+    chunks = []
+    start = 0
+    text_length = len(content)
+    iteration = 0
+
+    while start < text_length and iteration < 10:  # Limit iterations for safety
+        iteration += 1
+        print(f"\n--- Iteration {iteration} ---")
+        print(f"Start position: {start}")
+        print(f"Remaining text: {text_length - start} chars")
+
+        # Calculate target end position
+        target_end = start + chunker.chunk_size
+        print(f"Target end: {target_end}")
+
+        if target_end >= text_length:
+            # Last chunk
+            remaining_chunk = content[start:].strip()
+            print(f"Last chunk: {len(remaining_chunk)} chars")
+            if remaining_chunk:
+                chunks.append(remaining_chunk)
+            break
+
+        # Find safe break point
+        print(f"Calling find_safe_break_point({start}, {target_end}, ...)")
+        actual_end = chunker.find_safe_break_point(
+            content, start, target_end, code_blocks
+        )
+        print(f"Safe break point returned: {actual_end}")
+        print(f"Progress: {actual_end - start} chars")
+
+        # Extract chunk
+        chunk = content[start:actual_end].strip()
+        print(f"Chunk length after strip: {len(chunk)} chars")
+
+        if chunk:
+            chunks.append(chunk)
+            print(f"Added chunk {len(chunks)}")
+        else:
+            print("⚠️ Chunk is empty after strip!")
+
+        # Move to next chunk
+        old_start = start
+        start = actual_end
+        print(f"Moving start from {old_start} to {start}")
+
+        # Safety check to prevent infinite loops
+        if actual_end <= old_start:
+            print(
+                f"❌ ERROR: No progress made! (actual_end {actual_end} <= old_start {old_start})"
+            )
+            print(f"Forcing advance by chunk_size ({chunker.chunk_size})")
+            start = old_start + chunker.chunk_size
+            print(f"New forced start: {start}")
+
+    print(f"\n🏁 Completed after {iteration} iterations")
+    print(f"Created {len(chunks)} chunks")
+
+    # Show chunk summaries
+    for i, chunk in enumerate(chunks):
+        print(f"  Chunk {i}: {len(chunk)} chars")
 
 
 if __name__ == "__main__":
-    debug_enhanced_chunking()
+    debug_chunk_text_method()

@@ -12,7 +12,7 @@ from typing import Optional
 # Add parent directory to path to import utils
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from src.utils import get_supabase_client
+from ..utils import get_supabase_client
 
 
 def run_sql_file(client, filepath: str, description: str = None) -> bool:

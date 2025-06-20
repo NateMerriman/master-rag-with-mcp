@@ -9,7 +9,7 @@ import sys
 # Add parent directory to path to import utils
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from src.utils import get_supabase_client, search_documents
+from ..utils import get_supabase_client, search_documents
 
 
 def test_hybrid_search():

@@ -22,6 +22,7 @@ import os
 import re
 import functools
 import time
+import logging
 
 from crawl4ai import (
     AsyncWebCrawler,
@@ -30,14 +31,14 @@ from crawl4ai import (
     CacheMode,
     MemoryAdaptiveDispatcher,
 )
-from utils import (
+from .utils import (
     get_supabase_client,
     add_documents_to_supabase,
     search_documents,
 )
-from config import get_config, ConfigurationError, StrategyConfig, RAGStrategy
-from strategies import StrategyManager
-from strategies.manager import (
+from .config import get_config, ConfigurationError, StrategyConfig, RAGStrategy
+from .strategies import StrategyManager
+from .strategies.manager import (
     initialize_strategy_manager,
     cleanup_strategy_manager,
     get_strategy_manager,
@@ -78,6 +79,36 @@ except RuntimeError as e:
 except Exception as e:
     print(f"❌ Unexpected configuration error: {e}")
     exit(1)
+
+
+def safe_get_quality_category(quality_metrics) -> str:
+    """
+    Safely extract quality category from quality_metrics.
+    
+    This defensive function handles cases where quality_metrics might be:
+    - None
+    - A ContentQualityMetrics object (expected)
+    - A string (unexpected but should be handled gracefully)
+    - Any other type (unexpected)
+    
+    Returns:
+        str: The quality category or a safe default
+    """
+    if quality_metrics is None:
+        return "unknown"
+    
+    # Check if it has the expected attribute
+    if hasattr(quality_metrics, 'quality_category'):
+        return quality_metrics.quality_category
+    
+    # If it's a string, it might be a serialized version - log and return it
+    if isinstance(quality_metrics, str):
+        logging.warning(f"quality_metrics is unexpectedly a string: {quality_metrics}")
+        return "error_string"
+    
+    # For any other unexpected type
+    logging.error(f"quality_metrics has unexpected type {type(quality_metrics)}: {quality_metrics}")
+    return "error_type"
 
 
 # Create a dataclass for our application context
@@ -1298,11 +1329,11 @@ async def crawl_single_page_enhanced(ctx: Context, url: str) -> str:
                 meta["extraction_attempts"] = result.extraction_attempts
                 
                 # Add quality metrics to metadata
-                if result.quality_metrics:
+                if result.quality_metrics and hasattr(result.quality_metrics, 'overall_quality_score'):
                     meta["quality_score"] = result.quality_metrics.overall_quality_score
                     meta["content_nav_ratio"] = result.quality_metrics.content_to_navigation_ratio
                     meta["link_density"] = result.quality_metrics.link_density
-                    meta["quality_category"] = result.quality_metrics.quality_category
+                    meta["quality_category"] = safe_get_quality_category(result.quality_metrics)
                 
                 metadatas.append(meta)
             
@@ -1336,10 +1367,10 @@ async def crawl_single_page_enhanced(ctx: Context, url: str) -> str:
             }
             
             # Add quality metrics if available
-            if result.quality_metrics:
+            if result.quality_metrics and hasattr(result.quality_metrics, 'overall_quality_score'):
                 response_data["quality_metrics"] = {
                     "overall_score": round(result.quality_metrics.overall_quality_score, 3),
-                    "category": result.quality_metrics.quality_category,
+                    "category": safe_get_quality_category(result.quality_metrics),
                     "content_to_navigation_ratio": round(result.quality_metrics.content_to_navigation_ratio, 3),
                     "link_density": round(result.quality_metrics.link_density, 3),
                     "word_count": result.quality_metrics.word_count,
@@ -1438,7 +1469,8 @@ async def smart_crawl_url_enhanced(
             
             # Track quality distribution
             if result.quality_metrics:
-                quality_stats[result.quality_metrics.quality_category] += 1
+                quality_category = safe_get_quality_category(result.quality_metrics)
+                quality_stats[quality_category] += 1
             
             # Chunk the content
             chunks = smart_chunk_markdown(result.markdown)
@@ -1459,11 +1491,11 @@ async def smart_crawl_url_enhanced(
                 meta["extraction_attempts"] = result.extraction_attempts
                 
                 # Add quality metrics
-                if result.quality_metrics:
+                if result.quality_metrics and hasattr(result.quality_metrics, 'overall_quality_score'):
                     meta["quality_score"] = result.quality_metrics.overall_quality_score
                     meta["content_nav_ratio"] = result.quality_metrics.content_to_navigation_ratio
                     meta["link_density"] = result.quality_metrics.link_density
-                    meta["quality_category"] = result.quality_metrics.quality_category
+                    meta["quality_category"] = safe_get_quality_category(result.quality_metrics)
                 
                 metadatas.append(meta)
                 total_chunks += 1
@@ -1499,7 +1531,7 @@ async def smart_crawl_url_enhanced(
         avg_quality_score = sum(
             result.quality_metrics.overall_quality_score 
             for result in results 
-            if result.success and result.quality_metrics
+            if result.success and result.quality_metrics and hasattr(result.quality_metrics, 'overall_quality_score')
         ) / max(successful_crawls, 1)
         
         return json.dumps({

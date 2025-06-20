@@ -25,7 +25,7 @@ except ImportError:
 
 # Import the centralized model configuration function
 try:
-    from utils import _get_contextual_model
+    from .utils import _get_contextual_model
 except ImportError:
     # Fallback if utils import fails
     def _get_contextual_model() -> Optional[str]:

@@ -14,9 +14,9 @@ from typing import List, Dict, Any
 # Add parent directories to path to import modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from src.utils import get_supabase_client
-from src.database.models import CodeExample
-from src.code_extraction import extract_code_from_content
+from ..utils import get_supabase_client
+from .models import CodeExample
+from ..code_extraction import extract_code_from_content
 
 
 def validate_table_structure():

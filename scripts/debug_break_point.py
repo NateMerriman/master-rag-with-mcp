@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
-Debug the chunk_text method step by step to understand the infinite loop.
+Debug the specific break point issue in enhanced chunking.
 """
 
 import os
 import sys
 
-# Add src to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+# Add project root to Python path
+project_root = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, project_root)
 
 from src.improved_chunking import EnhancedMarkdownChunker
 
 
-def debug_chunk_text_method():
-    """Debug the chunk_text method step by step."""
+def debug_break_point_issue():
+    """Debug the specific break point that's causing infinite loop."""
 
     content = '''# Adding Coding Preferences
 
@@ -123,86 +124,84 @@ async def add_coding_preference(text: str) -> str:
 These instructions are applied to the mem0 project using `mem0_client.update_project(custom_instructions=CUSTOM_INSTRUCTIONS)`.
 '''
 
-    print("🔍 Debugging chunk_text Method Execution")
-    print("=" * 50)
+    print("🔍 Debugging Break Point Issue")
+    print("=" * 40)
 
     chunker = EnhancedMarkdownChunker(chunk_size=2000)
+    code_blocks = chunker.find_code_blocks(content)
 
-    # Manually implement the chunk_text logic with debug output
+    # The problematic case: position 1882 (from error message)
+    start = 1882
+    max_end = start + 2000  # 3882
+
     print(f"Content length: {len(content)}")
-    print(f"Chunk size: {chunker.chunk_size}")
+    print(f"Problematic start: {start}")
+    print(f"Target max_end: {max_end}")
+    print(f"Min chunk size: {chunker.min_chunk_size}")
     print()
 
-    if not content or len(content) <= chunker.chunk_size:
-        print("Content fits in single chunk")
-        return
-
-    # Find all code blocks first
-    code_blocks = chunker.find_code_blocks(content)
-    print(f"Found {len(code_blocks)} code blocks")
-
-    chunks = []
-    start = 0
-    text_length = len(content)
-    iteration = 0
-
-    while start < text_length and iteration < 10:  # Limit iterations for safety
-        iteration += 1
-        print(f"\n--- Iteration {iteration} ---")
-        print(f"Start position: {start}")
-        print(f"Remaining text: {text_length - start} chars")
-
-        # Calculate target end position
-        target_end = start + chunker.chunk_size
-        print(f"Target end: {target_end}")
-
-        if target_end >= text_length:
-            # Last chunk
-            remaining_chunk = content[start:].strip()
-            print(f"Last chunk: {len(remaining_chunk)} chars")
-            if remaining_chunk:
-                chunks.append(remaining_chunk)
-            break
-
-        # Find safe break point
-        print(f"Calling find_safe_break_point({start}, {target_end}, ...)")
-        actual_end = chunker.find_safe_break_point(
-            content, start, target_end, code_blocks
+    print("Code blocks found:")
+    for i, block in enumerate(code_blocks):
+        print(
+            f"  Block {i}: {block.start}-{block.end} (len={block.length}), lang='{block.language}'"
         )
-        print(f"Safe break point returned: {actual_end}")
-        print(f"Progress: {actual_end - start} chars")
 
-        # Extract chunk
-        chunk = content[start:actual_end].strip()
-        print(f"Chunk length after strip: {len(chunk)} chars")
+    print()
+    print("Checking for conflicts with code blocks:")
 
-        if chunk:
-            chunks.append(chunk)
-            print(f"Added chunk {len(chunks)}")
-        else:
-            print("⚠️ Chunk is empty after strip!")
+    for i, block in enumerate(code_blocks):
+        print(f"\nBlock {i} ({block.start}-{block.end}):")
 
-        # Move to next chunk
-        old_start = start
-        start = actual_end
-        print(f"Moving start from {old_start} to {start}")
-
-        # Safety check to prevent infinite loops
-        if actual_end <= old_start:
+        # Check conflict Type 1: Block starts in chunk but ends after
+        if block.start >= start and block.start < max_end and block.end > max_end:
             print(
-                f"❌ ERROR: No progress made! (actual_end {actual_end} <= old_start {old_start})"
+                f"  ❌ Conflict Type 1: Block starts in chunk ({block.start}) but ends after max_end ({max_end})"
             )
-            print(f"Forcing advance by chunk_size ({chunker.chunk_size})")
-            start = old_start + chunker.chunk_size
-            print(f"New forced start: {start}")
+            if block.start > start + chunker.min_chunk_size:
+                preferred_end = block.start
+                print(f"     Should break BEFORE block at {preferred_end}")
+            else:
+                preferred_end = block.end
+                print(
+                    f"     Block starts too early, should include entire block and break at {preferred_end}"
+                )
 
-    print(f"\n🏁 Completed after {iteration} iterations")
-    print(f"Created {len(chunks)} chunks")
+            # This would call _find_paragraph_break
+            actual_break = chunker._find_paragraph_break(content, start, preferred_end)
+            print(
+                f"     _find_paragraph_break({start}, {preferred_end}) returns: {actual_break}"
+            )
 
-    # Show chunk summaries
-    for i, chunk in enumerate(chunks):
-        print(f"  Chunk {i}: {len(chunk)} chars")
+        # Check conflict Type 2: Block starts before chunk but ends within
+        elif block.start < start and block.end > start and block.end < max_end:
+            print(
+                f"  ❌ Conflict Type 2: Block starts before chunk ({block.start}) but ends within ({block.end})"
+            )
+            preferred_end = block.end
+            actual_break = chunker._find_paragraph_break(content, start, preferred_end)
+            print(f"     Should break at {preferred_end}")
+            print(
+                f"     _find_paragraph_break({start}, {preferred_end}) returns: {actual_break}"
+            )
+
+        else:
+            print(f"  ✅ No conflict")
+
+    print()
+    print("Testing find_safe_break_point directly:")
+    actual_end = chunker.find_safe_break_point(content, start, max_end, code_blocks)
+    print(f"find_safe_break_point({start}, {max_end}) returned: {actual_end}")
+    print(f"Progress would be: {actual_end - start}")
+
+    if actual_end <= start:
+        print("❌ This is the bug!")
+
+        # Let's test _find_natural_break as fallback
+        print("\nTesting _find_natural_break as fallback:")
+        natural_break = chunker._find_natural_break(content, start, max_end)
+        print(f"_find_natural_break({start}, {max_end}) returned: {natural_break}")
+        print(f"Natural break progress: {natural_break - start}")
 
 
 if __name__ == "__main__":
-    debug_chunk_text_method()
+    debug_break_point_issue()

@@ -10,7 +10,7 @@ from collections import Counter
 # Add parent directory to path to import utils
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from src.utils import get_supabase_client
+from ..utils import get_supabase_client
 
 
 def investigate_data_discrepancy():

@@ -15,8 +15,8 @@ from datetime import datetime
 
 import psutil
 
-from utils import search_documents, create_embedding
-from reranking import get_reranker, is_reranking_available
+from .utils import search_documents, create_embedding
+from .reranking import get_reranker, is_reranking_available
 
 # Try to import dotenv, fall back to os.environ if not available
 try:

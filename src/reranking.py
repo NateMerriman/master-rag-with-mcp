@@ -17,7 +17,7 @@ except ImportError:
     SENTENCE_TRANSFORMERS_AVAILABLE = False
     CrossEncoder = None
 
-from config import get_config
+from .config import get_config
 
 
 logger = logging.getLogger(__name__)

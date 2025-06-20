@@ -30,14 +30,14 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from enhanced_crawler_config import (
+from .enhanced_crawler_config import (
     DocumentationFramework, 
     config_manager,
     detect_framework,
     get_optimized_config,
     get_quality_thresholds
 )
-from content_quality import (
+from .content_quality import (
     ContentQualityMetrics,
     calculate_content_quality,
     should_retry_extraction,
@@ -45,6 +45,36 @@ from content_quality import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def safe_get_quality_category(quality_metrics) -> str:
+    """
+    Safely extract quality category from quality_metrics.
+    
+    This defensive function handles cases where quality_metrics might be:
+    - None
+    - A ContentQualityMetrics object (expected)
+    - A string (unexpected but should be handled gracefully)
+    - Any other type (unexpected)
+    
+    Returns:
+        str: The quality category or a safe default
+    """
+    if quality_metrics is None:
+        return "unknown"
+    
+    # Check if it has the expected attribute
+    if hasattr(quality_metrics, 'quality_category'):
+        return quality_metrics.quality_category
+    
+    # If it's a string, it might be a serialized version - log and return it
+    if isinstance(quality_metrics, str):
+        logger.warning(f"quality_metrics is unexpectedly a string: {quality_metrics}")
+        return "error_string"
+    
+    # For any other unexpected type
+    logger.error(f"quality_metrics has unexpected type {type(quality_metrics)}: {quality_metrics}")
+    return "error_type"
 
 
 @dataclass
@@ -239,6 +269,27 @@ class EnhancedCrawler:
                 quality_metrics = calculate_content_quality(result.markdown)
                 quality_analysis_time = (time.time() - quality_start) * 1000
                 
+                # Defensive check to ensure quality_metrics is the correct type
+                if not hasattr(quality_metrics, 'quality_category'):
+                    logger.error(f"calculate_content_quality returned unexpected type: {type(quality_metrics)} = {quality_metrics}")
+                    # Return a failure result if quality calculation is broken
+                    return CrawlResult(
+                        url=url,
+                        html="",
+                        cleaned_html="",
+                        markdown="",
+                        extracted_content="",
+                        success=False,
+                        status_code=0,
+                        framework=framework,
+                        quality_metrics=None,
+                        used_fallback=used_fallback,
+                        extraction_attempts=extraction_attempts,
+                        total_time_seconds=time.time() - start_time,
+                        framework_detection_time_ms=framework_detection_time,
+                        quality_analysis_time_ms=0
+                    )
+                
                 # Log quality metrics
                 log_quality_metrics(quality_metrics, url, framework.value)
                 
@@ -289,7 +340,8 @@ class EnhancedCrawler:
         
         # Return best result or failure
         if best_result:
-            logger.info(f"Successfully extracted {url} with quality {best_result.quality_metrics.quality_category}")
+            quality_info = safe_get_quality_category(best_result.quality_metrics)
+            logger.info(f"Successfully extracted {url} with quality {quality_info}")
             return best_result
         else:
             # All attempts failed
@@ -533,8 +585,14 @@ class EnhancedCrawler:
             framework = detect_framework(crawl_result.url, crawl_result.html)
             quality_metrics = calculate_content_quality(crawl_result.markdown)
             
+            # Defensive check to ensure quality_metrics is the correct type
+            if not hasattr(quality_metrics, 'quality_category'):
+                logger.error(f"calculate_content_quality returned unexpected type in _create_enhanced_result: {type(quality_metrics)} = {quality_metrics}")
+                quality_metrics = None
+            
             # Log quality metrics
-            log_quality_metrics(crawl_result.url, framework, quality_metrics)
+            if quality_metrics:
+                log_quality_metrics(quality_metrics, crawl_result.url, framework.value)
             
             # Create enhanced result
             enhanced_result = CrawlResult(
