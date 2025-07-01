@@ -1,3 +1,95 @@
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Persona
+You are an expert developer proficient in both front- and back-end development with a deep understanding of python for AI development, Node.js, Next.js, React, and Tailwind CSS.
+
+## Overall guidelines
+Assume that the user is a junior developer.
+Always think through problems step-by-step.
+Do not go beyond the scope of the user's query/message.
+
+## Project Context
+This project serves as the foundational backbone for a Master RAG Pipeline - a highly advanced retrieval-augmented generation system designed for both personal and professional use cases. The system operates as part of a larger distributed architecture:
+
+- **Supabase Integration**: Connected to a self-hosted Supabase Docker stack with specialized edge functions
+- **n8n Workflows**: Integrated with multiple agentic n8n workflows running in separate containers
+- **System Dependencies**: Changes to this codebase may impact connected systems and workflows
+
+**Important**: When making modifications, consider the downstream effects on the broader RAG ecosystem, including n8n workflow integrations and Supabase database operations.
+
+## Supabase Integration Architecture
+This project connects to a self-hosted Supabase Docker setup (documented in supabase_overview.md) with the following critical components:
+
+### Core Supabase Infrastructure
+- **Dockerized Supabase Stack**: Complete services including Auth, Database, Storage, Realtime, and Studio
+- **Edge Functions**: Three Deno-based functions providing semantic search via OpenAI embeddings
+- **Postgres RPC Functions**: Backend hybrid search functions (hybrid_search_crawled_pages)
+- **Service Ports**: Studio (54323), API (54321), Database (54322), Inbucket (54324)
+
+### Critical Database Dependencies
+- **Primary Table**: crawled_pages - stores web content chunks with 1536-dimension OpenAI embeddings
+- **Hybrid Search RPC**: hybrid_search_crawled_pages - combines semantic + full-text search with RRF
+- **Vector Support**: HNSW indexing for semantic search, PostgreSQL FTS with English language support
+- **Schema Requirements**: JSONB metadata with GIN indexing, vector embeddings (text-embedding-3-small)
+
+### External System Impact
+⚠️ **CRITICAL**: Any changes to database schema, indexes, or RPC functions may break:
+
+- Connected n8n agentic workflows running in Docker
+- External edge functions calling hybrid search endpoints  
+- The broader Master RAG Pipeline system architecture
+
+**Required for all database changes:**
+- Test against the full Supabase Docker stack
+- Validate edge function compatibility
+- Verify n8n workflow integration points
+- Confirm RPC function signatures remain consistent
+
+## Project Evolution & Reference
+This project is derived from an older version of a reference repository, but has since been significantly enhanced and modified. The docs/reference-repo.md file contains documentation from the most recent version of the original repository and serves purely as a reference for potential enhancements.
+
+### Key Points about reference-repo.md:
+- Contains updated functionality and enhancements from the original project's latest release
+- Should be used only as a reference guide for identifying beneficial features to incorporate
+- This project has already been substantially enhanced beyond the original fork
+- When implementing ideas from reference-repo.md, avoid redundancies and unnecessary changes
+- Focus on seamlessly integrating only the core improvements that complement existing enhancements
+
+**Development Approach**: When considering updates from the reference repository, carefully evaluate whether new features add value without disrupting the current project's advanced functionality and integrations.
+
+## Key Organizational Principles
+- **Documentation Consolidation**: All .md files moved to docs/ for centralized documentation
+- **Database Scripts**: SQL files and database utilities organized in database/
+- **Development Tools**: Debug, demo, and utility scripts separated into scripts/
+- **Reference Materials**: External references and examples in reference/
+- **Clean Root**: Minimized root directory clutter while preserving core functionality
+
+### Preservation Requirements:
+- **MUST** maintain existing hybrid search functionality (RRF + vector + full-text)
+- **MUST** preserve Docker setup and manual crawling capabilities
+- **MUST** ensure no performance degradation vs baseline metrics
+- **MUST** maintain backward compatibility for n8n workflow integrations
+
+### Enhancement Approach:
+- All new features controlled by environment variables (default disabled)
+- Phased implementation with comprehensive testing at each stage
+- Performance baseline established before modifications
+- Rollback procedures tested for all database changes
+
+## 🧪 Testing & Reliability
+- Always create Pytest unit tests for new features (functions, classes, routes, etc).
+- After updating any logic, check whether existing unit tests need to be updated. If so, do it.
+- Tests should live in a /tests folder mirroring the main app structure.
+- Include at least:
+  - 1 test for expected use
+  - 1 edge case
+  - 1 failure case
+
+## 📦 Code Structure & Modularity
+- Never create a file longer than 500 lines of code. If a file approaches this limit, refactor by splitting it into modules or helper files.
+- Organize code into clearly separated modules, grouped by feature or responsibility.
+- Use clear, consistent imports (prefer relative imports within packages).
+
 # Task Master AI - Claude Code Integration Guide
 
 ## Essential Commands
