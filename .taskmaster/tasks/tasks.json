@@ -665,176 +665,165 @@
       {
         "id": 13,
         "title": "Improve Crawler Content Extraction for Modern Websites",
-        "description": "Investigate and resolve issues where the web crawler fails to extract meaningful content from modern, JavaScript-heavy websites. The goal is to improve the crawler's ability to distinguish main article content from boilerplate like navigation, headers, and footers.",
-        "details": "The current crawler implementation appears to be using a basic HTML parser that struggles with websites built as Single Page Applications (SPAs) or those that heavily rely on client-side JavaScript to render content. The primary task is to analyze the target site(s) (e.g., promptingguide.ai) and implement a more robust extraction strategy. First, attempt to use a specialized content extraction library like `trafilatura`, which is designed to identify and extract the main text body from a webpage, ignoring boilerplate. This is a lightweight first step. If this proves insufficient, the next step is to integrate a headless browser solution using `Playwright`. This will involve rendering the page fully in a browser context, executing all JavaScript, and then passing the final DOM to the parser. This approach is more resource-intensive but provides the most accurate representation of the content a user sees.\n<info added on 2025-07-01T00:35:07.943Z>\nBased on comprehensive research into crawl4ai's advanced content extraction capabilities, here are the key findings and implementation strategies for modern JavaScript-heavy websites:\n\n**Browser Automation Foundation:**\nThe core issue with sites like promptingguide.ai is client-side rendering. The solution requires using crawl4ai with `browser=\"playwright\"` to launch a headless browser that executes JavaScript and provides the fully rendered DOM, not just the initial HTML shell.\n\n**Intelligent Content Extraction:**\nImplement `TrafilaturaExtractor` which uses advanced heuristics to identify main article content while filtering out navigation, headers, footers, and promotional content. This is far more robust than custom CSS selectors and scales across different site layouts.\n\n**Precision Filtering Strategy:**\n- Use `css_selector=\"main article\"` to scope extraction to the primary content container\n- Implement `extraction_exclude_selectors` to remove specific boilerplate elements:\n  - `nav.navbar` (top navigation)\n  - `footer.footer` (site footer)\n  - `aside.theme-doc-sidebar-container` (left sidebar/TOC)\n  - `.theme-doc-toc` (right sidebar \"on this page\")\n  - `.theme-edit-this-page` (edit buttons)\n  - `.pagination-nav` (next/previous links)\n\n**Wait Strategies for Dynamic Content:**\nConfigure `playwright_options` with `wait_for: {\"selector\": \"main article\", \"timeout\": 20000}` to ensure content is fully loaded before extraction. This is more reliable than fixed timeouts or network idle states for SPAs.\n\n**Optimized Markdown Conversion:**\nConfigure `Html2TextConverter` with `ignore_links=False`, `ignore_images=True`, `protect_links=True`, `bodywidth=0`, and `escape_all=True` to produce clean, structured markdown ideal for RAG pipeline chunking while preserving semantic structure.\n\n**Session Management:**\nPlaywright maintains persistent browser context during crawling, automatically handling cookies and session state. For complex scenarios, use `page_manipulation_function` to handle cookie banners or authentication.\n\n**Complete Implementation Pattern:**\n```python\ncrawler = Crawler(\n    browser=\"playwright\",\n    extractor=TrafilaturaExtractor(),\n    converter=Html2TextConverter(ignore_links=False, ignore_images=True),\n    css_selector=\"main article\",\n    extraction_exclude_selectors=[\"nav.navbar\", \"footer.footer\", \"aside.theme-doc-sidebar-container\"],\n    playwright_options={\"wait_for\": {\"selector\": \"main article\", \"timeout\": 20000}}\n)\n```\n\nThis approach directly solves the content extraction failures by combining browser rendering, intelligent filtering, and precise element targeting to produce clean markdown suitable for downstream RAG processing.\n</info added on 2025-07-01T00:35:07.943Z>",
-        "testStrategy": "Create a new integration test specifically targeting a problematic URL like 'https://promptingguide.ai/'. The test should run the crawler on this URL and then fetch the extracted content from the database. Assert that the stored content contains specific key phrases from the main article body. Additionally, assert that the content does NOT contain common text from the site's header, footer, or navigation menus. Run a regression test suite against a list of 5-10 previously known-good websites to ensure the new logic does not negatively impact their crawling results.",
+        "description": "Refactor the web crawler to function as the first stage of a Document Ingestion Pipeline, inspired by the agentic-rag-knowledge-graph reference implementation. The primary goal is to create a robust AdvancedWebCrawler that reliably extracts clean, high-quality markdown from modern, JavaScript-heavy websites. This separates the concern of content extraction from downstream processing like chunking, embedding, and storage.",
         "status": "pending",
         "dependencies": [],
         "priority": "high",
+        "details": "The current crawler struggles with client-side rendered websites. The solution is to implement an AdvancedWebCrawler using `crawl4ai` that can produce clean markdown suitable for a downstream `DocumentIngestionPipeline`.\n\nThis involves several key strategies:\n\n1.  **Browser Automation:** Utilize `crawl4ai` with `browser=\"playwright\"` to fully render pages, executing all JavaScript to get the final DOM that a user sees. This is essential for SPAs like promptingguide.ai.\n\n2.  **Intelligent Extraction & Filtering:** Combine `TrafilaturaExtractor` for its advanced heuristics with precision targeting. The extractor should be scoped to the main content area (`css_selector=\"main article\"`) and exclude specific boilerplate elements (`extraction_exclude_selectors`) like sidebars, headers, and footers.\n\n3.  **Dynamic Content Handling:** Implement robust wait strategies using `playwright_options` (e.g., `{\"wait_for\": {\"selector\": \"main article\", \"timeout\": 20000}}`) to ensure dynamic content is fully loaded before extraction begins.\n\n4.  **Optimized Markdown Output:** Configure the `Html2TextConverter` to generate clean, structured markdown optimized for a `SemanticChunker`. Settings like `ignore_images=True`, `protect_links=True`, and `bodywidth=0` are critical for producing output that is easy to chunk and process while preserving semantic meaning.\n\n**Target Implementation Pattern:**\nThe crawler's output should be directly consumable by a `DocumentIngestionPipeline`. The configuration should resemble the following:\n\n```python\nfrom crawl4ai import Crawler\nfrom crawl4ai.extractors import TrafilaturaExtractor\nfrom crawl4ai.converters import Html2TextConverter\n\nadvanced_web_crawler = Crawler(\n    browser=\"playwright\",\n    extractor=TrafilaturaExtractor(),\n    converter=Html2TextConverter(\n        ignore_links=False, \n        ignore_images=True, \n        protect_links=True, \n        bodywidth=0, \n        escape_all=True\n    ),\n    css_selector=\"main article\",\n    extraction_exclude_selectors=[\n        \"nav.navbar\", \n        \"footer.footer\", \n        \"aside.theme-doc-sidebar-container\",\n        \".theme-doc-toc\",\n        \".theme-edit-this-page\",\n        \".pagination-nav\"\n    ],\n    playwright_options={\"wait_for\": {\"selector\": \"main article\", \"timeout\": 20000}}\n)\n```\nThis approach ensures the crawler's role is cleanly defined: to turn a URL into a high-quality markdown document, ready for the next stage of the RAG pipeline.",
+        "testStrategy": "The test strategy must validate both the quality of the extracted markdown and its compatibility with the downstream ingestion pipeline.\n1. Create an integration test targeting problematic URLs (e.g., 'https://promptingguide.ai/'). Assert that the extracted markdown contains key phrases from the main content and is free of text from boilerplate elements (headers, footers, sidebars).\n2. Develop a content quality validation suite. This should programmatically check the markdown for common issues like leftover HTML tags, excessive newlines, or script content.\n3. Create a test harness that feeds the crawler's output into a prototype `DocumentIngestionPipeline` (or at least a `SemanticChunker`). The test passes if the markdown is chunked correctly without errors, demonstrating its suitability for the target architecture.\n4. Run regression tests against known-good websites to ensure the changes don't negatively impact existing functionality.",
         "subtasks": [
           {
             "id": 1,
-            "title": "Analyze Current Crawler Implementation and Content Extraction Failures",
-            "description": "Investigate the existing crawler codebase to understand current HTML parsing approach and identify specific failure points with JavaScript-heavy websites like promptingguide.ai",
-            "dependencies": [],
-            "details": "Review current crawler.py implementation, examine how HTML content is currently parsed and extracted. Test the existing crawler against promptingguide.ai and other SPA sites to document specific failure patterns (empty content, partial extraction, boilerplate inclusion). Document current dependencies and extraction logic.",
+            "title": "Analyze Current Crawler and Define Pipeline Input Requirements",
+            "description": "Review the existing crawler's limitations and formally define the 'clean markdown' standard required by the target DocumentIngestionPipeline. This includes structure, metadata, and acceptable noise levels.",
             "status": "pending",
-            "testStrategy": "Create test cases with known problematic URLs to establish baseline failure metrics"
+            "dependencies": [],
+            "details": "Investigate current extraction failures on sites like promptingguide.ai. Analyze the document format used in the agentic-rag-knowledge-graph reference to establish a quality benchmark. Document the acceptance criteria for markdown output.",
+            "testStrategy": "Create a 'golden set' of markdown files representing the target quality standard for automated comparison."
           },
           {
             "id": 2,
             "title": "Configure Crawler with Playwright Browser Engine",
-            "description": "Replace basic HTML parser with crawl4ai's Playwright browser integration to enable JavaScript execution and full DOM rendering",
+            "description": "Integrate the Playwright browser engine into the crawler to enable full JavaScript execution and DOM rendering for modern web applications.",
+            "status": "pending",
             "dependencies": [
               1
             ],
-            "details": "Modify crawler initialization to use `browser='playwright'` parameter. Configure playwright_options with appropriate wait strategies including `wait_for: {'selector': 'main article', 'timeout': 20000}` to ensure content is fully loaded before extraction. Handle browser session management and resource cleanup.",
-            "status": "pending",
-            "testStrategy": "Verify that JavaScript-rendered content is now accessible by comparing raw HTML vs rendered DOM output"
+            "details": "Modify the crawler's initialization to use `browser='playwright'`. Configure `playwright_options` with a robust wait strategy, such as waiting for a specific content selector to be present, to handle dynamically loaded content.",
+            "testStrategy": "Verify that the crawler can access content that is only visible after client-side JavaScript execution on a test page."
           },
           {
             "id": 3,
-            "title": "Implement TrafilaturaExtractor for Intelligent Content Identification",
-            "description": "Replace basic content extraction with TrafilaturaExtractor to automatically identify main article content while filtering out navigation, headers, and footers",
+            "title": "Implement Precision Content Extraction with Trafilatura and CSS Selectors",
+            "description": "Configure the extractor to intelligently identify the main content block and surgically remove common boilerplate elements.",
+            "status": "pending",
             "dependencies": [
               2
             ],
-            "details": "Initialize crawler with `extractor=TrafilaturaExtractor()` parameter. This extractor uses advanced heuristics to distinguish primary content from boilerplate elements across different site layouts without requiring site-specific CSS selectors.",
-            "status": "pending",
-            "testStrategy": "Test content extraction quality on diverse website types (news sites, documentation, blogs) to verify main content identification accuracy"
+            "details": "Set the crawler's extractor to `TrafilaturaExtractor()`. Use `css_selector` to narrow the focus to the primary content container (e.g., 'main article'). Populate `extraction_exclude_selectors` with a list of selectors for navigation, footers, sidebars, and other non-content elements.",
+            "testStrategy": "Compare extracted content with and without the selectors to confirm that boilerplate is removed while main content is preserved."
           },
           {
             "id": 4,
-            "title": "Configure Precision Content Targeting with CSS Selectors",
-            "description": "Implement targeted content extraction using css_selector and extraction_exclude_selectors to focus on main content areas while excluding specific boilerplate elements",
+            "title": "Optimize Markdown Conversion for Pipeline Ingestion",
+            "description": "Configure the `Html2TextConverter` to produce clean, well-structured markdown that is optimized for downstream processing by a SemanticChunker.",
+            "status": "pending",
             "dependencies": [
               3
             ],
-            "details": "Add `css_selector='main article'` to scope extraction to primary content container. Configure `extraction_exclude_selectors` array with common boilerplate patterns: ['nav.navbar', 'footer.footer', 'aside.theme-doc-sidebar-container', '.theme-doc-toc', '.theme-edit-this-page', '.pagination-nav'].",
-            "status": "pending",
-            "testStrategy": "Compare extracted content before and after selector implementation to verify boilerplate removal while preserving main content"
+            "details": "Initialize the `Html2TextConverter` with parameters `ignore_links=False`, `ignore_images=True`, `protect_links=True`, `bodywidth=0`, and `escape_all=True`. This configuration preserves important semantic link information while creating a clean text flow ideal for chunking.",
+            "testStrategy": "Inspect the generated markdown to ensure it is well-formed and free of artifacts. Manually verify that it can be processed cleanly by a text chunking algorithm."
           },
           {
             "id": 5,
-            "title": "Optimize Markdown Conversion for RAG Pipeline",
-            "description": "Configure Html2TextConverter with optimal settings for downstream RAG processing to produce clean, structured markdown output",
+            "title": "Develop Automated Content Quality Validation Suite",
+            "description": "Create a suite of automated tests to validate the quality and cleanliness of the markdown produced by the crawler.",
+            "status": "pending",
             "dependencies": [
               4
             ],
-            "details": "Initialize crawler with `converter=Html2TextConverter(ignore_links=False, ignore_images=True, protect_links=True, bodywidth=0, escape_all=True)`. These settings preserve semantic link structure while removing visual clutter, producing markdown ideal for text chunking and embedding generation.",
-            "status": "pending",
-            "testStrategy": "Validate markdown output quality for RAG suitability by testing chunk boundaries and semantic preservation"
+            "details": "Implement checks to ensure the final markdown is free of remnant HTML tags, script blocks, and excessive whitespace. Compare the output against the 'golden set' defined in subtask 1 to measure quality.",
+            "testStrategy": "The test suite should fail if the extracted markdown contains specific blacklisted strings (e.g., '</script>', '<footer>') or deviates significantly from the target quality standard."
           },
           {
             "id": 6,
-            "title": "Integration Testing and Performance Validation",
-            "description": "Conduct comprehensive testing of the enhanced crawler against diverse modern websites and validate performance improvements in content extraction quality",
+            "title": "Perform End-to-End Test with a Mock Ingestion Pipeline",
+            "description": "Validate the complete solution by feeding the output of the AdvancedWebCrawler into a test version of the DocumentIngestionPipeline.",
+            "status": "pending",
             "dependencies": [
               5
             ],
-            "details": "Test the complete implementation against the original problematic sites (promptingguide.ai) and additional JavaScript-heavy sites. Measure extraction success rates, content quality scores, and processing time. Create regression tests to prevent future content extraction failures. Document any remaining edge cases requiring special handling.",
-            "status": "pending",
-            "testStrategy": "Implement automated test suite comparing extraction results before and after improvements, measuring content completeness and boilerplate elimination rates"
+            "details": "Set up a test that calls the crawler with a target URL, receives the markdown output, and passes it to a mock `SemanticChunker` and `DocumentIngestionPipeline`. The test should verify that the document is processed without errors and that the resulting chunks are valid.",
+            "testStrategy": "The end-to-end test passes if a URL can be successfully crawled, converted, and processed by the mock pipeline, producing a set of clean, logical text chunks."
           }
         ]
       },
       {
         "id": 14,
         "title": "Investigate and Fix Crawl4ai Crawler Issues with Modern Websites",
-        "description": "Research crawl4ai documentation and implement advanced extraction strategies to properly extract meaningful content from JavaScript-heavy and modern websites like promptingguide.ai that currently extract mostly navigation links and promotional content. Focus on improving content extraction to clean markdown quality before chunking, similar to the agentic-rag-knowledge-graph reference implementation.",
+        "description": "Refactor the document processing logic to align with the `agentic-rag-knowledge-graph` reference implementation. This task now focuses on creating a robust `DocumentIngestionPipeline` that takes clean markdown from the web crawler (Task 13) and processes it for storage. The pipeline will handle title/metadata extraction, semantic chunking, embedding, and database insertion, establishing a clean separation of concerns between content extraction and document processing.",
         "status": "pending",
         "dependencies": [
           13
         ],
         "priority": "high",
-        "details": "Based on analysis of the agentic-rag-knowledge-graph reference implementation, the issue is in content extraction phase rather than chunking. Their DocumentIngestionPipeline expects clean markdown input and uses SemanticChunker/SimpleChunker effectively. Our crawler needs to produce similar quality markdown output. First, use the Context7 MCP tool to research crawl4ai documentation focusing on markdown conversion and content cleaning capabilities. Analyze current extraction logic to identify why we're getting navigation/promotional content instead of clean article text. Implement improvements: 1) Configure crawl4ai's JavaScript execution settings for proper dynamic content rendering, 2) Use crawl4ai's content extraction filters and CSS selectors targeting main content areas, 3) Implement wait strategies for JavaScript-heavy sites ensuring full content load, 4) Configure exclusion patterns filtering navigation, ads, and boilerplate, 5) Focus on crawl4ai's markdown conversion options to produce clean output similar to reference implementation's expected input format, 6) Add content quality validation to ensure extracted markdown meets chunking pipeline requirements, 7) Test with crawl4ai's session management for SPAs, 8) Add retry logic with different extraction strategies. The goal is clean markdown output that works seamlessly with DocumentIngestionPipeline's SemanticChunker/SimpleChunker approach.\n<info added on 2025-07-01T00:36:49.324Z>\nBased on comprehensive research into crawl4ai integration best practices, the implementation approach should focus on replacing the current extraction logic with a two-stage process: Playwright for dynamic content rendering and Trafilatura for precise main content extraction. The key integration points are:\n\n**Implementation Strategy:**\n1. Create AdvancedContentExtractor module as drop-in replacement for current extraction logic\n2. Use Playwright with wait_for_load_state('networkidle') for JavaScript-heavy sites like promptingguide.ai\n3. Implement Trafilatura with output_format='markdown', include_tables=True, deduplicate=True for clean content\n4. Maintain existing DocumentIngestionPipeline interface - extractor returns {'content': markdown_text, 'metadata': {...}} format\n5. Set content_type='web_page_text' in metadata for database schema compatibility\n\n**Database Integration:**  \n- extracted_data['content'] maps to content column for chunking\n- extracted_data['metadata']['source_url'] maps to source_url column  \n- extracted_data['metadata']['title'] maps to title/metadata JSONB column\n- No changes required to existing chunking pipeline (SemanticChunker/SimpleChunker)\n\n**Critical Implementation Details:**\n- Install playwright, trafilatura, beautifulsoup4 dependencies\n- Run playwright install for browser binaries  \n- Use async/await pattern for Playwright operations\n- Implement robust retry logic with tenacity library for network failures\n- Consider playwright-stealth for anti-bot detection\n- Handle cookie banners and user interaction requirements before content extraction\n\n**Performance Considerations:**\n- Playwright is resource-intensive - consider dedicated crawler service or task queue (Celery/Dramatiq)\n- For large scale, evaluate third-party services like Browserless.io\n- Implement parallelization controls to manage concurrent browser instances\n\n**Testing Approach:**\nTest with problematic sites like promptingguide.ai to verify clean markdown extraction, absence of navigation/promotional content, and proper metadata formatting. Integration tests should validate DocumentIngestionPipeline compatibility and database schema mapping.\n\nThe implementation maintains full compatibility with existing database schema and chunking pipeline while dramatically improving content quality through proper JavaScript rendering and content extraction filtering.\n</info added on 2025-07-01T00:36:49.324Z>",
-        "testStrategy": "Create comprehensive integration tests targeting problematic websites like promptingguide.ai and other JavaScript-heavy sites. Tests should verify that extracted content produces clean markdown similar to the agentic-rag-knowledge-graph reference implementation's document format. Implement content quality metrics measuring meaningful content vs boilerplate ratio and markdown cleanliness score. Create before/after comparison tests showing improvement in extraction quality. Test compatibility with DocumentIngestionPipeline by feeding extracted content through SemanticChunker/SimpleChunker to verify proper chunking behavior. Add unit tests for new extraction logic and markdown conversion. Test various website types including SPAs, React apps, and traditional sites to ensure broad compatibility with the chunking pipeline.",
+        "details": "Based on the architecture of the `agentic-rag-knowledge-graph` reference implementation, this task is to build a `DocumentIngestionPipeline` that provides a clear separation between content extraction (handled by the crawler in Task 13) and document processing. The pipeline will be responsible for taking clean markdown as input and managing its entire lifecycle through chunking, embedding, and storage.\n\n**Pipeline Architecture:**\nThe implementation will be modeled after the reference pipeline, with a clear sequence of operations:\n1.  **`_read_document()`**: The pipeline's entry point will accept the clean markdown content and metadata dictionary from the `AdvancedWebCrawler` (Task 13).\n2.  **`_extract_title()` & `_extract_document_metadata()`**: These methods will parse the input to refine the document's title and extract relevant metadata from the markdown content itself, supplementing the metadata provided by the crawler.\n3.  **`chunker.chunk_document()`**: The core chunking logic. This will use a new `SemanticChunker` to intelligently split the document.\n4.  **`embedder.embed_chunks()`**: The resulting text chunks will be passed to the embedding service to generate vector representations.\n5.  **`database.store_chunks()`**: The final step will be to store the chunks, their embeddings, and associated metadata in the database, adhering to the existing schema.\n\n**Semantic Chunker Implementation:**\nA key component is the `SemanticChunker`. It will be optimized for web-crawled markdown and feature:\n-   **LLM-Powered Splitting**: Use an LLM to identify semantically coherent sections for chunking.\n-   **Fallback Mechanism**: If the LLM-based approach fails or is not suitable, it will fall back to a rule-based chunker (e.g., `RecursiveCharacterTextSplitter` configured for markdown).\n-   **Configuration**: The chunker will manage chunk size and overlap to ensure content integrity.\n\n**Integration and Compatibility:**\nThe pipeline must be designed to seamlessly integrate with the output of the `AdvancedWebCrawler` from Task 13. It will maintain full compatibility with the existing database schema, ensuring that the processed data is stored correctly without requiring schema migrations.",
+        "testStrategy": "The test strategy will focus on validating the entire ingestion pipeline, from markdown input to database storage.\n1.  **Unit Tests**: Create unit tests for each component, especially the `SemanticChunker`. Tests for the chunker should cover both the LLM-based logic and the rule-based fallback, using a variety of markdown documents as input.\n2.  **Pipeline Integration Tests**: Write integration tests for the `DocumentIngestionPipeline` to verify the correct orchestration of all steps (reading, metadata extraction, chunking, embedding, storage).\n3.  **End-to-End Validation**: Conduct end-to-end tests by feeding the pipeline with actual output from the `AdvancedWebCrawler` (Task 13). Verify that content from problematic sites like `promptingguide.ai` is correctly processed and stored in the database.\n4.  **Quality Assurance**: Compare the chunking results from the `SemanticChunker` against the previous simple chunking method to quantitatively measure the improvement in chunk quality and coherence.",
         "subtasks": [
           {
             "id": 1,
-            "title": "Research and Install Required Dependencies",
-            "description": "Research crawl4ai documentation using Context7 MCP tool and install required dependencies for advanced content extraction including Playwright, Trafilatura, and BeautifulSoup4.",
-            "dependencies": [],
-            "details": "Use Context7 MCP tool to research crawl4ai documentation focusing on JavaScript execution, content extraction filters, and markdown conversion. Install playwright, trafilatura, beautifulsoup4 dependencies. Run 'playwright install' to download browser binaries. Document key findings about crawl4ai's advanced extraction capabilities.",
+            "title": "Design DocumentIngestionPipeline and Component Interfaces",
+            "description": "Define the class structures and interfaces for the `DocumentIngestionPipeline`, `SemanticChunker`, `Embedder`, and `Storage` components, modeling the architecture from the agentic-rag-knowledge-graph reference.",
             "status": "pending",
-            "testStrategy": "Verify all dependencies are properly installed and Playwright browsers are available"
+            "dependencies": [],
+            "details": "Create Python class skeletons for each component. Define the method signatures and data contracts (e.g., input/output formats) to ensure a clean separation of concerns and modularity. Document the overall data flow through the pipeline.",
+            "testStrategy": "Review the design documents and class interfaces for clarity, completeness, and adherence to the reference architecture."
           },
           {
             "id": 2,
-            "title": "Create AdvancedContentExtractor Module Structure",
-            "description": "Create a new AdvancedContentExtractor module that will serve as a drop-in replacement for the current extraction logic while maintaining compatibility with the existing DocumentIngestionPipeline interface.",
+            "title": "Implement SemanticChunker with Fallback Logic",
+            "description": "Implement the `SemanticChunker` class. This includes the primary LLM-based semantic splitting logic and a robust fallback to a rule-based chunker (e.g., RecursiveCharacterTextSplitter).",
+            "status": "pending",
             "dependencies": [
               1
             ],
-            "details": "Create new module with async/await pattern for Playwright operations. Design interface to return {'content': markdown_text, 'metadata': {...}} format compatible with existing pipeline. Set up proper error handling and logging structure.",
-            "status": "pending",
-            "testStrategy": "Unit tests for module instantiation and basic interface compatibility"
+            "details": "Implement the LLM call for identifying semantic boundaries. Implement the fallback chunker that splits based on markdown headings and sentence structure. Ensure the chunker correctly handles chunk size and overlap configurations.",
+            "testStrategy": "Unit test the chunker with various markdown files, including those with complex structures and simple text. Verify both LLM and fallback mechanisms work as expected."
           },
           {
             "id": 3,
-            "title": "Implement Playwright Dynamic Content Rendering",
-            "description": "Implement Playwright integration for proper JavaScript execution and dynamic content rendering, focusing on JavaScript-heavy sites that require full page load before content extraction.",
-            "dependencies": [
-              2
-            ],
-            "details": "Configure Playwright with wait_for_load_state('networkidle') for complete content loading. Implement browser instance management with proper resource cleanup. Add support for handling cookie banners and user interactions. Consider playwright-stealth for anti-bot detection if needed.",
+            "title": "Implement Core Pipeline Logic and Metadata Extraction",
+            "description": "Build the `DocumentIngestionPipeline` class, orchestrating the processing flow. Implement the logic for extracting the title and other metadata from the markdown content.",
             "status": "pending",
-            "testStrategy": "Test with promptingguide.ai to verify JavaScript content is properly rendered and loaded"
+            "dependencies": [
+              1
+            ],
+            "details": "Implement the main `process()` method of the pipeline. Write helper methods for `_extract_title()` and `_extract_document_metadata()`. The pipeline should correctly call the chunker with the document content.",
+            "testStrategy": "Unit test the pipeline's orchestration logic with mock components. Verify that metadata is correctly extracted from sample documents."
           },
           {
             "id": 4,
-            "title": "Integrate Trafilatura for Main Content Extraction",
-            "description": "Implement Trafilatura integration for precise main content extraction with clean markdown output, filtering out navigation, ads, and boilerplate content.",
+            "title": "Integrate Embedding Generation into the Pipeline",
+            "description": "Connect the pipeline to the existing embedding service. The pipeline should take the text chunks produced by the `SemanticChunker` and pass them to the embedder to generate vector embeddings.",
+            "status": "pending",
             "dependencies": [
               3
             ],
-            "details": "Configure Trafilatura with output_format='markdown', include_tables=True, deduplicate=True. Implement content filtering to exclude navigation, promotional content, and boilerplate. Focus on extracting clean article text suitable for chunking pipeline.",
-            "status": "pending",
-            "testStrategy": "Verify extracted content from test sites contains only main article content without navigation or promotional elements"
+            "details": "Modify the pipeline's `process()` method to include a step for embedding. Ensure that the chunks are batched effectively for efficient processing by the embedding model. The output should be a list of chunks paired with their corresponding embeddings.",
+            "testStrategy": "Integration test the pipeline up to the embedding step. Verify that text chunks are correctly converted into vector embeddings of the expected dimension."
           },
           {
             "id": 5,
-            "title": "Implement Content Quality Validation and Metadata Mapping",
-            "description": "Add content quality validation to ensure extracted markdown meets chunking pipeline requirements and implement proper metadata mapping for database schema compatibility.",
+            "title": "Implement Database Storage Logic",
+            "description": "Implement the final step of the pipeline, which persists the processed chunks, their embeddings, and metadata to the database, ensuring compatibility with the existing schema.",
+            "status": "pending",
             "dependencies": [
               4
             ],
-            "details": "Validate extracted content quality (minimum length, content-to-noise ratio). Map metadata fields: source_url to source_url column, title to metadata JSONB, set content_type='web_page_text'. Ensure compatibility with existing DocumentIngestionPipeline interface.",
-            "status": "pending",
-            "testStrategy": "Test metadata mapping and content validation with various website types"
+            "details": "Create a `Storage` component with a method like `store_chunks()`. This method will take the final processed data and execute the necessary database insert/update operations. Ensure all fields in the database schema are correctly populated.",
+            "testStrategy": "Test the storage component by writing data to a test database and verifying that all columns (content, embedding, metadata) are stored correctly."
           },
           {
             "id": 6,
-            "title": "Add Robust Error Handling and Retry Logic",
-            "description": "Implement comprehensive error handling and retry logic using tenacity library to handle network failures, timeouts, and extraction errors gracefully.",
+            "title": "Integrate Pipeline with AdvancedWebCrawler Output",
+            "description": "Create the final integration point where the clean markdown output from the `AdvancedWebCrawler` (Task 13) is fed into the `DocumentIngestionPipeline` for processing.",
+            "status": "pending",
             "dependencies": [
               5
             ],
-            "details": "Use tenacity library for retry logic with exponential backoff. Handle specific errors: network timeouts, JavaScript execution failures, content extraction errors. Implement fallback strategies for different extraction approaches when primary method fails.",
-            "status": "pending",
-            "testStrategy": "Test error scenarios including network failures, timeouts, and malformed content"
+            "details": "Refactor the main crawling script or task runner to instantiate and invoke the `DocumentIngestionPipeline` after a successful crawl and extraction. Ensure the data format from the crawler matches the pipeline's expected input.",
+            "testStrategy": "Run an end-to-end test starting from a URL, using the crawler from Task 13, and passing its output to the pipeline. Verify the entire process completes without errors."
           },
           {
             "id": 7,
-            "title": "Optimize Performance and Resource Management",
-            "description": "Implement performance optimizations including browser instance management, parallelization controls, and resource cleanup to handle concurrent extraction operations efficiently.",
+            "title": "Develop Comprehensive Integration and E2E Tests",
+            "description": "Write a full suite of integration and end-to-end tests to validate the entire system, ensuring robustness, correctness, and high-quality output.",
+            "status": "pending",
             "dependencies": [
               6
             ],
-            "details": "Implement browser instance pooling or reuse strategies. Add parallelization controls to manage concurrent browser instances and prevent resource exhaustion. Ensure proper cleanup of browser resources. Consider memory and CPU usage optimization.",
-            "status": "pending",
-            "testStrategy": "Performance tests with multiple concurrent extraction operations to verify resource management"
-          },
-          {
-            "id": 8,
-            "title": "Integration Testing and Validation with Real Websites",
-            "description": "Conduct comprehensive integration testing with problematic websites like promptingguide.ai to validate the complete extraction pipeline and ensure compatibility with existing DocumentIngestionPipeline and database schema.",
-            "dependencies": [
-              7
-            ],
-            "details": "Test with promptingguide.ai and other JavaScript-heavy sites. Verify clean markdown extraction without navigation/promotional content. Test end-to-end integration with DocumentIngestionPipeline and database insertion. Validate SemanticChunker/SimpleChunker compatibility.",
-            "status": "pending",
-            "testStrategy": "End-to-end integration tests with real websites, database insertion validation, and chunking pipeline compatibility verification"
+            "details": "Create a test suite that uses a set of diverse websites. The tests will crawl the sites, process the content through the pipeline, and query the database to assert that the stored data is correctly chunked, embedded, and structured.",
+            "testStrategy": "Execute the test suite and validate the results in the test database. Measure chunk quality and compare against baseline metrics."
           }
         ]
       }

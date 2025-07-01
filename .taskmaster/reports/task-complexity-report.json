@@ -1,9 +1,9 @@
 {
 	"meta": {
-		"generatedAt": "2025-06-30T23:54:45.911Z",
-		"tasksAnalyzed": 12,
-		"totalTasks": 12,
-		"analysisCount": 12,
+		"generatedAt": "2025-07-01T16:12:42.111Z",
+		"tasksAnalyzed": 2,
+		"totalTasks": 14,
+		"analysisCount": 14,
 		"thresholdScore": 5,
 		"projectName": "Taskmaster",
 		"usedResearch": true
@@ -104,6 +104,22 @@
 			"recommendedSubtasks": 5,
 			"expansionPrompt": "Break down the task 'Implement Conversational Memory' into subtasks for: 1. Designing and implementing the `conversations` and `messages` database tables. 2. Creating a service to manage conversation history (create, retrieve, append), including Redis caching. 3. Implementing the logic to retrieve context and inject it into the RAG prompt. 4. Integrating an optional summarization model for long conversations to manage context length. 5. Developing tests for multi-turn conversational scenarios to ensure context is maintained correctly.",
 			"reasoning": "This is a highly complex feature that introduces statefulness into a previously stateless system. It requires new data models, complex application logic for context management, prompt engineering, and potentially another AI model call for summarization, touching many parts of the stack."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Improve Crawler Content Extraction for Modern Websites",
+			"complexityScore": 7,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Based on the 6 provided subtasks for improving the web crawler, create a detailed implementation plan. For each subtask, specify the key implementation steps, potential challenges, required configurations (e.g., specific CSS selectors to start with, Playwright wait conditions), and the acceptance criteria for completion. Provide code snippets where appropriate, especially for the test harnesses in subtasks 5 and 6.",
+			"reasoning": "Complexity is rated 7/10. While the task is well-defined with a clear implementation pattern using `crawl4ai`, the primary challenge lies in the iterative process of tuning CSS selectors and wait strategies to work reliably across diverse, JavaScript-heavy websites. This requires significant testing and refinement beyond the initial setup. The 6 recommended subtasks are appropriate as they logically segment the work from initial analysis and configuration through to quality assurance and final integration testing."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Investigate and Fix Crawl4ai Crawler Issues with Modern Websites",
+			"complexityScore": 8,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Create a detailed technical specification for the `DocumentIngestionPipeline` based on the 7 provided subtasks. Pay special attention to Subtask 2, 'Implement SemanticChunker'. For the chunker, define the proposed LLM prompt, the criteria for triggering the rule-based fallback, the specific rules for the fallback chunker (e.g., splitters for markdown headers, code blocks), and the data structure for a 'chunk'. For the overall pipeline, detail the error handling strategy at each stage (e.g., what happens if embedding fails?).",
+			"reasoning": "Complexity is rated 8/10. The core challenge is the implementation of the `SemanticChunker`, which introduces significant technical uncertainty related to LLM prompt engineering, reliability, and the design of a robust fallback mechanism. Orchestrating the multi-stage pipeline (chunk, embed, store) adds further complexity. The 7 recommended subtasks are suitable as they correctly isolate the design, implementation of major components (pipeline, chunker, storage), integration, and comprehensive end-to-end testing."
 		}
 	]
 }
