@@ -1,0 +1,672 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Implement Redis Query Result Caching",
+        "description": "Implement a query result caching layer using Redis to reduce latency for repeated search queries and decrease database load, aiming for a sub-500ms response time.",
+        "details": "Integrate the `redis-py` library (version `5.0.1` or later). Create a caching module with functions to get, set, and invalidate cache entries. Implement a decorator that can be applied to the main search functions. The cache key should be a hash of the query, search strategy, and user context. Set a reasonable TTL (e.g., 1 hour) for cache entries. Invalidation logic should be triggered when underlying source documents are updated. Use environment variables for Redis connection details (`REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`).\n\nPseudo-code:\n```python\nimport redis\nimport hashlib\n\nredis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)\n\ndef cache_results(ttl_seconds=3600):\n    def decorator(func):\n        def wrapper(*args, **kwargs):\n            query_params = str(args) + str(kwargs)\n            cache_key = f'query:{hashlib.md5(query_params.encode()).hexdigest()}'\n            cached_result = redis_client.get(cache_key)\n            if cached_result:\n                return json.loads(cached_result)\n            result = func(*args, **kwargs)\n            redis_client.setex(cache_key, ttl_seconds, json.dumps(result))\n            return result\n        return wrapper\n    return decorator\n```",
+        "testStrategy": "Unit test the caching decorator to ensure it correctly caches results and respects TTL. Integration test by calling a cached endpoint twice and asserting the second call is significantly faster. Use `fakeredis` for unit testing without a live Redis server. Monitor cache hit/miss ratio in production.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup Redis Connection and Configuration",
+            "description": "Configure Redis connection with environment variables, connection pooling, and error handling",
+            "dependencies": [],
+            "details": "Set up Redis client with configurable host, port, password, and database selection via environment variables. Implement connection pooling, timeout settings, and graceful fallback when Redis is unavailable. Add configuration validation and connection health checks.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Caching Decorator for Search Functions",
+            "description": "Create a caching decorator that wraps search functions with Redis-based result caching",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop a decorator that generates cache keys based on search parameters, handles cache hits/misses, and stores search results in Redis with configurable TTL. Include serialization/deserialization of complex search result objects and implement cache key versioning strategy.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Design Cache Invalidation Mechanism",
+            "description": "Implement cache invalidation system that clears relevant cached results when source documents are updated",
+            "dependencies": [
+              2
+            ],
+            "details": "Create a cache invalidation system that tracks document-to-cache-key relationships and automatically invalidates cached search results when documents are added, modified, or deleted. Implement pattern-based cache clearing and event-driven invalidation hooks.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Write Tests and Performance Verification",
+            "description": "Develop comprehensive test suite using fakeredis and verify caching performance improvements",
+            "dependencies": [
+              3
+            ],
+            "details": "Create unit tests for caching decorator, integration tests for cache invalidation, and performance benchmarks comparing cached vs non-cached search operations. Use fakeredis for isolated testing and implement test scenarios for cache hits, misses, and invalidation edge cases.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Database Optimization and Connection Pooling",
+        "description": "Optimize Supabase PostgreSQL performance by implementing connection pooling and refining database queries and indexes to support scalability to 100K+ documents.",
+        "details": "Enable and configure Supabase's built-in PgBouncer for connection pooling. Set the pool mode to 'transaction' for optimal performance with short-lived connections from serverless functions or the MCP server. Analyze slow queries using `pg_stat_statements`. Ensure HNSW indexes on vector columns are correctly configured and used. Add composite indexes on `crawled_pages` for columns frequently used in `WHERE` clauses alongside vector search (e.g., `source_id`, `content_type`). Review and optimize the RRF hybrid search function for efficiency.",
+        "testStrategy": "Run `EXPLAIN ANALYZE` on key search queries before and after optimization to verify performance improvements. Use a load testing suite (Task 4) to measure the impact of connection pooling under concurrent load. Verify that all existing 100+ tests pass to ensure no regressions were introduced.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure PgBouncer Connection Pooling",
+            "description": "Set up and configure PgBouncer connection pooling in Supabase to optimize database connections and reduce connection overhead.",
+            "dependencies": [],
+            "details": "Configure PgBouncer settings including pool size, pool mode (transaction vs session), max client connections, and authentication. Update application connection strings to use pooled connections. Test connection pooling functionality and monitor connection usage.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Analyze Slow Queries with pg_stat_statements",
+            "description": "Enable and use pg_stat_statements extension to identify and analyze slow-performing queries that are causing database bottlenecks.",
+            "dependencies": [],
+            "details": "Enable pg_stat_statements extension, configure statement tracking parameters, analyze query statistics to identify top slow queries by execution time and frequency. Document findings and prioritize queries for optimization.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Optimize HNSW Indexes for Vector Search",
+            "description": "Verify existing HNSW indexes and optimize their configuration for better vector search performance.",
+            "dependencies": [],
+            "details": "Review current HNSW index configurations, analyze vector search query patterns, adjust index parameters (m, ef_construction, ef_search) for optimal performance. Test vector search performance with different index settings.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create Composite Indexes on Filtered Columns",
+            "description": "Identify frequently filtered column combinations and create appropriate composite indexes to improve query performance.",
+            "dependencies": [
+              2
+            ],
+            "details": "Based on slow query analysis, identify columns frequently used in WHERE clauses, JOIN conditions, and ORDER BY statements. Create composite indexes covering these column combinations. Consider index column order for optimal selectivity.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Benchmark Performance and Validate Changes",
+            "description": "Conduct comprehensive performance benchmarking using EXPLAIN ANALYZE and load tests to measure improvements from optimization changes.",
+            "dependencies": [
+              1,
+              3,
+              4
+            ],
+            "details": "Establish baseline performance metrics before optimizations. Use EXPLAIN ANALYZE to measure query execution plans and timing. Conduct load testing with realistic data volumes and query patterns. Compare before/after metrics and document performance improvements.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Create Performance Monitoring Dashboard",
+        "description": "Create a real-time performance monitoring dashboard to track key metrics like query latency, resource usage, and cache performance.",
+        "details": "Integrate `Prometheus` for metrics collection. Use a Python client library like `prometheus-fastapi-instrumentator` to automatically instrument the FastMCP server. Expose a `/metrics` endpoint. Key metrics to track: query latency (histogram), request count, error rate, cache hit/miss ratio, and database query times. Set up a `Grafana` instance to visualize these metrics. Create a dashboard with panels for 'Average Query Response Time', 'P95/P99 Latency', 'Requests per Second', and 'Cache Hit Rate'. Configure alerts in Grafana for when latency exceeds the 500ms threshold or error rates spike.",
+        "testStrategy": "Verify that the `/metrics` endpoint is accessible and exposes the correct metrics. Manually trigger different types of queries and check if they are reflected in the Grafana dashboard in real-time. Configure a test alert and verify that it triggers correctly when the defined threshold is breached.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Instrument FastAPI with Prometheus metrics",
+            "description": "Add Prometheus client library to FastAPI application and expose key metrics including latency, error rates, and cache performance",
+            "dependencies": [],
+            "details": "Install prometheus_client library, create middleware for request tracking, implement counters for errors, histograms for latency, and gauges for cache hits/misses. Expose metrics at /metrics endpoint",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Setup Prometheus server configuration",
+            "description": "Install and configure Prometheus instance to scrape metrics from the FastAPI application",
+            "dependencies": [
+              1
+            ],
+            "details": "Install Prometheus, configure prometheus.yml with scrape targets, set scrape intervals, and verify metrics collection from FastAPI /metrics endpoint",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Setup Grafana and create monitoring dashboard",
+            "description": "Install Grafana, configure Prometheus as data source, and build comprehensive dashboard with performance visualization panels",
+            "dependencies": [
+              2
+            ],
+            "details": "Install Grafana, add Prometheus data source, create dashboard with panels for request latency, error rates, cache performance, and system health metrics",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Configure Grafana alerts for critical thresholds",
+            "description": "Set up alerting rules in Grafana for monitoring critical performance thresholds and error conditions",
+            "dependencies": [
+              3
+            ],
+            "details": "Create alert rules for high latency (>500ms), error rates (>5%), low cache hit rates (<80%), and configure notification channels for alert delivery",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement Load Testing and Benchmarking Suite",
+        "description": "Implement a comprehensive load testing and benchmarking suite to validate performance against targets (<500ms response time, 100K documents) and prevent regressions.",
+        "details": "Use `Locust` (a Python-based load testing tool) to create test scripts. The scripts should simulate realistic user behavior, including a mix of different RAG strategies (Contextual, Reranking, Agentic) and query types. The test suite should be configurable to run against different environments (local, staging, production). Integrate this suite into the CI/CD pipeline to run automatically on pull requests, failing the build if performance degrades beyond a set threshold (e.g., 10% increase in p95 latency).",
+        "testStrategy": "Run the load test suite against the current baseline to establish initial performance metrics. After implementing optimizations (Tasks 1 & 2), run the suite again and compare results to quantify improvements. The test report should clearly show metrics like requests per second, average/p95/p99 response times, and failure rates.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Locust scripts for RAG query simulation",
+            "description": "Create comprehensive Locust performance test scripts that simulate realistic user query patterns and test different RAG strategies including document retrieval, embedding searches, and response generation workflows.",
+            "dependencies": [],
+            "details": "Implement Locust test classes that cover various query types (simple searches, complex multi-step queries, bulk operations), different user behaviors (concurrent users, burst patterns), and RAG-specific scenarios (document ingestion, vector similarity searches, context retrieval). Include parameterized test data and realistic query distributions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Set up load testing infrastructure and environment configuration",
+            "description": "Configure the infrastructure components needed to run load tests against different environments (development, staging, production-like) including test data setup, environment isolation, and resource monitoring.",
+            "dependencies": [
+              1
+            ],
+            "details": "Set up containerized test environments, configure test databases with representative data volumes, implement environment-specific configuration management, set up monitoring and logging for test runs, and ensure proper resource allocation for both test runners and target systems.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Integrate Locust suite into CI/CD pipeline",
+            "description": "Implement automated load testing integration that runs Locust tests on pull requests, including test execution orchestration, result collection, and pipeline integration with proper error handling and reporting.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create CI/CD workflow configurations (GitHub Actions/Jenkins), implement test execution scripts with proper setup/teardown, configure test result collection and artifact storage, integrate with PR status checks, and implement proper error handling and retry mechanisms for flaky test scenarios.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Establish performance baselines and automated failure thresholds",
+            "description": "Define baseline performance metrics from initial test runs and implement automated threshold-based failure detection that can reliably identify performance regressions in the CI pipeline.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Run comprehensive baseline performance measurements across different query types and load patterns, analyze results to establish reliable performance thresholds (response times, throughput, error rates), implement statistical analysis for threshold detection (considering variance and confidence intervals), and configure automated pass/fail criteria that minimize false positives while catching real regressions.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Build REST API Wrapper for Core Tools",
+        "description": "Develop a REST API wrapper around the core MCP tools to provide a standard HTTP interface for non-MCP clients and broader system integration.",
+        "details": "Using `FastAPI`, create a new set of API endpoints that mirror the functionality of the existing MCP tools (e.g., `POST /api/v1/search`, `POST /api/v1/crawl`). The API should use Pydantic models for request and response validation, ensuring clear contracts. The implementation will involve creating a thin wrapper that calls the underlying service logic used by the FastMCP server, promoting code reuse. Structure the API using FastAPI's `APIRouter` to keep the code organized.",
+        "testStrategy": "Develop a suite of integration tests using `pytest` and `httpx` to test each endpoint. Tests should cover successful requests, requests with invalid data (to check validation), and error handling. The tests should mock the underlying service calls to isolate the API layer.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up FastAPI application structure with APIRouters",
+            "description": "Create the main FastAPI application with organized routing structure for search and crawl functionalities",
+            "dependencies": [],
+            "details": "Initialize FastAPI app, create separate APIRouter instances for search and crawl endpoints, set up proper module structure with __init__.py files, configure CORS and middleware if needed, and establish the basic routing hierarchy",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Define Pydantic models for request/response schemas",
+            "description": "Create comprehensive Pydantic models for all API request bodies and response schemas with proper validation",
+            "dependencies": [
+              1
+            ],
+            "details": "Define request models for search and crawl operations with appropriate field types and validators, create response models that match the expected output formats, implement proper error response schemas, and ensure all models have clear documentation with examples",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement comprehensive integration test suite",
+            "description": "Build complete test coverage using pytest and httpx for all API endpoints including validation and error scenarios",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Set up pytest configuration and test fixtures, create test cases for all endpoints with valid requests, implement negative test cases for validation errors and edge cases, add tests for authentication/authorization if applicable, and ensure proper test isolation and cleanup",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Unified Search for Multi-Modal Content",
+        "description": "Integrate processed multi-modal content (PDFs, image descriptions, audio transcripts) into the existing hybrid search system, allowing users to search across all content types seamlessly.",
+        "details": "Modify the `crawled_pages` table or create a new unified index to accommodate the different content types. Add a `content_type` column if not already present (`text`, `pdf_chunk`, `image_description`, `audio_transcript`). Update the hybrid search PostgreSQL function to query across these types. The function should still combine semantic vector search with full-text search, but now applied to the new content. Ensure metadata linking back to the original multi-modal file is stored and returned with search results.",
+        "testStrategy": "Create a test suite that indexes a sample of each content type. Write tests that perform searches expected to return results from specific types (e.g., a query that should only match an image description). Perform a general query and assert that results from multiple content types are returned and correctly ranked by the RRF algorithm.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and implement unified database schema",
+            "description": "Create a new unified index or table structure that can accommodate all content types (text, images, videos, documents) with appropriate metadata fields and indexing strategies",
+            "dependencies": [],
+            "details": "Design schema to support multiple content types with common searchable fields (title, description, tags, content_type, source_url, created_at, updated_at) and type-specific metadata. Create migration scripts to establish the new table structure with proper indexes for full-text search and metadata queries. Ensure backward compatibility during transition period.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Update data ingestion pipeline for unified structure",
+            "description": "Modify existing data ingestion processes to populate the new unified table structure from all content sources while maintaining data integrity",
+            "dependencies": [
+              1
+            ],
+            "details": "Update crawling and ingestion scripts to extract and normalize metadata from different content types. Implement data transformation logic to map source-specific fields to the unified schema. Add validation and error handling for data quality assurance. Create batch migration process for existing data.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Rewrite hybrid search PostgreSQL function",
+            "description": "Develop new search function that queries across all content types in the unified structure while maintaining search relevance and performance",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement advanced PostgreSQL search function using full-text search, vector similarity, and metadata filtering. Design relevance scoring algorithm that works across different content types. Optimize query performance with proper indexing strategy. Include content-type specific ranking adjustments and result diversification.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create comprehensive multi-modal test suite",
+            "description": "Develop extensive test suite with diverse multi-modal data to validate search accuracy, relevance, and performance across all content types",
+            "dependencies": [
+              3
+            ],
+            "details": "Create test datasets with representative samples of all supported content types. Implement automated tests for search accuracy, relevance ranking, and performance benchmarks. Add integration tests for the complete search pipeline. Create manual test scenarios for edge cases and user experience validation.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement Advanced Authentication (OAuth2) for REST API",
+        "description": "Implement advanced authentication mechanisms, such as OAuth2, for the new REST API to ensure secure access for third-party applications and users.",
+        "details": "Integrate the `Authlib` library (`version 1.2.1` or later) with FastAPI. Implement the OAuth2 'Client Credentials' flow for machine-to-machine authentication and the 'Authorization Code' flow for user-facing applications. Store client credentials securely. Create FastAPI dependencies to protect specific endpoints, requiring a valid JWT access token. The token validation should check the signature, issuer, and expiration.",
+        "testStrategy": "Unit test the token generation and validation logic. Write integration tests for protected endpoints, testing both valid and invalid/expired tokens. Test the full OAuth2 flow using a mock client application.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up Authlib library integration with FastAPI",
+            "description": "Install and configure the Authlib library for OAuth2 implementation in the FastAPI application",
+            "dependencies": [],
+            "details": "Install Authlib via pip, configure OAuth2 settings in application configuration, set up basic FastAPI integration with Authlib middleware and initialize OAuth2 client instances",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement OAuth2 Client Credentials flow",
+            "description": "Develop machine-to-machine authentication using OAuth2 Client Credentials flow",
+            "dependencies": [
+              1
+            ],
+            "details": "Create endpoints for client credential token exchange, implement token validation logic, set up client ID/secret management, and create middleware for M2M authentication",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement OAuth2 Authorization Code flow",
+            "description": "Develop user-facing OAuth2 Authorization Code flow for interactive authentication",
+            "dependencies": [
+              1
+            ],
+            "details": "Create authorization endpoints, implement callback handling, manage state parameters for CSRF protection, handle authorization code exchange for access tokens, and implement refresh token logic",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create FastAPI JWT validation dependencies",
+            "description": "Develop FastAPI dependency functions to protect API endpoints with JWT validation",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create reusable FastAPI dependencies for token validation, implement scope-based authorization, create decorators for endpoint protection, and handle token expiration and refresh scenarios",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Develop comprehensive OAuth2 test suite",
+            "description": "Create thorough test coverage for all OAuth2 flows, token validation, and security scenarios",
+            "dependencies": [
+              4
+            ],
+            "details": "Write unit tests for token validation functions, integration tests for OAuth2 flows, security tests for edge cases and attack scenarios, performance tests for token processing, and end-to-end tests for complete authentication workflows",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Add PDF Document Processing and Chunking",
+        "description": "Extend the content processing pipeline to support ingestion of PDF documents, including text extraction and intelligent chunking for effective embedding.",
+        "details": "Use the `PyMuPDF` library (`fitz`) for robust and fast text extraction from PDF files. Implement a chunking strategy that respects document structure, such as splitting by paragraphs or sections. A recursive chunking strategy that splits by paragraphs, then sentences, then words can be effective. For each chunk, store the extracted text, page number, and a foreign key to the source PDF document in the `crawled_pages` table. Generate embeddings for each text chunk.",
+        "testStrategy": "Test the pipeline with various PDF documents: text-only, multi-column layouts, and PDFs with embedded images. Verify that the text is extracted accurately and that the chunking logic produces meaningful segments. Check the database to ensure chunks are stored correctly with proper metadata.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate PyMuPDF library into project pipeline",
+            "description": "Add PyMuPDF as a dependency and set up the basic integration infrastructure for PDF processing within the existing pipeline",
+            "dependencies": [],
+            "details": "Install PyMuPDF library, update requirements/dependencies, create basic PDF processor class structure, and establish integration points with the existing processing pipeline. Ensure proper error handling and logging for PDF operations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement robust text extraction from various PDF layouts",
+            "description": "Develop core logic to extract text from PDFs while handling different layout types, fonts, and formatting",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement text extraction methods that can handle various PDF layouts including multi-column documents, tables, headers/footers, and different text encodings. Include fallback mechanisms for complex layouts and preserve important formatting information.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Design and implement intelligent recursive chunking strategy",
+            "description": "Create a sophisticated chunking algorithm that respects document structure and provides optimal chunks for processing",
+            "dependencies": [
+              2
+            ],
+            "details": "Develop chunking logic that considers document structure (headings, paragraphs, sections), maintains context boundaries, handles cross-references, and creates appropriately sized chunks. Implement recursive strategies for nested document structures and ensure chunks maintain semantic coherence.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Integrate PDF processor into main pipeline and write comprehensive tests",
+            "description": "Connect the PDF processor to the main ingestion pipeline and create thorough tests with diverse PDF examples",
+            "dependencies": [
+              3
+            ],
+            "details": "Integrate the PDF processor into the main ingestion workflow, create comprehensive test suite with various PDF types (simple text, multi-column, tables, images, encrypted, etc.), implement performance benchmarks, and ensure proper error handling and logging throughout the pipeline.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement Image Content Extraction and Description",
+        "description": "Implement image content processing to generate textual descriptions of images, making visual content searchable via semantic search.",
+        "details": "Integrate a multi-modal vision-language model. A good option is to use the OpenAI GPT-4 Vision API or an open-source alternative like `Salesforce/blip-image-captioning-large` via the `transformers` library. Create a new processing step in the pipeline that identifies image files. For each image, call the model to generate a concise, descriptive caption. Store this caption as text in the `crawled_pages` table, linked to the original image URL, and generate a vector embedding for it.",
+        "testStrategy": "Test with a diverse set of images (e.g., photographs, diagrams, charts). Manually review the generated captions for accuracy and relevance. Write a unit test to mock the vision model API and verify that the caption is correctly stored and embedded in the database.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Select and integrate vision-language model API",
+            "description": "Research and select an appropriate vision-language model (OpenAI GPT-4 Vision, Google Cloud Vision AI, or similar) and implement the API integration with authentication and error handling",
+            "dependencies": [],
+            "details": "Evaluate available vision-language models based on accuracy, cost, and rate limits. Implement API client with proper authentication, retry logic, and error handling. Create configuration for API keys and endpoints.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Modify ingestion pipeline for image processing",
+            "description": "Update the content ingestion pipeline to detect image files, extract them during crawling, and call the vision model to generate descriptions",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend the crawler to identify and extract image files (jpg, png, gif, webp). Integrate the vision model API calls into the processing pipeline. Handle different image formats and sizes, implement proper error handling for API failures.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Store descriptions and generate embeddings with validation",
+            "description": "Store image descriptions in the database with proper linking to source images, generate embeddings for the descriptions, and implement comprehensive validation tests",
+            "dependencies": [
+              2
+            ],
+            "details": "Design database schema for image descriptions with foreign key relationships. Generate embeddings for the descriptions using the existing embedding model. Create unit tests for image processing pipeline, integration tests for API calls, and validation tests for data integrity.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Add Audio Transcription and Searchability",
+        "description": "Add audio processing capabilities to the pipeline, allowing for transcription of audio files so their content can be indexed and searched.",
+        "details": "Use OpenAI's `Whisper` model for high-accuracy audio transcription. It can be accessed via the OpenAI API or run locally using the `openai-whisper` library for more control. The pipeline should detect audio files (e.g., mp3, wav, m4a), send them to the Whisper service for transcription, and receive the text. Store the full transcript in the `crawled_pages` table, linked to the original audio file. Chunk the transcript if it's very long and generate embeddings for each chunk.",
+        "testStrategy": "Test with various audio files, including different accents, background noise levels, and topics. Compare the generated transcript with a manual transcription to assess accuracy. Verify that the transcript is correctly stored and embedded in the database.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate Whisper Model for Audio Transcription",
+            "description": "Set up Whisper API or local library integration to handle audio file transcription with proper error handling and configuration options.",
+            "dependencies": [],
+            "details": "Research and implement either OpenAI Whisper API integration or local Whisper library setup. Include configuration for model selection, language detection, and transcription quality settings. Add proper error handling for API failures, unsupported formats, and timeout scenarios.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Modify Ingestion Pipeline for Audio Processing",
+            "description": "Update the existing ingestion pipeline to detect, process audio files, handle transcription workflow, and implement intelligent chunking for long audio content.",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend the current ingestion system to recognize audio file formats (mp3, wav, m4a, etc.), trigger transcription processing, and implement chunking strategies for long transcripts. Include metadata extraction for audio duration, quality, and format information.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Store Transcripts and Test Audio Processing Pipeline",
+            "description": "Implement storage for transcript chunks with embeddings generation and conduct comprehensive testing with diverse audio samples to validate transcription accuracy and searchability.",
+            "dependencies": [
+              2
+            ],
+            "details": "Set up database schema for storing transcript chunks with associated metadata and embeddings. Generate vector embeddings for transcript segments to enable semantic search. Test with various audio samples including different accents, background noise levels, audio quality, and languages to ensure robust performance.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Implement API Rate Limiting and Quota Management",
+        "description": "Implement rate limiting and quota management for the REST API to prevent abuse and ensure fair usage for all clients.",
+        "details": "Use a library like `slowapi` which integrates well with FastAPI. Implement a default rate limit (e.g., 100 requests per minute) for all authenticated API users. Use Redis (already integrated in Task 1) as the backend for `slowapi` to share rate limit state across multiple server instances. Allow for different rate limits based on the client's subscription plan or role, which can be stored in the user/client metadata and extracted from the JWT.",
+        "testStrategy": "Write integration tests to verify that the rate limit is enforced. Send a burst of requests exceeding the limit and assert that a `429 Too Many Requests` status code is returned. Test that different clients with different configured rate limits are handled correctly.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate slowapi with FastAPI and configure Redis backend",
+            "description": "Set up slowapi rate limiting library with FastAPI application and configure Redis as the storage backend for rate limit tracking",
+            "dependencies": [],
+            "details": "Install slowapi dependency, create rate limiter instance with Redis connection, integrate with FastAPI app initialization, configure Redis connection parameters and error handling",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement default global rate limit for authenticated endpoints",
+            "description": "Apply a standard rate limit to all authenticated API endpoints using slowapi decorators",
+            "dependencies": [
+              1
+            ],
+            "details": "Define default rate limit parameters (e.g., 100 requests per minute), create middleware or decorator to apply global limits, identify and protect all authenticated endpoints, ensure proper error responses for rate limit exceeded",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement dynamic per-client rate limits based on JWT roles/plans",
+            "description": "Create logic to extract client information from JWT tokens and apply different rate limits based on user roles or subscription plans",
+            "dependencies": [
+              2
+            ],
+            "details": "Parse JWT tokens to extract role/plan information, create rate limit configuration mapping for different user types, implement middleware to dynamically set rate limits per request, handle edge cases for missing or invalid JWT data",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Write integration tests for rate limiting functionality",
+            "description": "Create comprehensive tests to verify both default and dynamic rate limits work correctly and return proper 429 status codes",
+            "dependencies": [
+              3
+            ],
+            "details": "Write tests for global rate limit enforcement, test dynamic rate limits for different user roles/plans, verify 429 status code responses, test rate limit reset behavior, create test utilities for simulating different JWT tokens and user types",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Implement Conversational Memory and Context Management",
+        "description": "Implement conversational memory and context management to enable multi-turn conversations and query refinement, improving user experience.",
+        "details": "Create a new database table `conversations` (`id`, `user_id`, `created_at`) and `messages` (`id`, `conversation_id`, `role` ('user' or 'assistant'), `content`, `created_at`). When a new query comes in with a `conversation_id`, retrieve the recent message history from the database. Use a summarization model to condense older parts of the conversation to save tokens. Prepend the recent history/summary to the user's latest query before sending it to the RAG pipeline. This provides context for resolving pronouns or refining a previous query. The conversation history can be cached in Redis for faster retrieval.",
+        "testStrategy": "Create a test scenario with a sequence of related queries (e.g., Q1: 'What is FastAPI?', Q2: 'How does it handle async?'). Verify that the context from Q1 is available when processing Q2, leading to a more accurate answer. Unit test the database models and the logic for retrieving and formatting conversation history.",
+        "priority": "low",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and implement database tables for conversations and messages",
+            "description": "Create database schema and tables for storing conversation history and messages with proper indexing and relationships",
+            "dependencies": [],
+            "details": "Design conversations table (id, user_id, created_at, updated_at, title, metadata) and messages table (id, conversation_id, role, content, timestamp, metadata). Include proper foreign key constraints, indexes for performance, and migration scripts.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create conversation management service with Redis caching",
+            "description": "Implement service layer for managing conversation operations including create, retrieve, and append with Redis caching layer",
+            "dependencies": [
+              1
+            ],
+            "details": "Build ConversationService with methods for creating new conversations, retrieving conversation history, appending messages, and implementing Redis caching for frequently accessed conversations. Include cache invalidation strategies and fallback to database.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement context retrieval and RAG prompt injection logic",
+            "description": "Develop the logic to retrieve relevant conversation context and inject it into RAG prompts effectively",
+            "dependencies": [
+              2
+            ],
+            "details": "Create context management system that retrieves relevant message history, formats it appropriately for RAG prompts, handles context window limitations, and maintains conversation flow. Include prompt templating and context prioritization.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Integrate summarization model for long conversation management",
+            "description": "Implement optional AI summarization to compress long conversations and manage context length constraints",
+            "dependencies": [
+              3
+            ],
+            "details": "Integrate summarization model (e.g., GPT-3.5 or local model) to compress conversation history when it exceeds context limits. Include summary storage, trigger conditions, and fallback strategies. Make summarization configurable and optional.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Develop comprehensive tests for multi-turn conversation scenarios",
+            "description": "Create test suite covering conversation context maintenance, edge cases, and integration scenarios",
+            "dependencies": [
+              4
+            ],
+            "details": "Build unit tests for conversation service, integration tests for RAG with conversation context, end-to-end tests for multi-turn scenarios, performance tests for large conversation histories, and edge case tests for context limits and summarization.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-30T23:52:29.140Z",
+      "updated": "2025-06-30T23:52:29.140Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

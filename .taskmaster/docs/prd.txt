@@ -1,0 +1,173 @@
+# MCP Crawl4AI RAG Pipeline - Product Requirements Document
+
+## Overview
+The MCP Crawl4AI RAG Pipeline is a foundational backbone for a Master RAG Pipeline system designed for both personal and professional use cases. The system operates as part of a larger distributed architecture integrating with Supabase, n8n workflows, and providing advanced retrieval-augmented generation capabilities through MCP (Model Context Protocol) integration.
+
+## Current System Status
+The project has completed 4 major enhancement phases:
+- Phase 1: Foundation Enhancements (Performance baseline, strategy configuration, sentence transformers)
+- Phase 2: Database Architecture (Sources table, code examples table, foreign key constraints)  
+- Phase 3: Application Features (Contextual embeddings, strategy manager, code extraction pipeline)
+- Phase 4: Advanced RAG Strategies (Cross-encoder reranking, agentic RAG tools - PARTIAL COMPLETE)
+
+## Core Features
+
+### Completed Features
+1. **Smart Web Crawling**: Automatic detection of sitemaps, text files, and regular webpages with different crawling strategies
+2. **Hybrid Search**: RRF-based combination of full-text search and semantic vector search
+3. **MCP Integration**: FastMCP server providing 4+ core tools for web crawling and RAG
+4. **Strategy Configuration System**: Environment-based toggles for RAG strategies
+5. **Cross-Encoder Reranking**: Advanced result quality improvement
+6. **Contextual Embeddings**: Content-type aware embedding generation
+7. **Code Extraction Pipeline**: Automatic code detection and storage with dual embeddings
+8. **Database Architecture**: Enhanced with sources table and code examples table
+9. **Agentic RAG Code Search**: Production-ready search_code_examples tool
+
+### Pending Development Areas
+
+#### Performance & Monitoring Enhancements
+- Advanced performance monitoring dashboard
+- Query optimization and caching strategies
+- Resource usage monitoring and alerts
+- A/B testing framework for RAG strategies
+
+#### Content Processing Improvements
+- Multi-modal content processing (images, PDFs, audio)
+- Advanced content quality assessment
+- Automatic content categorization and tagging
+- Dynamic content refresh and update strategies
+
+#### Integration & API Enhancements
+- REST API wrapper for non-MCP clients
+- Webhook integration for real-time content updates
+- Advanced authentication and authorization
+- Rate limiting and quota management
+
+#### Advanced RAG Capabilities
+- Multi-hop reasoning implementation
+- Query decomposition and sub-query routing
+- Conversational memory and context management
+- Advanced prompt engineering and optimization
+
+## Technical Architecture
+
+### Current Architecture
+- **MCP Server**: FastMCP-based server with 9+ tools
+- **Database**: Supabase PostgreSQL with vector support (HNSW indexing)
+- **Storage**: 9,149+ documents across 8+ sources with enhanced metadata
+- **Search**: Hybrid search combining semantic (OpenAI embeddings) + full-text (PostgreSQL FTS)
+- **Strategies**: 3 configurable RAG strategies (Contextual, Reranking, Agentic)
+- **Code Support**: 18+ programming languages with complexity scoring
+
+### Target Enhancements
+- **Performance**: Sub-500ms average query response time
+- **Scalability**: Support for 100K+ documents across 100+ sources
+- **Multi-modal**: PDF, image, and audio content processing
+- **Real-time**: WebSocket-based real-time updates and notifications
+
+## Development Roadmap
+
+### Phase 5: Performance & Scalability (High Priority)
+- Implement query result caching with Redis integration
+- Add connection pooling and database optimization
+- Create performance monitoring dashboard
+- Implement load testing and benchmarking suite
+- Add automatic scaling based on usage patterns
+
+### Phase 6: Multi-Modal Content Processing (Medium Priority)
+- PDF document processing and chunking
+- Image content extraction and description
+- Audio transcription and searchability
+- Video content analysis and indexing
+- Unified search across all content types
+
+### Phase 7: Advanced Integration & API (Medium Priority)
+- REST API wrapper for broader client support
+- GraphQL API for flexible data querying
+- Webhook system for real-time content updates
+- Advanced authentication (OAuth2, SAML)
+- API rate limiting and analytics
+
+### Phase 8: Conversational & Memory Features (Lower Priority)
+- Conversational context management
+- Multi-turn query refinement
+- User session persistence
+- Query history and analytics
+- Personalized search results
+
+## Logical Dependency Chain
+
+### Foundation (Prerequisites for all development)
+1. **Environment Setup**: Ensure TaskMaster integration works with existing project structure
+2. **Documentation Update**: Update README.md with TaskMaster integration instructions
+3. **Testing Framework**: Enhance test coverage for TaskMaster workflow integration
+
+### Performance Track (Independent development path)
+1. **Caching Layer**: Implement Redis-based query result caching
+2. **Database Optimization**: Add indexes, optimize queries, implement connection pooling
+3. **Monitoring Dashboard**: Create real-time performance monitoring
+4. **Load Testing**: Implement comprehensive load testing suite
+
+### Content Processing Track (Independent development path)
+1. **PDF Processing**: Add PDF document support with text extraction
+2. **Image Processing**: Implement image content analysis and description
+3. **Audio Processing**: Add audio transcription capabilities
+4. **Unified Search**: Integrate all content types into hybrid search
+
+### API Enhancement Track (Depends on performance optimizations)
+1. **REST API**: Create comprehensive REST API wrapper
+2. **Authentication**: Implement advanced auth mechanisms
+3. **Rate Limiting**: Add API rate limiting and quota management
+4. **Documentation**: Create comprehensive API documentation
+
+## Risks and Mitigations
+
+### Technical Challenges
+- **Performance Degradation**: Implement comprehensive monitoring before adding new features
+- **Database Scaling**: Plan for horizontal scaling of PostgreSQL/Supabase
+- **Memory Usage**: Monitor memory consumption with new content types
+- **API Complexity**: Keep API design simple and backward compatible
+
+### Integration Risks
+- **n8n Workflow Compatibility**: Test all changes against existing n8n integrations
+- **Supabase Dependencies**: Ensure changes don't break edge functions or RPC calls
+- **MCP Protocol Changes**: Stay updated with MCP specification changes
+
+### Development Approach
+- **Incremental Development**: All new features controlled by environment variables
+- **Backward Compatibility**: Maintain existing functionality while adding enhancements
+- **Performance Monitoring**: Establish baselines before modifications
+- **Rollback Procedures**: Test rollback procedures for all database changes
+
+## Success Metrics
+
+### Performance Targets
+- Average query response time: <500ms (current: 790.81ms)
+- Document storage capacity: 100K+ documents (current: 9,149)
+- Source diversity: 100+ sources (current: 8)
+- Search accuracy: >95% relevant results in top 10
+
+### Feature Completeness
+- Multi-modal content support: PDF, images, audio
+- API coverage: REST and GraphQL endpoints
+- Integration stability: Zero breaking changes to existing workflows
+- Documentation completeness: 100% API and feature coverage
+
+## Appendix
+
+### Current Environment Variables
+- Core: OPENAI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
+- Strategy Controls: USE_CONTEXTUAL_EMBEDDINGS, USE_HYBRID_SEARCH_ENHANCED, USE_AGENTIC_RAG, USE_RERANKING
+- Model Configuration: CONTEXTUAL_MODEL, RERANKING_MODEL
+
+### Database Schema
+- crawled_pages: Main content storage with embeddings
+- sources: Centralized source management (729 records)
+- code_examples: Specialized code storage with hybrid search
+- Foreign key constraints ensuring data integrity
+
+### Testing Status
+- Performance baseline: 790.81ms average response time established
+- Test coverage: 100+ tests across strategy systems
+- Regression testing: Automated performance regression detection
+- Integration testing: Supabase Docker stack compatibility verified
