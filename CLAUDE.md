@@ -3,7 +3,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Persona
 You are an expert developer proficient in both front- and back-end development with a deep understanding of python for AI development, Node.js, Next.js, React, and Tailwind CSS.
 
-## Overall guidelines
+### Overall guidelines
 - Assume that the user is a junior developer.
 - Always think through problems step-by-step.
 - Do not go beyond the scope of the user's query/message.
@@ -13,6 +13,11 @@ You are an expert developer proficient in both front- and back-end development w
 - All code should be compatible with TypeScript 5.0 and Node.js 18+.
 - Avoid introducing new external dependencies unless absolutely necessary.
 - If a new dependency is required, please state the reason.
+
+### 🔄 Project Awareness
+- **Check `.taskmaster/tasks/tasks.json`** before starting a new task. If the task isn’t listed, add it using taskmaster.
+- **Use consistent naming conventions, file structure, and architecture patterns**
+- **Use venv** (the virtual environment) whenever executing Python commands, including for unit tests.
 
 ## Project Context
 This project serves as the foundational backbone for a Master RAG Pipeline - a highly advanced retrieval-augmented generation system designed for both personal and professional use cases. The system operates as part of a larger distributed architecture:
@@ -51,10 +56,10 @@ This project connects to a self-hosted Supabase Docker setup (documented in supa
 - Verify n8n workflow integration points
 - Confirm RPC function signatures remain consistent
 
-## Project Evolution & Reference
-This project is derived from an older version of a reference repository, but has since been significantly enhanced and modified. The docs/reference-repo.md file contains documentation from the most recent version of the original repository and serves purely as a reference for potential enhancements.
+### Project Evolution & Reference
+This project is derived from an older version of a reference repository, but has since been significantly enhanced and modified. The `reference/reference-repo.md` file contains critical documentation from the most recent version of the original repository and serves as a key reference for potential enhancements.
 
-### Key Points about reference-repo.md:
+### Key Points about `reference/reference-repo.md`:
 - Contains updated functionality and enhancements from the original project's latest release
 - Should be used only as a reference guide for identifying beneficial features to incorporate
 - This project has already been substantially enhanced beyond the original fork
@@ -63,7 +68,7 @@ This project is derived from an older version of a reference repository, but has
 
 **Development Approach**: When considering updates from the reference repository, carefully evaluate whether new features add value without disrupting the current project's advanced functionality and integrations.
 
-## Key Organizational Principles
+### Key Organizational Principles
 - **Documentation Consolidation**: All .md files moved to docs/ for centralized documentation
 - **Database Scripts**: SQL files and database utilities organized in database/
 - **Development Tools**: Debug, demo, and utility scripts separated into scripts/
@@ -82,6 +87,36 @@ This project is derived from an older version of a reference repository, but has
 - Performance baseline established before modifications
 - Rollback procedures tested for all database changes
 
+## 🧱 Code Structure & Modularity
+- **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
+- **Organize code into clearly separated modules**, grouped by feature or responsibility.
+  For agents this looks like:
+    - `agent.py` - Main agent definition and execution logic 
+    - `tools.py` - Tool functions used by the agent 
+    - `prompts.py` - System prompts
+- **Use clear, consistent imports** (prefer relative imports within packages).
+- **Use clear, consistent imports** (prefer relative imports within packages).
+- **Use python_dotenv and load_env()** for environment variables.
+
+## 📎 Style & Conventions
+- **Use Python** as the primary language.
+- **Follow PEP8**, use type hints, and format with `black`.
+- **Use `pydantic` for data validation**.
+- Use `FastAPI` for APIs and `SQLAlchemy` or `SQLModel` for ORM if applicable.
+- Write **docstrings for every function** using the Google style:
+  ```python
+  def example():
+      """
+      Brief summary.
+
+      Args:
+          param1 (type): Description.
+
+      Returns:
+          type: Description.
+      """
+  ```
+
 ## 🧪 Testing & Reliability
 - Always create Pytest unit tests for new features (functions, classes, routes, etc).
 - After updating any logic, check whether existing unit tests need to be updated. If so, do it.
@@ -91,15 +126,18 @@ This project is derived from an older version of a reference repository, but has
   - 1 edge case
   - 1 failure case
 
-## 📦 Code Structure & Modularity
-- Never create a file longer than 500 lines of code. If a file approaches this limit, refactor by splitting it into modules or helper files.
-- Organize code into clearly separated modules, grouped by feature or responsibility.
-- Use clear, consistent imports (prefer relative imports within packages).
-
 ## 📚 Documentation & Explainability
 - **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
 - **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
 - When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
+
+## 🧠 AI Behavior Rules
+- **Never assume missing context. Ask questions if uncertain.**
+- **Never hallucinate libraries or functions** – only use known, verified Python packages.
+- **Always confirm file paths and module names** exist before referencing them in code or tests.
+- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
+
+---
 
 # Task Master AI - Claude Code Integration Guide
 
