@@ -47,7 +47,7 @@ COPY . .
 # Combining commands to reduce Docker layers
 RUN uv pip install --system -e . && \
     crawl4ai-setup && \
-    playwright install --with-deps chromium
+    uv run playwright install --with-deps chromium
 
 RUN pip install --no-cache-dir tqdm
 
@@ -55,4 +55,4 @@ RUN pip install --no-cache-dir tqdm
 EXPOSE ${PORT}
 
 # Command to run the MCP server
-CMD ["uv", "run", "src/crawl4ai_mcp.py"]
+CMD ["uv", "run", "-m", "src.crawl4ai_mcp"]

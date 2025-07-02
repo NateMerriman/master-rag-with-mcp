@@ -1172,6 +1172,7 @@ async def get_strategy_status(ctx: Context) -> str:
             "crawl_single_page_enhanced": "Enhanced single page crawling with framework detection and quality validation (requires ENHANCED_CRAWLING)",
             "smart_crawl_url_enhanced": "Enhanced smart URL crawling with quality metrics (requires ENHANCED_CRAWLING)",
             "analyze_site_framework": "Analyze documentation site framework and configuration (requires ENHANCED_CRAWLING)",
+            "crawl_single_page_with_advanced_crawler": "NEW: Advanced crawler with Playwright, TrafilaturaExtractor, and quality validation (requires ENHANCED_CRAWLING)",
             # Strategy-specific tools
             "search_code_examples": "Search for code examples (requires AGENTIC_RAG)",
             "perform_rag_query_with_reranking": "Enhanced RAG query with reranking (requires RERANKING)",
@@ -1211,6 +1212,18 @@ if os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true":
     try:
         # Try relative imports first, then absolute imports for Docker compatibility
         try:
+            # Import new AdvancedWebCrawler system
+            from .advanced_web_crawler import (
+                AdvancedWebCrawler,
+                AdvancedCrawlResult,
+                crawl_single_page_advanced,
+                batch_crawl_advanced
+            )
+            from .crawler_quality_validation import (
+                ContentQualityValidator,
+                validate_crawler_output
+            )
+            # Fallback to old system for compatibility
             from .smart_crawler_factory import (
                 EnhancedCrawler, 
                 CrawlResult,
@@ -1227,6 +1240,18 @@ if os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true":
             if current_dir not in sys.path:
                 sys.path.insert(0, current_dir)
             
+            # Import new AdvancedWebCrawler system
+            from advanced_web_crawler import (
+                AdvancedWebCrawler,
+                AdvancedCrawlResult,
+                crawl_single_page_advanced,
+                batch_crawl_advanced
+            )
+            from crawler_quality_validation import (
+                ContentQualityValidator,
+                validate_crawler_output
+            )
+            # Fallback to old system for compatibility
             from smart_crawler_factory import (
                 EnhancedCrawler, 
                 CrawlResult,
@@ -1237,15 +1262,19 @@ if os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true":
             from content_quality import log_quality_metrics
         
         ENHANCED_CRAWLING_AVAILABLE = True
-        print("🚀 Enhanced crawling modules loaded successfully")
+        ADVANCED_CRAWLER_AVAILABLE = True
+        print("🚀 AdvancedWebCrawler and Enhanced crawling modules loaded successfully")
     except ImportError as e:
         ENHANCED_CRAWLING_AVAILABLE = False
+        ADVANCED_CRAWLER_AVAILABLE = False
         print(f"❌ Enhanced crawling modules not available: {e}")
     except Exception as e:
         ENHANCED_CRAWLING_AVAILABLE = False
+        ADVANCED_CRAWLER_AVAILABLE = False
         print(f"❌ Unexpected error loading enhanced crawling: {e}")
 else:
     ENHANCED_CRAWLING_AVAILABLE = False
+    ADVANCED_CRAWLER_AVAILABLE = False
 
 
 def is_enhanced_crawling_enabled() -> bool:
@@ -1253,6 +1282,14 @@ def is_enhanced_crawling_enabled() -> bool:
     return (
         os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true" 
         and ENHANCED_CRAWLING_AVAILABLE
+    )
+
+
+def is_advanced_crawler_available() -> bool:
+    """Check if AdvancedWebCrawler is available."""
+    return (
+        os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true" 
+        and ADVANCED_CRAWLER_AVAILABLE
     )
 
 
@@ -1671,6 +1708,149 @@ async def analyze_site_framework(ctx: Context, url: str) -> str:
             "success": False,
             "url": url,
             "error": f"Site analysis error: {str(e)}"
+        }, indent=2)
+
+
+@mcp.tool()
+async def crawl_single_page_with_advanced_crawler(ctx: Context, url: str) -> str:
+    """
+    Crawl a single web page using the new AdvancedWebCrawler system.
+    
+    This tool uses the latest AdvancedWebCrawler implementation with:
+    - Playwright browser automation for JavaScript rendering
+    - TrafilaturaExtractor for intelligent content filtering
+    - Framework-specific CSS targeting and navigation removal
+    - Automated quality validation with comprehensive scoring
+    - Html2TextConverter optimized for DocumentIngestionPipeline
+    
+    Requires USE_ENHANCED_CRAWLING=true.
+    
+    Args:
+        ctx: The MCP server provided context
+        url: URL of the web page to crawl
+        
+    Returns:
+        JSON string with advanced crawl results and quality metrics
+    """
+    if not is_advanced_crawler_available():
+        return json.dumps({
+            "success": False,
+            "error": "AdvancedWebCrawler requires USE_ENHANCED_CRAWLING=true",
+            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
+        }, indent=2)
+    
+    try:
+        supabase_client = ctx.request_context.lifespan_context.supabase_client
+        
+        # Use the new AdvancedWebCrawler
+        result = await crawl_single_page_advanced(url, enable_quality_validation=True)
+        
+        if not result.success:
+            return json.dumps({
+                "success": False,
+                "url": url,
+                "error": result.error_message,
+                "extraction_time_ms": result.extraction_time_ms
+            }, indent=2)
+        
+        # Process and store the advanced result
+        if result.markdown:
+            # Chunk the content using the enhanced markdown
+            chunks = smart_chunk_markdown(result.markdown)
+            
+            # Prepare data for Supabase
+            urls = []
+            chunk_numbers = []
+            contents = []
+            metadatas = []
+            
+            for i, chunk in enumerate(chunks):
+                urls.append(url)
+                chunk_numbers.append(i)
+                contents.append(chunk)
+                
+                # Enhanced metadata with quality metrics
+                meta = extract_section_info(chunk)
+                meta["chunk_index"] = i
+                meta["url"] = url
+                meta["source"] = urlparse(url).netloc
+                meta["crawl_type"] = "advanced_crawler"
+                meta["framework"] = result.framework_detected
+                meta["extraction_time_ms"] = result.extraction_time_ms
+                
+                # Add quality metrics to metadata
+                if result.quality_validation:
+                    meta["quality_score"] = result.quality_score
+                    meta["quality_category"] = result.quality_validation.category
+                    meta["quality_passed"] = result.quality_passed
+                    meta["content_ratio"] = result.quality_validation.content_to_navigation_ratio
+                    meta["html_artifacts"] = result.quality_validation.html_artifacts_found
+                    meta["script_contamination"] = result.quality_validation.script_contamination
+                
+                metadatas.append(meta)
+            
+            # Create url_to_full_document mapping
+            url_to_full_document = {url: result.markdown}
+            
+            # Add to Supabase
+            add_documents_to_supabase(
+                supabase_client,
+                urls,
+                chunk_numbers,
+                contents,
+                metadatas,
+                url_to_full_document,
+            )
+            
+            # Prepare response with advanced metrics
+            response_data = {
+                "success": True,
+                "url": url,
+                "title": result.title,
+                "framework_detected": result.framework_detected,
+                "chunks_stored": len(chunks),
+                "content_length": len(result.markdown),
+                "word_count": result.word_count,
+                "extraction_time_ms": result.extraction_time_ms,
+                "has_dynamic_content": result.has_dynamic_content,
+                "content_to_navigation_ratio": result.content_to_navigation_ratio
+            }
+            
+            # Add quality validation results if available
+            if result.quality_validation:
+                response_data["quality_validation"] = {
+                    "passed": result.quality_passed,
+                    "score": result.quality_score,
+                    "category": result.quality_validation.category,
+                    "issues_count": len(result.quality_validation.issues),
+                    "warnings_count": len(result.quality_validation.warnings),
+                    "html_artifacts": result.quality_validation.html_artifacts_found,
+                    "script_contamination": result.quality_validation.script_contamination,
+                    "content_ratio": result.quality_validation.content_to_navigation_ratio,
+                    "link_density": result.quality_validation.link_density
+                }
+                
+                # Include first few issues/warnings for user info
+                if result.quality_validation.issues:
+                    response_data["quality_validation"]["top_issues"] = result.quality_validation.issues[:3]
+                
+                if result.quality_validation.recommendations:
+                    response_data["quality_validation"]["recommendations"] = result.quality_validation.recommendations[:3]
+            
+            return json.dumps(response_data, indent=2)
+        else:
+            return json.dumps({
+                "success": False,
+                "url": url,
+                "error": "No content extracted",
+                "extraction_time_ms": result.extraction_time_ms
+            }, indent=2)
+            
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "url": url,
+            "error": f"AdvancedWebCrawler error: {str(e)}"
         }, indent=2)
 
 

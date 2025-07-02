@@ -120,7 +120,127 @@ class DocumentationSiteConfigManager:
                 ".content-toc",
                 ".rm-Nav",
                 "nav[class*='rm-']",
-                "nav[class*='hub-']"
+                "nav[class*='hub-']",
+                ".md-sidebar",
+                ".md-nav",
+                ".md-header",
+                ".md-footer",
+                ".md-tabs",
+                ".md-search",
+                ".pagination-nav",
+                "[role='navigation']",
+                "[role='banner']",
+                "[role='contentinfo']",
+                "#__docusaurus",
+                ".DocSearch-Button",
+                ".navbar",
+                ".menu",
+                ".sidebar",
+                ".table-of-contents",
+                ".theme-doc-toc",
+                ".theme-edit-this-page",
+                ".pagination-nav",
+                ".docItemFooter_node_modules-",
+                ".footer",
+                ".cookie-consent",
+                ".feedback-section",
+                ".related-content",
+                ".popular-integrations",
+                ".trending-combinations",
+                ".top-integration-categories",
+                ".trending-templates",
+                ".top-guides",
+                ".md-copyright",
+                ".md-source",
+                ".md-nav",
+                ".md-tabs",
+                ".md-search",
+                ".md-footer",
+                ".md-header",
+                ".md-sidebar",
+                ".md-content__button",
+                ".md-content__inner",
+                ".md-content__heading",
+                ".md-content__source",
+                ".md-content__toc",
+                ".md-content__footnote",
+                ".md-content__admonition",
+                ".md-content__code",
+                ".md-content__table",
+                ".md-content__figure",
+                ".md-content__image",
+                ".md-content__video",
+                ".md-content__iframe",
+                ".md-content__button",
+                ".md-content__link",
+                ".md-content__list",
+                ".md-content__list-item",
+                ".md-content__paragraph",
+                ".md-content__blockquote",
+                ".md-content__hr",
+                ".md-content__details",
+                ".md-content__summary",
+                ".md-content__kbd",
+                ".md-content__mark",
+                ".md-content__del",
+                ".md-content__ins",
+                ".md-content__sup",
+                ".md-content__sub",
+                ".md-content__small",
+                ".md-content__strong",
+                ".md-content__em",
+                ".md-content__code-inline",
+                ".md-content__code-block",
+                ".md-content__table-wrapper",
+                ".md-content__figure-wrapper",
+                ".md-content__image-wrapper",
+                ".md-content__video-wrapper",
+                ".md-content__iframe-wrapper",
+                ".md-content__button-wrapper",
+                ".md-content__link-wrapper",
+                ".md-content__list-wrapper",
+                ".md-content__list-item-wrapper",
+                ".md-content__paragraph-wrapper",
+                ".md-content__blockquote-wrapper",
+                ".md-content__hr-wrapper",
+                ".md-content__details-wrapper",
+                ".md-content__summary-wrapper",
+                ".md-content__kbd-wrapper",
+                ".md-content__mark-wrapper",
+                ".md-content__del-wrapper",
+                ".md-content__ins-wrapper",
+                ".md-content__sup-wrapper",
+                ".md-content__sub-wrapper",
+                ".md-content__small-wrapper",
+                ".md-content__strong-wrapper",
+                ".md-content__em-wrapper",
+                ".md-content__code-inline-wrapper",
+                ".md-content__code-block-wrapper",
+                ".md-content__table-wrapper",
+                ".md-content__figure-wrapper",
+                ".md-content__image-wrapper",
+                ".md-content__video-wrapper",
+                ".md-content__iframe-wrapper",
+                ".md-content__button-wrapper",
+                ".md-content__link-wrapper",
+                ".md-content__list-wrapper",
+                ".md-content__list-item-wrapper",
+                ".md-content__paragraph-wrapper",
+                ".md-content__blockquote-wrapper",
+                ".md-content__hr-wrapper",
+                ".md-content__details-wrapper",
+                ".md-content__summary-wrapper",
+                ".md-content__kbd-wrapper",
+                ".md-content__mark-wrapper",
+                ".md-content__del-wrapper",
+                ".md-content__ins-wrapper",
+                ".md-content__sup-wrapper",
+                ".md-content__sub-wrapper",
+                ".md-content__small-wrapper",
+                ".md-content__strong-wrapper",
+                ".md-content__em-wrapper",
+                ".md-content__code-inline-wrapper",
+                ".md-content__code-block-wrapper"
             ],
             excluded_tags=["nav", "header", "footer", "aside"],
             word_count_threshold=20,  # ReadMe tends to have more concise navigation
@@ -300,7 +420,7 @@ class DocumentationSiteConfigManager:
             # Material Design and others are detected via HTML analysis
         }
     
-    def detect_documentation_framework(self, url: str, html_content: Optional[str] = None) -> DocumentationFramework:
+    def detect_documentation_framework(self, url: str) -> DocumentationFramework:
         """
         Detect the documentation framework for a given URL and HTML content.
         
@@ -326,10 +446,6 @@ class DocumentationSiteConfigManager:
                     break
             if detected_framework != DocumentationFramework.GENERIC:
                 break
-        
-        # 2. HTML content analysis (if provided)
-        if html_content and detected_framework == DocumentationFramework.GENERIC:
-            detected_framework = self._analyze_html_for_framework(html_content)
         
         # Cache the result
         self._detection_cache[domain] = detected_framework
@@ -448,9 +564,9 @@ class DocumentationSiteConfigManager:
 config_manager = DocumentationSiteConfigManager()
 
 
-def detect_framework(url: str, html_content: Optional[str] = None) -> DocumentationFramework:
+def detect_framework(url: str) -> DocumentationFramework:
     """Convenience function for framework detection."""
-    return config_manager.detect_documentation_framework(url, html_content)
+    return config_manager.detect_documentation_framework(url)
 
 
 def get_optimized_config(framework: DocumentationFramework, custom_overrides: Optional[Dict] = None) -> CrawlerRunConfig:

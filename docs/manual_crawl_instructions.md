@@ -75,11 +75,21 @@ The manual crawler now automatically applies all configured RAG strategies from 
 Basic syntax:
 
 ```bash
+# CORRECT: Run as module (recommended for container)
+uv run -m src.manual_crawl \
+  --url <START_URL> \
+  [--max-depth N] \
+  [--chunk-size BYTES] \
+  [--batch-size M] \
+  [--enhanced|--baseline|--advanced|--pipeline]
+
+# ALTERNATIVE: Direct execution (works after Docker rebuild)
 python src/manual_crawl.py \
   --url <START_URL> \
   [--max-depth N] \
   [--chunk-size BYTES] \
-  [--batch-size M]
+  [--batch-size M] \
+  [--enhanced|--baseline|--advanced|--pipeline]
 ```
 
 Where:
@@ -90,6 +100,15 @@ Where:
   * `1` ⇒ crawl only the start URL.
 * **`--chunk-size`** – split text into chunks of this size (default `5000`).
 * **`--batch-size`** – how many chunks to upsert per Supabase request (default `20`).
+
+### **NEW: Crawling Mode Options (Tasks 13 & 14)**
+
+* **`--enhanced`** – Force enable enhanced crawling with framework detection (overrides env vars).
+* **`--baseline`** – Force disable enhanced crawling for basic mode (overrides env vars).
+* **`--advanced`** – Use NEW AdvancedWebCrawler with Playwright + NoExtractionStrategy (Task 13).
+* **`--pipeline`** – Use integrated AdvancedWebCrawler + DocumentIngestionPipeline (Task 14).
+
+**Note:** Only one crawling mode flag can be specified at a time.
 
 ### Enhanced Processing Features
 
@@ -114,10 +133,14 @@ When you run manual crawling, it automatically applies your configured strategie
 
 | Use‑case                                      | Command                                                                                                          |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Single HTML page** (force exactly one page) | `python src/manual_crawl.py --url https://example.com/post/123 --max-depth 1`                                    |
-| **Plain text file** (`llms-full.txt`)         | `python src/manual_crawl.py --url https://modelcontextprotocol.io/llms-full.txt --max-depth 1 --chunk-size 8000` |
-| **Full site crawl** (default recursion)       | `python src/manual_crawl.py --url https://www.anthropic.com --chunk-size 4000`                                   |
-| **Cap depth to 2 levels**                     | `python src/manual_crawl.py --url https://docs.python.org --max-depth 2`                                         |
+| **Single HTML page** (force exactly one page) | `uv run -m src.manual_crawl --url https://example.com/post/123 --max-depth 1`                                    |
+| **Plain text file** (`llms-full.txt`)         | `uv run -m src.manual_crawl --url https://modelcontextprotocol.io/llms-full.txt --max-depth 1 --chunk-size 8000` |
+| **Full site crawl** (default recursion)       | `uv run -m src.manual_crawl --url https://www.anthropic.com --chunk-size 4000`                                   |
+| **Cap depth to 2 levels**                     | `uv run -m src.manual_crawl --url https://docs.python.org --max-depth 2`                                         |
+| **Advanced crawler** (Task 13: Playwright + quality validation) | `uv run -m src.manual_crawl --url https://docs.example.com --advanced --max-depth 2`                             |
+| **Full pipeline** (Task 14: Advanced + semantic chunking + embeddings) | `uv run -m src.manual_crawl --url https://docs.example.com --pipeline --max-depth 2`                             |
+| **Enhanced framework detection**               | `uv run -m src.manual_crawl --url https://docs.n8n.io --enhanced`                                                |
+| **Baseline mode** (original behavior)         | `uv run -m src.manual_crawl --url https://example.com --baseline`                                                 |
 
 > **Tip:** depth `N` crawls pages that are **≤ N–1 clicks** away from the start URL.
 
@@ -143,6 +166,25 @@ INFO:__main__:✅ StrategyConfig(contextual_embeddings=True, reranking=True, age
 INFO:__main__:📊 Manual crawl with enhanced RAG strategies: contextual_embeddings, reranking, agentic_rag, hybrid_search_enhanced
 🔧 Extracted 15 code examples from https://docs.example.com
 🔧 Extracted 8 code examples from https://api.example.com
+```
+
+**NEW: Advanced crawler output (Task 13):**
+```
+🚀 AdvancedWebCrawler system loaded for manual crawling
+INFO:advanced_web_crawler:Framework detected: docusaurus for https://docs.example.com
+INFO:crawler_quality_validation:Content quality analysis for https://docs.example.com
+INFO:crawler_quality_validation:Overall quality: excellent (0.892)
+✅ Advanced crawl: https://docs.example.com - Quality: excellent (0.892)
+📊 Quality validation passed: 5/5 (100.0%)
+```
+
+**NEW: Pipeline integration output (Task 14):**
+```
+🎯 INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline mode (Task 14.6)
+✅ Pipeline processed https://docs.example.com: 2847 words → 8 chunks → 8 embeddings (quality: 0.892)
+📊 Average processing time: 156.3 ms
+📊 Average chunks per document: 8.0
+🎉 Integrated AdvancedWebCrawler + DocumentIngestionPipeline processing complete!
 ```
 
 Leave the container shell:
@@ -216,6 +258,10 @@ You should see your recent crawl data with enhanced features applied.
 | **Configuration warnings about missing strategies**                              | Expected if running with baseline config - strategies are optional enhancements.                                 |
 | **`Error extracting code from URL`** messages                                    | Normal when `USE_AGENTIC_RAG=false` or content has no detectable code blocks.                                    |
 | **`StrategyConfig` import errors**                                               | Configuration system disabled - manual crawler falls back to baseline functionality.                            |
+| **`AdvancedWebCrawler not available`** (NEW Task 13)                             | Install dependencies or ensure USE_ENHANCED_CRAWLING=true for Docker.                                           |
+| **`DocumentIngestionPipeline not available`** (NEW Task 14)                      | Install pipeline dependencies (pydantic, openai) or rebuild Docker image.                                       |
+| **`ImportError: attempted relative import with no known parent package`**        | Use module syntax: `uv run -m src.manual_crawl` instead of `python src/manual_crawl.py`                         |
+| **`Executable doesn't exist at .../chrome-linux/chrome`**                       | Install Playwright browsers: `uv run playwright install chromium`                                               |
 
 ---
 
@@ -235,6 +281,9 @@ uv pip install -e .
 
 # Install Playwright browsers (required for crawling)
 uv run playwright install
+
+# Install Task 13/14 dependencies for advanced features (optional)
+uv add pydantic crawl4ai openai supabase
 ```
 
 2. **Set up enhanced crawling environment variables in your `.env`:**
@@ -256,13 +305,13 @@ SUPABASE_SERVICE_KEY=your_service_key
 
 ```bash
 # Basic enhanced crawling
-USE_ENHANCED_CRAWLING=true uv run python src/manual_crawl.py --url https://e2b.dev/docs --max-depth 3
+USE_ENHANCED_CRAWLING=true uv run -m src.manual_crawl --url https://e2b.dev/docs --max-depth 3
 
 # Single page with enhanced features
-USE_ENHANCED_CRAWLING=true uv run python src/manual_crawl.py --url https://example.com/page --max-depth 1
+USE_ENHANCED_CRAWLING=true uv run -m src.manual_crawl --url https://example.com/page --max-depth 1
 
 # All strategies enabled
-USE_ENHANCED_CRAWLING=true USE_CONTEXTUAL_EMBEDDINGS=true USE_AGENTIC_RAG=true uv run python src/manual_crawl.py --url https://docs.example.com --max-depth 2
+USE_ENHANCED_CRAWLING=true USE_CONTEXTUAL_EMBEDDINGS=true USE_AGENTIC_RAG=true uv run -m src.manual_crawl --url https://docs.example.com --max-depth 2
 ```
 
 ### What You'll See
@@ -290,6 +339,8 @@ Progress bars will show "enhanced pages" instead of "baseline pages".
 | **Supabase Connection** | localhost:54321 | host.docker.internal:54321 |
 | **Environment** | Your local Python | Isolated container |
 | **Use Case** | Development/testing | Production/deployment |
+| **Advanced Features** | Requires Task 13/14 dependencies | AdvancedWebCrawler + Pipeline ready |
+| **Quality Validation** | Available if dependencies installed | Fully functional |
 
 ### Troubleshooting Local Mode
 
@@ -300,6 +351,9 @@ Progress bars will show "enhanced pages" instead of "baseline pages".
 | **`Enhanced crawling modules not available`** | Set `USE_ENHANCED_CRAWLING=true` environment variable |
 | **Supabase connection errors** | Ensure local Supabase is running on `localhost:54321` |
 | **Import errors with smart_crawler_factory** | Dependencies installed correctly with `uv pip install -e .` |
+| **`AdvancedWebCrawler not available`** (Task 13) | Install missing dependencies: `uv add pydantic crawl4ai playwright` |
+| **`DocumentIngestionPipeline not available`** (Task 14) | Install missing dependencies: `uv add openai supabase` |
+| **`--advanced` or `--pipeline` flags fail** | Ensure all Task 13/14 dependencies are installed |
 
 ---
 
@@ -314,3 +368,10 @@ That’s all you need to keep your `crawled_pages` shelf stocked with enhanced R
 - ✅ **Automatic code extraction** with dual embeddings  
 - ✅ **Advanced database architecture** with relational integrity
 - ✅ **Cross-encoder reranking** ready for MCP queries
+
+**NEW: Tasks 13 & 14 Features:**
+- ✅ **AdvancedWebCrawler** (Task 13) - Playwright browser automation with NoExtractionStrategy + DefaultMarkdownGenerator
+- ✅ **Quality validation** (Task 13) - Automated content quality analysis and scoring
+- ✅ **DocumentIngestionPipeline** (Task 14) - Semantic chunking with LLM-powered boundary detection
+- ✅ **Integrated processing** (Task 14) - End-to-end pipeline from URL to embeddings and storage
+- ✅ **MCP integration** - `crawl_single_page_with_advanced_crawler` tool available for Claude Code

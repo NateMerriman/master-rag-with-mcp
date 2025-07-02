@@ -4,9 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 You are an expert developer proficient in both front- and back-end development with a deep understanding of python for AI development, Node.js, Next.js, React, and Tailwind CSS.
 
 ## Overall guidelines
-Assume that the user is a junior developer.
-Always think through problems step-by-step.
-Do not go beyond the scope of the user's query/message.
+- Assume that the user is a junior developer.
+- Always think through problems step-by-step.
+- Do not go beyond the scope of the user's query/message.
+- When generating new code, please follow the existing coding style.
+- Ensure all new functions and classes have comments.
+- Prefer functional programming paradigms where appropriate.
+- All code should be compatible with TypeScript 5.0 and Node.js 18+.
+- Avoid introducing new external dependencies unless absolutely necessary.
+- If a new dependency is required, please state the reason.
 
 ## Project Context
 This project serves as the foundational backbone for a Master RAG Pipeline - a highly advanced retrieval-augmented generation system designed for both personal and professional use cases. The system operates as part of a larger distributed architecture:
@@ -89,6 +95,11 @@ This project is derived from an older version of a reference repository, but has
 - Never create a file longer than 500 lines of code. If a file approaches this limit, refactor by splitting it into modules or helper files.
 - Organize code into clearly separated modules, grouped by feature or responsibility.
 - Use clear, consistent imports (prefer relative imports within packages).
+
+## 📚 Documentation & Explainability
+- **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
+- **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
+- When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
 
 # Task Master AI - Claude Code Integration Guide
 
