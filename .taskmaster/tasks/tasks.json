@@ -837,11 +837,286 @@
             "testStrategy": "Success is defined by the entire test suite passing in a fully configured environment. Verify that data from test URLs is correctly crawled, processed, and persisted in the test database, matching the expected schema and quality metrics."
           }
         ]
+      },
+      {
+        "id": 15,
+        "title": "Refine Markdown Post-Processing to Preserve Content Links",
+        "description": "The current markdown post-processing regex is too aggressive, removing legitimate content like glossary definitions. This task involves refining the patterns in the `_post_process_markdown` function to specifically target and remove navigation elements while preserving all valid content links.",
+        "details": "The `_post_process_markdown` function, introduced as part of the `AdvancedWebCrawler` in Task 13, uses regular expressions to clean the extracted markdown. However, the current patterns are too broad and incorrectly strip out valuable content, such as linked terms within glossary definitions. The goal is to make this cleaning process more precise. The developer should analyze the HTML/markdown structure of problematic pages (e.g., n8n.io's glossary) to identify patterns unique to navigation noise. The regex patterns should be updated to target structural elements (e.g., links within `<nav>` or `<footer>` tags) or specific CSS classes, rather than just link text or URL patterns. This will prevent the removal of legitimate content links embedded within main content blocks.",
+        "testStrategy": "Create a unit test for the `_post_process_markdown` function. Use the raw, unprocessed markdown from 'https://n8n.io/glossary/' as the test input. Assert that after the function runs, the glossary definitions and their embedded links remain intact in the output. Additionally, assert that known navigation links (e.g., from the main header or footer) are successfully removed. Finally, run the full `AdvancedWebCrawler` on the target URL and manually inspect the final markdown artifact to ensure the fix works correctly in the end-to-end extraction process.",
+        "status": "pending",
+        "dependencies": [
+          13,
+          14
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Analyze HTML Structure of Problematic and Valid Pages",
+            "description": "Investigate the HTML and rendered markdown of pages where the current regex fails (e.g., n8n.io glossary) and pages where it works correctly. The goal is to identify unique and reliable patterns (tags, CSS classes, IDs) that differentiate navigational/boilerplate elements from main content.",
+            "dependencies": [],
+            "details": "Using browser developer tools, inspect the DOM of target pages. Document the specific parent elements, classes, or IDs that exclusively contain navigational links (e.g., `<nav>`, `<footer>`, `<div class='sidebar'>`). Contrast this with the structure surrounding legitimate content links that must be preserved (e.g., links within `<main>`, `<article>`, `<p>`). Collect representative HTML snippets for both cases to use in testing.",
+            "status": "pending",
+            "testStrategy": "Produce a summary document or markdown file containing the identified CSS selectors and HTML snippets for 'noise' elements to be removed and 'content' elements to be preserved. This document will serve as the specification for the next subtask."
+          },
+          {
+            "id": 2,
+            "title": "Develop and Test New Structure-Aware Regex Patterns",
+            "description": "Based on the structural analysis, draft new regular expression patterns that target entire blocks of HTML identified as noise (e.g., the content of a `<nav>` tag) for removal, instead of just individual links. These patterns should be tested in isolation before implementation.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use a regex testing tool (like Regex101) with the HTML snippets collected in the previous task. Create patterns that match and remove entire `<nav>...</nav>`, `<footer>...</footer>`, or other identified noise blocks. The patterns should be non-greedy where necessary to avoid over-matching. The focus is on removing the container of the unwanted links.",
+            "status": "pending",
+            "testStrategy": "Validate the new regex patterns against the collected HTML snippets. The patterns must successfully match all identified 'noise' snippets and must not match any of the 'content' snippets. Save the final, validated regex patterns."
+          },
+          {
+            "id": 3,
+            "title": "Implement New Regex Patterns in `_post_process_markdown`",
+            "description": "Update the `_post_process_markdown` function in the `AdvancedWebCrawler` to use the new, more precise regex patterns. Replace the old patterns that were causing incorrect content removal.",
+            "dependencies": [
+              2
+            ],
+            "details": "Locate the `_post_process_markdown` function and replace the list of regular expressions with the new ones developed in the previous subtask. Ensure the function applies these patterns sequentially to the markdown content. Add comments to the code explaining the purpose of each new regex pattern.",
+            "status": "pending",
+            "testStrategy": "Run the `AdvancedWebCrawler` on a single problematic URL. Manually inspect the string content before and after it passes through the modified `_post_process_markdown` function to confirm that the new patterns are being applied and are correctly removing the targeted HTML blocks."
+          },
+          {
+            "id": 4,
+            "title": "Create Unit Tests for Content Preservation and Noise Removal",
+            "description": "Develop a comprehensive suite of unit tests for the `_post_process_markdown` function. The tests must verify both that legitimate content links are preserved and that navigational noise is successfully removed.",
+            "dependencies": [
+              3
+            ],
+            "details": "Create several test cases. One test should pass a markdown string containing a glossary-style link and assert that the link is still present in the output. Another test should pass a string containing a `<nav>` block with links and assert that the entire block is removed. Include tests for edge cases, such as empty nav blocks or content that resembles navigation.",
+            "status": "pending",
+            "testStrategy": "All new and existing unit tests for the `AdvancedWebCrawler` module must pass. The test suite should explicitly confirm that the bug (removal of glossary links) is fixed and that the original functionality (removing navigation) still works as expected."
+          },
+          {
+            "id": 5,
+            "title": "Perform End-to-End Regression Testing on Diverse Websites",
+            "description": "Execute the updated `AdvancedWebCrawler` on a broad set of websites to validate the solution and ensure no regressions were introduced. This includes the original problematic sites, sites that previously worked, and new, untested sites.",
+            "dependencies": [
+              4
+            ],
+            "details": "Create a list of URLs for testing, including the n8n.io glossary, documentation pages from other tech products, and simple blog posts. Run the crawler on this list and review the final markdown output for each. The review should confirm that headers, footers, and sidebars are gone, while intra-content links, code blocks, and glossary definitions are intact.",
+            "status": "pending",
+            "testStrategy": "Compare the output from the updated crawler against a baseline (either output from the previous version or a manually cleaned 'golden' version). The new process is successful if it correctly cleans the problematic pages without negatively impacting the quality of the output from pages that were already being processed correctly."
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Implement Framework Detection and CSS Targeting in Crawler",
+        "description": "Enhance the AdvancedWebCrawler to use framework-specific CSS selectors for more precise content extraction. This will improve the quality of crawled data from sites like n8n.io and reduce the need for aggressive post-processing.",
+        "details": "The current crawler relies on generic extraction or brittle post-processing (Task 15) to clean up content. This task implements a more robust strategy by targeting content areas directly. The developer will integrate a `DocumentationSiteConfig` concept into the `AdvancedWebCrawler` (from Task 13). This configuration will map domain names to specific CSS selectors for their main content containers. For the initial implementation, add a configuration for `n8n.io`, which uses Material for MkDocs, specifying the selectors 'main.md-main, article.md-content__inner'. The crawler logic should be updated to check for a matching site configuration and pass these selectors to the `crawl4ai` extraction engine. This will ensure only relevant content is extracted, making the output cleaner and more reliable for the downstream DocumentIngestionPipeline (Task 14).",
+        "testStrategy": "Create a new integration test that crawls a page from 'https://n8n.io/glossary/'. The test must configure the `AdvancedWebCrawler` with the new CSS selectors for n8n.io. After the crawl completes, assert that the extracted markdown contains specific glossary definitions and their internal links. Crucially, assert that common boilerplate content from headers, footers, and side navigation bars is *not* present in the output. This will validate that the CSS targeting is working correctly and obviates the need for the aggressive regex cleaning addressed in Task 15.",
+        "status": "pending",
+        "dependencies": [
+          13,
+          14
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define DocumentationSiteConfig Data Structure",
+            "description": "Create the data structure or class to hold site-specific configurations, including the domain name and a list of CSS selectors for content extraction.",
+            "dependencies": [],
+            "details": "Implement a Pydantic model or a Python dataclass named `DocumentationSiteConfig`. This class should define fields for `domain` (string) and `content_selectors` (list of strings). This structure will serve as the standardized format for all site-specific crawling configurations.",
+            "status": "pending",
+            "testStrategy": "Write unit tests to verify that the `DocumentationSiteConfig` class can be instantiated correctly. Test cases should include successful creation with valid data and validation errors for incorrect data types (e.g., passing a string instead of a list for `content_selectors`)."
+          },
+          {
+            "id": 2,
+            "title": "Implement a Configuration Registry for Site Settings",
+            "description": "Develop a mechanism to store, manage, and retrieve `DocumentationSiteConfig` objects. This will act as a central registry for all site-specific crawler settings.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a new module or class that will act as a configuration loader and registry. It should contain a dictionary mapping domain names to their corresponding `DocumentationSiteConfig` instances. Implement a lookup function `get_config_by_domain(domain: str)` that returns the matching config object or `None` if not found.",
+            "status": "pending",
+            "testStrategy": "Unit test the registry's lookup function. Mock the configuration data. Test the successful retrieval of a known domain's configuration and test the case where a domain is not in the registry, ensuring it returns `None` gracefully."
+          },
+          {
+            "id": 3,
+            "title": "Add n8n.io Configuration to the Registry",
+            "description": "Create and add the specific `DocumentationSiteConfig` for n8n.io to the newly implemented configuration registry, using the specified CSS selectors.",
+            "dependencies": [
+              2
+            ],
+            "details": "Using the `DocumentationSiteConfig` structure, create an instance for the domain `n8n.io`. Set its `content_selectors` field to the list `['main.md-main', 'article.md-content__inner']`. Add this instance to the configuration registry so it can be looked up by the crawler.",
+            "status": "pending",
+            "testStrategy": "After this task is implemented, run a test that calls the registry's lookup function for 'n8n.io' and asserts that the returned object is not None and contains the correct CSS selectors."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Configuration Lookup into AdvancedWebCrawler",
+            "description": "Modify the `AdvancedWebCrawler` to look up the crawling URL's domain in the configuration registry before initiating the content extraction process.",
+            "dependencies": [
+              3
+            ],
+            "details": "In the `AdvancedWebCrawler`'s main processing logic, extract the netloc (domain) from the target URL. Call the configuration registry's lookup function with this domain. If a configuration is found, store the retrieved CSS selectors in a variable for the next step. If no configuration is found, the crawler should proceed with its default, non-targeted extraction method.",
+            "status": "pending",
+            "testStrategy": "Unit test the crawler's new logic by mocking the configuration registry. Pass a URL like 'https://docs.n8n.io/nodes/' and assert that the crawler correctly identifies and retrieves the n8n.io selectors. Pass a URL for an unconfigured site and assert that the selectors variable remains empty or null."
+          },
+          {
+            "id": 5,
+            "title": "Pass CSS Selectors to the crawl4ai Extraction Engine",
+            "description": "Enhance the call to the `crawl4ai` library within `AdvancedWebCrawler` to include the CSS selectors when a site-specific configuration is available.",
+            "dependencies": [
+              4
+            ],
+            "details": "Locate the function call to the `crawl4ai` engine within the `AdvancedWebCrawler`. Modify this call to be conditional. If the CSS selectors were retrieved in the previous step, join them into a single comma-separated string (e.g., 'main.md-main, article.md-content__inner') and pass them to the `css_selector` parameter of the `crawl4ai` function. If no selectors are available, make the call without this parameter.",
+            "status": "pending",
+            "testStrategy": "Create an integration test that runs the `AdvancedWebCrawler` on a live or cached page from `n8n.io`. Capture the output and assert that the extracted content is limited to the HTML within the 'main.md-main' and 'article.md-content__inner' elements, confirming that the targeting was successful."
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Consolidate Multiple Crawler Systems into a Single AdvancedWebCrawler",
+        "description": "Deprecate redundant crawler implementations (`enhanced_crawler`, `smart_crawler_factory`) and consolidate all functionality into the single `AdvancedWebCrawler`. This task will simplify the codebase, remove the `USE_ENHANCED_CRAWLING` feature flag, and unify the crawling process.",
+        "details": "The current codebase maintains multiple crawlers, increasing maintenance overhead and complexity. This task involves a full consolidation. First, audit `enhanced_crawler` and `smart_crawler_factory` to identify any unique, valuable logic not present in the `AdvancedWebCrawler` from Task 13. Port this essential functionality into `AdvancedWebCrawler`. Next, systematically remove all code related to the deprecated crawlers, including their modules and factory classes. Eradicate the `USE_ENHANCED_CRAWLING` environment variable and all associated conditional logic. Finally, refactor `manual_crawl.py` and any other scripts or API endpoints to use the unified `AdvancedWebCrawler` exclusively, ensuring all configurations and call sites are updated.",
+        "testStrategy": "1. Review existing tests for the deprecated crawlers and migrate any relevant test cases to the `AdvancedWebCrawler` test suite to prevent feature loss. 2. Run all existing crawler integration tests (from Task 13) against the consolidated crawler to ensure no regressions have been introduced. 3. Manually execute the `manual_crawl.py` script, confirming it now uses the unified crawler and successfully processes URLs that previously might have triggered different crawler logic. 4. Perform a full-text search across the codebase to verify that all references to `enhanced_crawler`, `smart_crawler_factory`, and `USE_ENHANCED_CRAWLING` have been completely removed. 5. Run an end-to-end test to confirm the output of the consolidated crawler is still correctly processed by the `DocumentIngestionPipeline` (from Task 14).",
+        "status": "pending",
+        "dependencies": [
+          13,
+          14
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit and Port Unique Logic from Deprecated Crawlers",
+            "description": "Conduct a thorough code audit of `enhanced_crawler` and `smart_crawler_factory` to identify any valuable, unique logic (e.g., specific retry mechanisms, header rotation, session management) not currently present in `AdvancedWebCrawler`. Port this essential functionality into `AdvancedWebCrawler`.",
+            "dependencies": [],
+            "details": "The primary goal is to ensure no functionality is lost. Create a checklist of features from the deprecated crawlers. For each feature, determine if it's still relevant and not redundant. Implement the selected features into `AdvancedWebCrawler`, ensuring they are well-integrated and configurable.",
+            "status": "pending",
+            "testStrategy": "Create specific unit tests for each piece of logic ported to `AdvancedWebCrawler`. These tests should validate the behavior of the new functionality in isolation before it's used in the broader system."
+          },
+          {
+            "id": 2,
+            "title": "Remove USE_ENHANCED_CRAWLING Feature Flag and Conditional Logic",
+            "description": "Perform a global search for the `USE_ENHANCED_CRAWLING` environment variable and eradicate it. Remove all associated conditional blocks (`if/else`) that switch between crawler implementations, simplifying the code to a single execution path.",
+            "dependencies": [
+              1
+            ],
+            "details": "This task involves cleaning up configuration files, environment variable loaders, and any part of the application logic that checks for this flag. The outcome should be code that unconditionally uses the `AdvancedWebCrawler` path.",
+            "status": "pending",
+            "testStrategy": "After removing the flag and logic, run the application and key scripts. A smoke test should be performed to ensure the application starts and the default crawling path (now the only path) is executed without errors."
+          },
+          {
+            "id": 3,
+            "title": "Refactor Core Entry Points to Use Unified Crawler",
+            "description": "Update the primary crawling script, `manual_crawl.py`, and any other major entry points to exclusively instantiate and use the `AdvancedWebCrawler`. This includes updating argument parsing, configuration handling, and the crawler instantiation call itself.",
+            "dependencies": [
+              2
+            ],
+            "details": "This refactoring will remove the factory pattern (`smart_crawler_factory`) and directly call the `AdvancedWebCrawler` constructor. Ensure that any configuration previously passed to the old crawlers is correctly mapped to the new crawler's configuration.",
+            "status": "pending",
+            "testStrategy": "Execute `manual_crawl.py` with various configurations that previously targeted different crawlers. Verify that the unified `AdvancedWebCrawler` handles all cases correctly and produces the expected output."
+          },
+          {
+            "id": 4,
+            "title": "Delete Deprecated Crawler Modules and Files",
+            "description": "Permanently remove all files and modules related to the deprecated crawlers, including `enhanced_crawler.py`, `smart_crawler_factory.py`, and their associated test files. Clean up any lingering import statements for these modules across the codebase.",
+            "dependencies": [
+              3
+            ],
+            "details": "This is a deletion and cleanup task. After removing the files, ensure the project remains in a compilable and runnable state. This step formally completes the deprecation process.",
+            "status": "pending",
+            "testStrategy": "Run the entire project's test suite to confirm that there are no broken imports or unresolved dependencies. The build process should complete successfully."
+          },
+          {
+            "id": 5,
+            "title": "Update API Endpoints and Perform Final Integration Testing",
+            "description": "Audit and refactor any API endpoints, background job workers, or other scripts that initiate crawls to ensure they use the consolidated `AdvancedWebCrawler`. Perform a final, full-system integration test to validate the entire crawling process.",
+            "dependencies": [
+              4
+            ],
+            "details": "This final sweep ensures all corners of the application are updated. Pay special attention to asynchronous tasks or less-frequently used scripts. The final integration test should cover various crawling scenarios to confirm stability and correctness.",
+            "status": "pending",
+            "testStrategy": "Execute end-to-end tests that trigger crawls via all available methods (API, scripts, etc.). Monitor logs and output to verify that `AdvancedWebCrawler` is being used exclusively and that its performance and results are consistent with or better than the previous system."
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Validate and Optimize Crawling Results with n8n.io Documentation Testing",
+        "description": "Conduct comprehensive end-to-end validation of the consolidated crawler system against n8n.io documentation to verify improved content quality, reduced over-cleaning, and proper chunk generation with actual content instead of navigation elements.",
+        "details": "This task performs comprehensive validation of the complete crawling solution implemented in previous tasks. The validation process involves several key components:\n\n**1. End-to-End Testing Setup:**\nCreate a comprehensive test suite that crawls multiple pages from n8n.io documentation (glossary, guides, API docs) using the consolidated AdvancedWebCrawler. Configure the crawler with the framework-specific CSS selectors implemented in Task 16.\n\n**2. Quality Score Analysis:**\nImplement metrics to measure content quality improvements:\n- Content-to-navigation ratio: Calculate percentage of actual content vs navigation/UI elements\n- Semantic coherence: Use embedding similarity to measure how well chunks relate to their parent documents\n- Link preservation: Count internal documentation links retained vs removed\n- Duplicate content detection: Identify and measure reduction in repetitive navigation text\n\n**3. Chunk Content Validation:**\nAnalyze generated chunks to ensure they contain meaningful content:\n- Verify chunks contain substantive text (>100 characters of actual content)\n- Confirm absence of navigation patterns (breadcrumbs, menu items, footer links)\n- Validate that glossary definitions, code examples, and explanatory text are preserved\n- Test that internal documentation links within content are maintained\n\n**4. Performance Benchmarking:**\nEstablish baseline metrics and compare against previous crawler implementations:\n- Processing time per page\n- Memory usage during crawling\n- Database storage efficiency (content vs metadata ratio)\n- Search relevance scores for test queries\n\n**5. Architecture Documentation:**\nCreate comprehensive documentation of the simplified crawler architecture:\n- Document the unified AdvancedWebCrawler design and its key components\n- Explain framework detection logic and CSS selector configuration\n- Provide examples of adding support for new documentation sites\n- Create troubleshooting guide for common crawling issues",
+        "testStrategy": "1. **Automated Quality Assessment**: Create a test script that crawls 20+ pages from n8n.io and measures quality metrics automatically. Assert that content-to-noise ratio is >80% and that fewer than 5% of chunks contain only navigation elements.\n\n2. **Manual Content Review**: Manually inspect 10 crawled pages to verify that glossary definitions, code examples, and instructional content are correctly extracted and chunked. Document any remaining issues.\n\n3. **Search Relevance Testing**: Execute 10 test queries against the crawled n8n.io content and verify that results contain relevant, substantive content rather than navigation text. Compare search quality scores against baseline measurements.\n\n4. **Regression Testing**: Run the complete existing test suite to ensure no functionality was broken during consolidation. All crawler integration tests from previous tasks must pass.\n\n5. **Performance Comparison**: Benchmark the consolidated crawler against the old implementations using identical test data. Verify that processing time is not significantly increased (within 20% tolerance).\n\n6. **Documentation Validation**: Review the created architecture documentation with stakeholders and verify it accurately describes the system and provides actionable guidance for future maintenance.",
+        "status": "pending",
+        "dependencies": [
+          16,
+          17
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Comprehensive End-to-End Test Suite for n8n.io Documentation",
+            "description": "Build a test framework that systematically crawls multiple types of n8n.io documentation pages (glossary, guides, API docs) using the consolidated AdvancedWebCrawler with framework-specific CSS selectors.",
+            "dependencies": [],
+            "details": "Implement test suite in tests/integration/test_n8n_validation.py that: 1) Defines test URLs covering different n8n.io page types, 2) Configures AdvancedWebCrawler with n8n-specific selectors from Task 16, 3) Creates crawling sessions for each test page, 4) Captures raw HTML and processed chunks for analysis, 5) Establishes baseline data structure for comparison metrics.",
+            "status": "pending",
+            "testStrategy": "Verify test suite successfully crawls all target pages and generates consistent output data structure for analysis"
+          },
+          {
+            "id": 2,
+            "title": "Implement Content Quality Metrics and Analysis System",
+            "description": "Develop metrics system to quantitatively measure content quality improvements including content-to-navigation ratio, semantic coherence, link preservation, and duplicate content detection.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create content_quality_analyzer.py module with: 1) Content-to-navigation ratio calculator using text classification, 2) Semantic coherence measurement using embedding similarity between chunks and parent documents, 3) Link preservation counter for internal documentation links, 4) Duplicate content detector using text similarity algorithms, 5) Quality score aggregation and reporting functions.",
+            "status": "pending",
+            "testStrategy": "Unit tests for each metric calculation and integration test comparing quality scores between different crawler configurations"
+          },
+          {
+            "id": 3,
+            "title": "Validate Chunk Content Quality and Meaningful Data Extraction",
+            "description": "Analyze generated chunks to ensure they contain substantive content rather than navigation elements, verifying preservation of glossary definitions, code examples, and explanatory text.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement chunk_content_validator.py that: 1) Validates chunks contain >100 characters of actual content, 2) Detects and flags navigation patterns (breadcrumbs, menu items, footer links), 3) Confirms preservation of glossary definitions and code examples using pattern matching, 4) Validates internal documentation links are maintained within content, 5) Generates detailed content quality reports with examples.",
+            "status": "pending",
+            "testStrategy": "Create test cases with known good/bad content examples and verify validator correctly identifies meaningful vs navigation content"
+          },
+          {
+            "id": 4,
+            "title": "Establish Performance Benchmarking and Comparative Analysis",
+            "description": "Create comprehensive performance benchmarking system to measure and compare crawler performance metrics against baseline implementations.",
+            "dependencies": [
+              3
+            ],
+            "details": "Build performance_benchmarker.py that: 1) Measures processing time per page with detailed timing breakdowns, 2) Monitors memory usage during crawling operations, 3) Calculates database storage efficiency (content vs metadata ratio), 4) Tests search relevance scores using sample queries against crawled content, 5) Compares metrics against previous crawler implementations with statistical significance testing.",
+            "status": "pending",
+            "testStrategy": "Performance regression tests ensuring new crawler meets or exceeds baseline performance thresholds"
+          },
+          {
+            "id": 5,
+            "title": "Create Comprehensive Architecture Documentation and Troubleshooting Guide",
+            "description": "Document the unified AdvancedWebCrawler architecture, framework detection logic, and provide implementation guides for extending support to new documentation sites.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Create documentation in docs/crawler_architecture.md covering: 1) Unified AdvancedWebCrawler design overview and key components, 2) Framework detection logic and CSS selector configuration system, 3) Step-by-step guide for adding new documentation site support, 4) Common crawling issues troubleshooting guide with solutions, 5) Performance optimization recommendations based on benchmarking results, 6) Example configurations for popular documentation frameworks.",
+            "status": "pending",
+            "testStrategy": "Documentation review ensuring all technical details are accurate and implementation examples are functional"
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-06-30T23:52:29.140Z",
-      "updated": "2025-07-02T08:22:57.553Z",
+      "updated": "2025-07-02T15:00:29.249Z",
       "description": "Tasks for master context"
     }
   }
