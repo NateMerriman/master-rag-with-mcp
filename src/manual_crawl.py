@@ -7,26 +7,26 @@ This script supports all enhanced RAG strategies via environment variable config
 All enhancements from the MCP server are available during manual crawling:
 - Contextual embeddings (USE_CONTEXTUAL_EMBEDDINGS=true)
 - Agentic RAG code extraction (USE_AGENTIC_RAG=true)
-- Enhanced crawling with framework detection (USE_ENHANCED_CRAWLING=true)
 - Cross-encoder reranking (USE_RERANKING=true)
 - Enhanced hybrid search capabilities
 
-Enhanced crawling features:
+Unified AdvancedWebCrawler features (built-in):
 - Framework detection (Material Design, ReadMe.io, GitBook, Docusaurus, etc.)
 - Quality validation with automatic fallback mechanisms
 - Smart CSS selector targeting for better content extraction
 - Navigation noise reduction (70-80% to 20-30%)
 - Quality metrics reporting and monitoring
+- Multi-attempt extraction with progressive fallback strategies
 
 Usage examples:
-  # Basic enhanced crawling
-  python src/manual_crawl.py --url https://docs.n8n.io --enhanced
+  # Default unified crawler (enhanced functionality built-in)
+  python src/manual_crawl.py --url https://docs.n8n.io
   
-  # Force baseline crawling
-  python src/manual_crawl.py --url https://example.com --baseline
+  # Advanced crawler with legacy chunking
+  python src/manual_crawl.py --url https://example.com --advanced
   
-  # Use environment variable control
-  USE_ENHANCED_CRAWLING=true python src/manual_crawl.py --url https://docs.example.com
+  # Integrated crawler with pipeline (Task 14.6)
+  python src/manual_crawl.py --url https://docs.example.com --pipeline
 """
 
 import argparse, asyncio, json, datetime, os, time, requests
@@ -106,7 +106,9 @@ try:
             AdvancedWebCrawler,
             AdvancedCrawlResult,
             crawl_single_page_advanced,
-            batch_crawl_advanced
+            batch_crawl_advanced,
+            smart_crawl_url_advanced,
+            crawl_recursive_internal_links_advanced
         )
         from .crawler_quality_validation import (
             ContentQualityValidator,
@@ -119,7 +121,9 @@ try:
             AdvancedWebCrawler,
             AdvancedCrawlResult,
             crawl_single_page_advanced,
-            batch_crawl_advanced
+            batch_crawl_advanced,
+            smart_crawl_url_advanced,
+            crawl_recursive_internal_links_advanced
         )
         from crawler_quality_validation import (
             ContentQualityValidator,
@@ -217,37 +221,8 @@ except (ConfigurationError, ImportError) as e:
     logger.info("📊 Manual crawl will use baseline functionality only")
     strategy_config = None
 
-# Enhanced crawling integration (requires USE_ENHANCED_CRAWLING=true)
-use_enhanced_crawling = os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true"
-
-if use_enhanced_crawling:
-    try:
-        # Add current directory to Python path for imports
-        import sys
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        if current_dir not in sys.path:
-            sys.path.insert(0, current_dir)
-        
-        # Import enhanced crawling modules
-        from .smart_crawler_factory import (
-            EnhancedCrawler,
-            CrawlResult,
-            crawl_single_page_enhanced,
-            smart_crawl_url_enhanced,
-            crawl_recursive_internal_links_enhanced
-        )
-        logger.info("🚀 Enhanced crawling modules loaded successfully")
-        
-    except ImportError as e:
-        logger.error(f"❌ Enhanced crawling modules not available: {e}")
-        logger.info("📊 Manual crawl will use baseline crawling functionality")
-        use_enhanced_crawling = False
-    except Exception as e:
-        logger.error(f"❌ Unexpected error loading enhanced crawling: {e}")
-        logger.info("📊 Manual crawl will use baseline crawling functionality") 
-        use_enhanced_crawling = False
-else:
-    logger.info("📊 Enhanced crawling disabled (USE_ENHANCED_CRAWLING=false)")
+# Unified crawler system - always use AdvancedWebCrawler (Task 17 consolidation)
+logger.info("🚀 Using unified AdvancedWebCrawler system (enhanced functionality built-in)")
 
 DEFAULT_CHUNK_SIZE = 5_000
 DEFAULT_BATCH_SIZE = 20
@@ -266,13 +241,13 @@ async def _crawl_and_store_enhanced(
     supabase = get_supabase_client()
 
     try:
-        # 1️⃣ Enhanced crawling ----------------------------------------------------
+        # 1️⃣ Unified AdvancedWebCrawler system (Task 17.3) ----------------------
         if is_txt(url) or is_sitemap(url):
-            # For txt files and sitemaps, use smart crawl enhanced
-            crawl_results = await smart_crawl_url_enhanced(url)
+            # For txt files and sitemaps, use smart crawl with unified AdvancedWebCrawler
+            crawl_results = await smart_crawl_url_advanced(url, max_concurrent=max_concurrent)
         else:
-            # For regular URLs, use enhanced recursive crawling
-            crawl_results = await crawl_recursive_internal_links_enhanced(
+            # For regular URLs, use recursive crawling with unified AdvancedWebCrawler
+            crawl_results = await crawl_recursive_internal_links_advanced(
                 start_urls=[url],
                 max_depth=max_depth,
                 max_concurrent=max_concurrent
@@ -282,7 +257,7 @@ async def _crawl_and_store_enhanced(
             logger.warning("Enhanced crawling failed - no successful results")
             return
 
-        # Convert enhanced results to legacy format for compatibility
+        # Convert AdvancedCrawlResult to legacy format for compatibility
         pages = []
         total_quality_score = 0
         successful_pages = 0
@@ -293,17 +268,23 @@ async def _crawl_and_store_enhanced(
                     "url": result.url,
                     "markdown": result.markdown
                 })
-                if result.quality_metrics:
-                    total_quality_score += result.quality_metrics.overall_quality_score
-                    successful_pages += 1
-                    quality_category = safe_get_quality_category(result.quality_metrics)
-                    logger.info(f"✅ Enhanced crawl: {result.url} - Quality: {quality_category} ({result.quality_metrics.overall_quality_score:.3f})")
-                    if result.used_fallback:
-                        logger.info(f"   🔄 Used fallback after {result.extraction_attempts} attempts")
+                # Use AdvancedCrawlResult quality_score field
+                total_quality_score += result.quality_score
+                successful_pages += 1
+                
+                # Log quality information
+                quality_status = "passed" if result.quality_passed else "low"
+                logger.info(f"✅ Unified crawl: {result.url} - Quality: {quality_status} ({result.quality_score:.3f})")
+                
+                # Log extraction performance
+                if hasattr(result, 'extraction_time_ms') and result.extraction_time_ms > 0:
+                    logger.info(f"   ⏱️ Extracted in {result.extraction_time_ms:.1f}ms")
+                if hasattr(result, 'framework_detected') and result.framework_detected:
+                    logger.info(f"   🔍 Framework: {result.framework_detected}")
         
         if successful_pages > 0:
             avg_quality = total_quality_score / successful_pages
-            logger.info(f"📊 Enhanced crawling summary: {successful_pages} pages, avg quality: {avg_quality:.3f}")
+            logger.info(f"📊 Unified crawling summary: {successful_pages} pages, avg quality: {avg_quality:.3f}")
 
         if not pages:
             logger.warning("No pages with content extracted")
@@ -467,19 +448,17 @@ async def _crawl_and_store(
     use_advanced_crawler: bool = False,
     use_pipeline_integration: bool = False,
 ):
-    """Main crawl function that dispatches to appropriate crawling method."""
+    """Main crawl function using unified AdvancedWebCrawler system."""
     if use_advanced_crawler and use_pipeline_integration:
         logger.info("🎯 Using INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline (Task 14.6)")
         await _crawl_and_store_advanced_with_pipeline(url, max_depth, max_concurrent, chunk_size, batch_size)
     elif use_advanced_crawler:
         logger.info("🎯 Using AdvancedWebCrawler with legacy chunking")
         await _crawl_and_store_advanced_legacy(url, max_depth, max_concurrent, chunk_size, batch_size)
-    elif use_enhanced_crawling:
-        logger.info("🚀 Using enhanced crawling with framework detection")
-        await _crawl_and_store_enhanced(url, max_depth, max_concurrent, chunk_size, batch_size)
     else:
-        logger.info("📊 Using baseline crawling")
-        await _crawl_and_store_baseline(url, max_depth, max_concurrent, chunk_size, batch_size)
+        # Default to AdvancedWebCrawler with legacy chunking (unified system)
+        logger.info("🚀 Using unified AdvancedWebCrawler (enhanced functionality built-in)")
+        await _crawl_and_store_advanced_legacy(url, max_depth, max_concurrent, chunk_size, batch_size)
 
 
 async def _crawl_and_store_advanced_with_pipeline(
@@ -903,27 +882,22 @@ def main() -> None:
     p.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE,
                    help=f"Batch size for database insertion (default: {DEFAULT_BATCH_SIZE})")
     
-    # Enhanced crawling options
-    p.add_argument("--enhanced", action="store_true", 
-                   help="Force enable enhanced crawling (overrides USE_ENHANCED_CRAWLING env var)")
-    p.add_argument("--baseline", action="store_true", 
-                   help="Force disable enhanced crawling (overrides USE_ENHANCED_CRAWLING env var)")
+    # Crawler options (unified AdvancedWebCrawler system)
     p.add_argument("--advanced", action="store_true",
-                   help="Use NEW AdvancedWebCrawler with Playwright and TrafilaturaExtractor")
+                   help="Use AdvancedWebCrawler with legacy chunking")
     p.add_argument("--pipeline", action="store_true",
                    help="Use integrated AdvancedWebCrawler + DocumentIngestionPipeline (Task 14.6 implementation)")
     
     args = p.parse_args()
     
-    # Handle crawling mode override flags
-    global use_enhanced_crawling
+    # Handle crawling mode flags (unified AdvancedWebCrawler system)
     use_advanced_crawler = False
     use_pipeline_integration = False
     
     # Check for conflicting flags
-    flags_set = sum([args.enhanced, args.baseline, args.advanced, args.pipeline])
+    flags_set = sum([args.advanced, args.pipeline])
     if flags_set > 1:
-        logger.error("Cannot specify multiple crawling mode flags (--enhanced, --baseline, --advanced, --pipeline)")
+        logger.error("Cannot specify multiple crawling mode flags (--advanced, --pipeline)")
         return
     
     # Set crawling mode
@@ -936,31 +910,22 @@ def main() -> None:
             return
         use_advanced_crawler = True
         use_pipeline_integration = True
-        use_enhanced_crawling = False
         logger.info("🎯 INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline mode (Task 14.6)")
     elif args.advanced:
         if not ADVANCED_CRAWLER_AVAILABLE:
             logger.error("AdvancedWebCrawler not available - check imports")
             return
         use_advanced_crawler = True
-        use_enhanced_crawling = False  # Advanced crawler is separate
         logger.info("🎯 AdvancedWebCrawler with legacy chunking mode")
-    elif args.enhanced:
-        use_enhanced_crawling = True
-        logger.info("🚀 Enhanced crawling forced via --enhanced flag")
-    elif args.baseline:
-        use_enhanced_crawling = False
-        logger.info("📊 Baseline crawling forced via --baseline flag")
+    # Default: Use unified AdvancedWebCrawler system (no additional configuration needed)
     
     # Log current configuration
     if use_advanced_crawler and use_pipeline_integration:
         logger.info("📋 Mode: INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline with semantic chunking, embeddings, and database storage")
     elif use_advanced_crawler:
         logger.info("📋 Mode: AdvancedWebCrawler with Playwright, TrafilaturaExtractor, and quality validation (legacy chunking)")
-    elif use_enhanced_crawling:
-        logger.info("📋 Mode: Enhanced crawling with framework detection and quality validation")
     else:
-        logger.info("📋 Mode: Baseline crawling (original functionality)")
+        logger.info("📋 Mode: Unified AdvancedWebCrawler (enhanced functionality built-in)")
     
     asyncio.run(
         _crawl_and_store(

@@ -215,15 +215,10 @@ def compare_crawling_methods():
             "features": ["Basic HTML extraction", "Simple chunking"],
             "trigger": "Default mode or --baseline flag"
         },
-        "Enhanced Crawler": {
-            "description": "SmartCrawlerFactory with framework detection", 
-            "features": ["Framework detection", "CSS targeting", "Quality metrics", "Fallback mechanisms"],
-            "trigger": "USE_ENHANCED_CRAWLING=true or --enhanced flag"
-        },
-        "Advanced Crawler": {
-            "description": "NEW AdvancedWebCrawler with Playwright + TrafilaturaExtractor",
-            "features": ["Playwright browser automation", "TrafilaturaExtractor", "Quality validation", "DocumentIngestionPipeline ready"],
-            "trigger": "--advanced flag or crawl_single_page_with_advanced_crawler MCP tool"
+        "Unified AdvancedWebCrawler": {
+            "description": "Consolidated AdvancedWebCrawler with all enhanced functionality built-in (Task 17)", 
+            "features": ["Framework detection", "CSS targeting", "Quality metrics", "Fallback mechanisms", "Playwright browser automation", "Quality validation", "DocumentIngestionPipeline ready"],
+            "trigger": "--advanced flag or any enhanced MCP tools (enhanced functionality now built-in)"
         }
     }
     

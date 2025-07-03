@@ -1,9 +1,9 @@
 {
 	"meta": {
-		"generatedAt": "2025-07-01T16:12:42.111Z",
-		"tasksAnalyzed": 2,
-		"totalTasks": 14,
-		"analysisCount": 14,
+		"generatedAt": "2025-07-03T17:57:50.632Z",
+		"tasksAnalyzed": 4,
+		"totalTasks": 22,
+		"analysisCount": 19,
 		"thresholdScore": 5,
 		"projectName": "Taskmaster",
 		"usedResearch": true
@@ -120,6 +120,46 @@
 			"recommendedSubtasks": 7,
 			"expansionPrompt": "Create a detailed technical specification for the `DocumentIngestionPipeline` based on the 7 provided subtasks. Pay special attention to Subtask 2, 'Implement SemanticChunker'. For the chunker, define the proposed LLM prompt, the criteria for triggering the rule-based fallback, the specific rules for the fallback chunker (e.g., splitters for markdown headers, code blocks), and the data structure for a 'chunk'. For the overall pipeline, detail the error handling strategy at each stage (e.g., what happens if embedding fails?).",
 			"reasoning": "Complexity is rated 8/10. The core challenge is the implementation of the `SemanticChunker`, which introduces significant technical uncertainty related to LLM prompt engineering, reliability, and the design of a robust fallback mechanism. Orchestrating the multi-stage pipeline (chunk, embed, store) adds further complexity. The 7 recommended subtasks are suitable as they correctly isolate the design, implementation of major components (pipeline, chunker, storage), integration, and comprehensive end-to-end testing."
+		},
+		{
+			"taskId": 19,
+			"taskTitle": "CRITICAL: Fix Navigation Detection in Quality Validation System",
+			"complexityScore": 9,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the task of overhauling the navigation detection system. Create subtasks for implementing advanced heuristics (like link dominance and text-to-link ratio), developing a non-linear scoring algorithm with penalty multipliers, building and integrating a machine learning classifier for content vs. navigation, and establishing a CI/CD quality gate with a comprehensive test suite to prevent regressions.",
+			"reasoning": "Complexity is very high due to the need to design and implement a new core algorithm, including advanced heuristics, non-linear scoring models, and a machine learning component. This requires significant research, development, and testing of a critical system."
+		},
+		{
+			"taskId": 20,
+			"taskTitle": "CRITICAL: Fix CSS Selector System for n8n.io Content Extraction",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Decompose the task of fixing the CSS selector system. Create subtasks for debugging and applying the immediate fix for n8n.io, enhancing the generic Material Design framework configuration with better selectors, building a robust multi-tier fallback selector hierarchy, and implementing a real-time validation system that uses quality heuristics to trigger retries.",
+			"reasoning": "Complexity is high because the task evolves from a simple selector fix to a systemic refactoring of the content extraction logic. It requires designing a robust, multi-tier fallback system and real-time validation heuristics, which impacts core crawler architecture."
+		},
+		{
+			"id": 21,
+			"taskTitle": "CRITICAL: Fix Quality Override Logic and Import Dependencies",
+			"complexityScore": 8,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the task of fixing critical import and quality logic issues. Create subtasks for refactoring the project into an installable package to resolve import errors, fixing the 'fail-open' bug by changing the default quality score to 'fail-closed', refactoring the validation control flow for clarity and robustness, and implementing structured logging with granular exception handling.",
+			"reasoning": "This task has high complexity as it involves two critical, high-risk changes: a foundational refactoring of the project's packaging structure to fix systemic import errors and repairing a 'fail-open' security flaw in the core quality validation logic. Both changes are architectural and impact the entire system's stability."
+		},
+		{
+			"taskId": 22,
+			"taskTitle": "CRITICAL: Emergency Testing and Validation of Fixed Crawler System",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Outline the creation of a comprehensive testing and validation system for the crawler. Subtasks should cover building a golden dataset regression framework, developing end-to-end content integrity tests, implementing performance and stress testing, setting up an automated CI/CD validation pipeline in GitHub Actions, and creating a quality monitoring dashboard with alerts.",
+			"reasoning": "The complexity is high because this task involves building a complete, multi-layered quality assurance and validation infrastructure from the ground up. This is a significant engineering effort that includes creating regression frameworks, CI/CD pipelines, performance benchmarks, and monitoring systems."
+		},
+		{
+			"taskId": 21,
+			"taskTitle": "CRITICAL: Fix Quality Override Logic and Import Dependencies",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on critical: fix quality override logic and import dependencies.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
 		}
 	]
 }

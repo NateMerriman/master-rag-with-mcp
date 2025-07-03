@@ -76,24 +76,15 @@ class DocumentationSiteConfigManager:
         # Material Design (used by n8n, MkDocs sites)
         configs[DocumentationFramework.MATERIAL_DESIGN] = FrameworkConfig(
             target_elements=[
-                "main.md-main",
-                "article.md-content__inner", 
-                ".md-content",
-                "main[class*='md-']",
-                "article[class*='md-']"
+                "article.md-content__inner"  # This was the most effective selector with 554 words
             ],
             excluded_selectors=[
+                # Minimal exclusions to test if content extraction works
                 ".md-sidebar",
                 ".md-nav",
-                ".md-header",
-                ".md-footer",
-                ".md-tabs",
-                ".md-search",
-                "nav[class*='md-']",
-                "header[class*='md-']",
-                "footer[class*='md-']"
+                "nav.md-path"  # Just breadcrumbs for now
             ],
-            excluded_tags=["nav", "header", "footer", "aside"],
+            excluded_tags=["nav", "footer", "aside"],  # Removed "header" to preserve content headers
             word_count_threshold=15,
             min_content_ratio=0.7,
             max_link_density=0.25,
@@ -408,16 +399,21 @@ class DocumentationSiteConfigManager:
     def _initialize_domain_patterns(self) -> Dict[DocumentationFramework, List[str]]:
         """Initialize domain-based framework detection patterns."""
         return {
+            DocumentationFramework.MATERIAL_DESIGN: [
+                r".*\.n8n\.io$",  # n8n uses Material Design
+                r".*docs\.n8n\.io$",
+                r".*\.mkdocs\..*$"  # MkDocs sites typically use Material Design
+            ],
             DocumentationFramework.README_IO: [
                 r".*\.readme\.io$",
-                r".*docs\..*\.io$",
-                r".*\.readme\.com$"
+                r".*\.readme\.com$",
+                # Removed the overly broad r".*docs\..*\.io$" pattern
             ],
             DocumentationFramework.GITBOOK: [
                 r".*\.gitbook\.io$",
                 r".*\.gitbook\.com$"
             ],
-            # Material Design and others are detected via HTML analysis
+            # Other frameworks detected via HTML analysis
         }
     
     def detect_documentation_framework(self, url: str) -> DocumentationFramework:

@@ -1168,11 +1168,11 @@ async def get_strategy_status(ctx: Context) -> str:
             "smart_crawl_url": "Intelligently crawl URLs (sitemaps, txt files, or regular pages)",
             "get_available_sources": "Get all available sources in the database",
             "perform_rag_query": "Perform basic RAG query with hybrid search",
-            # Enhanced crawling tools (require USE_ENHANCED_CRAWLING=true)
-            "crawl_single_page_enhanced": "Enhanced single page crawling with framework detection and quality validation (requires ENHANCED_CRAWLING)",
-            "smart_crawl_url_enhanced": "Enhanced smart URL crawling with quality metrics (requires ENHANCED_CRAWLING)",
-            "analyze_site_framework": "Analyze documentation site framework and configuration (requires ENHANCED_CRAWLING)",
-            "crawl_single_page_with_advanced_crawler": "NEW: Advanced crawler with Playwright, TrafilaturaExtractor, and quality validation (requires ENHANCED_CRAWLING)",
+            # Unified crawling tools (enhanced functionality built-in)
+            "crawl_single_page_enhanced": "Unified single page crawling with framework detection and quality validation (enhanced functionality built-in)",
+            "smart_crawl_url_enhanced": "Unified smart URL crawling with quality metrics (enhanced functionality built-in)",
+            "analyze_site_framework": "Analyze documentation site framework and configuration (enhanced functionality built-in)",
+            "crawl_single_page_with_advanced_crawler": "NEW: Advanced crawler with Playwright, TrafilaturaExtractor, and quality validation (enhanced functionality built-in)",
             # Strategy-specific tools
             "search_code_examples": "Search for code examples (requires AGENTIC_RAG)",
             "perform_rag_query_with_reranking": "Enhanced RAG query with reranking (requires RERANKING)",
@@ -1182,7 +1182,6 @@ async def get_strategy_status(ctx: Context) -> str:
         # Add configuration guide
         status_report["configuration_guide"] = {
             "enable_strategies": {
-                "USE_ENHANCED_CRAWLING": "Enhanced documentation site crawling with framework detection and quality validation",
                 "USE_CONTEXTUAL_EMBEDDINGS": "Enhanced semantic understanding with document context",
                 "USE_RERANKING": "Improved result quality with cross-encoder reranking",
                 "USE_AGENTIC_RAG": "Code extraction and specialized code search capabilities",
@@ -1206,91 +1205,58 @@ async def get_strategy_status(ctx: Context) -> str:
         return json.dumps({"success": False, "error": str(e)}, indent=2)
 
 
-# Enhanced Crawling Integration (requires USE_ENHANCED_CRAWLING=true)
-# Load enhanced crawling modules conditionally
-if os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true":
+# Unified Crawler System - Always load AdvancedWebCrawler (Task 17 consolidation)
+try:
+    # Try relative imports first, then absolute imports for Docker compatibility
     try:
-        # Try relative imports first, then absolute imports for Docker compatibility
-        try:
-            # Import new AdvancedWebCrawler system
-            from .advanced_web_crawler import (
-                AdvancedWebCrawler,
-                AdvancedCrawlResult,
-                crawl_single_page_advanced,
-                batch_crawl_advanced
-            )
-            from .crawler_quality_validation import (
-                ContentQualityValidator,
-                validate_crawler_output
-            )
-            # Fallback to old system for compatibility
-            from .smart_crawler_factory import (
-                EnhancedCrawler, 
-                CrawlResult,
-                crawl_single_page_enhanced as crawl_enhanced_func,
-                smart_crawl_url_enhanced as smart_crawl_enhanced_func
-            )
-            from .enhanced_crawler_config import detect_framework
-            from .content_quality import log_quality_metrics
-        except ImportError:
-            # Fallback to absolute imports for Docker environment
-            import sys
-            import os as os_module
-            current_dir = os_module.path.dirname(os_module.path.abspath(__file__))
-            if current_dir not in sys.path:
-                sys.path.insert(0, current_dir)
-            
-            # Import new AdvancedWebCrawler system
-            from advanced_web_crawler import (
-                AdvancedWebCrawler,
-                AdvancedCrawlResult,
-                crawl_single_page_advanced,
-                batch_crawl_advanced
-            )
-            from crawler_quality_validation import (
-                ContentQualityValidator,
-                validate_crawler_output
-            )
-            # Fallback to old system for compatibility
-            from smart_crawler_factory import (
-                EnhancedCrawler, 
-                CrawlResult,
-                crawl_single_page_enhanced as crawl_enhanced_func,
-                smart_crawl_url_enhanced as smart_crawl_enhanced_func
-            )
-            from enhanced_crawler_config import detect_framework
-            from content_quality import log_quality_metrics
+        # Import unified AdvancedWebCrawler system
+        from .advanced_web_crawler import (
+            AdvancedWebCrawler,
+            AdvancedCrawlResult,
+            crawl_single_page_advanced,
+            batch_crawl_advanced
+        )
+        from .crawler_quality_validation import (
+            ContentQualityValidator,
+            validate_crawler_output
+        )
+        from .enhanced_crawler_config import detect_framework
+        from .content_quality import log_quality_metrics
+    except ImportError:
+        # Fallback to absolute imports for Docker environment
+        import sys
+        import os as os_module
+        current_dir = os_module.path.dirname(os_module.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
         
-        ENHANCED_CRAWLING_AVAILABLE = True
-        ADVANCED_CRAWLER_AVAILABLE = True
-        print("🚀 AdvancedWebCrawler and Enhanced crawling modules loaded successfully")
-    except ImportError as e:
-        ENHANCED_CRAWLING_AVAILABLE = False
-        ADVANCED_CRAWLER_AVAILABLE = False
-        print(f"❌ Enhanced crawling modules not available: {e}")
-    except Exception as e:
-        ENHANCED_CRAWLING_AVAILABLE = False
-        ADVANCED_CRAWLER_AVAILABLE = False
-        print(f"❌ Unexpected error loading enhanced crawling: {e}")
-else:
-    ENHANCED_CRAWLING_AVAILABLE = False
+        # Import unified AdvancedWebCrawler system
+        from advanced_web_crawler import (
+            AdvancedWebCrawler,
+            AdvancedCrawlResult,
+            crawl_single_page_advanced,
+            batch_crawl_advanced
+        )
+        from crawler_quality_validation import (
+            ContentQualityValidator,
+            validate_crawler_output
+        )
+        from enhanced_crawler_config import detect_framework
+        from content_quality import log_quality_metrics
+    
+    ADVANCED_CRAWLER_AVAILABLE = True
+    print("🚀 Unified AdvancedWebCrawler system loaded successfully")
+except ImportError as e:
     ADVANCED_CRAWLER_AVAILABLE = False
-
-
-def is_enhanced_crawling_enabled() -> bool:
-    """Check if enhanced crawling is enabled and available."""
-    return (
-        os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true" 
-        and ENHANCED_CRAWLING_AVAILABLE
-    )
+    print(f"❌ AdvancedWebCrawler modules not available: {e}")
+except Exception as e:
+    ADVANCED_CRAWLER_AVAILABLE = False
+    print(f"❌ Unexpected error loading AdvancedWebCrawler: {e}")
 
 
 def is_advanced_crawler_available() -> bool:
     """Check if AdvancedWebCrawler is available."""
-    return (
-        os.getenv("USE_ENHANCED_CRAWLING", "false").lower() == "true" 
-        and ADVANCED_CRAWLER_AVAILABLE
-    )
+    return ADVANCED_CRAWLER_AVAILABLE
 
 
 @mcp.tool()
@@ -1300,7 +1266,7 @@ async def crawl_single_page_enhanced(ctx: Context, url: str) -> str:
     
     This enhanced version automatically detects the documentation framework,
     applies optimized CSS selectors, validates content quality, and uses 
-    fallback strategies if needed. Requires USE_ENHANCED_CRAWLING=true.
+    fallback strategies if needed. Enhanced functionality is now built-in.
     
     Key improvements over basic crawling:
     - Framework detection (Material Design, ReadMe.io, GitBook, etc.)
@@ -1316,27 +1282,22 @@ async def crawl_single_page_enhanced(ctx: Context, url: str) -> str:
     Returns:
         JSON string with enhanced crawl results and quality metrics
     """
-    if not is_enhanced_crawling_enabled():
-        return json.dumps({
-            "success": False,
-            "error": "Enhanced crawling requires USE_ENHANCED_CRAWLING=true",
-            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
-        }, indent=2)
+    # Enhanced functionality is now built-in to the unified AdvancedWebCrawler (Task 17.5)
     
     try:
         supabase_client = ctx.request_context.lifespan_context.supabase_client
         
-        # Use the enhanced crawler
-        async with EnhancedCrawler() as enhanced_crawler:
-            result = await enhanced_crawler.crawl_single_page_enhanced(url)
+        # Use the unified AdvancedWebCrawler system (Task 17.3)
+        from .advanced_web_crawler import crawl_single_page_advanced
+        result = await crawl_single_page_advanced(url)
         
         if not result.success:
             return json.dumps({
                 "success": False,
                 "url": url,
-                "error": "Enhanced crawling failed",
-                "framework": result.framework.value,
-                "attempts": result.extraction_attempts
+                "error": "Unified crawling failed",
+                "framework": result.framework_detected or "unknown",
+                "error_message": result.error_message
             }, indent=2)
         
         # Process and store the enhanced result
@@ -1355,22 +1316,19 @@ async def crawl_single_page_enhanced(ctx: Context, url: str) -> str:
                 chunk_numbers.append(i)
                 contents.append(chunk)
                 
-                # Enhanced metadata with quality metrics
+                # Unified crawler metadata with quality metrics
                 meta = extract_section_info(chunk)
                 meta["chunk_index"] = i
                 meta["url"] = url
                 meta["source"] = urlparse(url).netloc
-                meta["crawl_type"] = "enhanced_single_page"
-                meta["framework"] = result.framework.value
-                meta["used_fallback"] = result.used_fallback
-                meta["extraction_attempts"] = result.extraction_attempts
+                meta["crawl_type"] = "unified_single_page"
+                meta["framework"] = result.framework_detected or "unknown"
+                meta["extraction_time_ms"] = result.extraction_time_ms
                 
-                # Add quality metrics to metadata
-                if result.quality_metrics and hasattr(result.quality_metrics, 'overall_quality_score'):
-                    meta["quality_score"] = result.quality_metrics.overall_quality_score
-                    meta["content_nav_ratio"] = result.quality_metrics.content_to_navigation_ratio
-                    meta["link_density"] = result.quality_metrics.link_density
-                    meta["quality_category"] = safe_get_quality_category(result.quality_metrics)
+                # Add quality metrics to metadata (AdvancedCrawlResult structure)
+                meta["quality_score"] = result.quality_score
+                meta["quality_passed"] = result.quality_passed
+                meta["content_nav_ratio"] = result.content_to_navigation_ratio
                 
                 metadatas.append(meta)
             
@@ -1439,15 +1397,15 @@ async def smart_crawl_url_enhanced(
     max_concurrent: int = 5
 ) -> str:
     """
-    Intelligently crawl URLs with enhanced extraction for documentation sites.
+    Intelligently crawl URLs with unified AdvancedWebCrawler for documentation sites.
     
-    This enhanced version automatically detects URL types (sitemaps, text files, 
+    This unified crawler automatically detects URL types (sitemaps, text files, 
     regular pages) and applies framework-specific optimizations. Each page gets
     quality validation and fallback extraction if needed.
     
-    Requires USE_ENHANCED_CRAWLING=true.
+    Enhanced functionality is now built-in to the unified AdvancedWebCrawler system (Task 17).
     
-    Key improvements:
+    Key features:
     - Framework-aware extraction for each crawled page
     - Quality validation with automatic retries
     - Reduced navigation noise across all crawled content
@@ -1460,22 +1418,16 @@ async def smart_crawl_url_enhanced(
         max_concurrent: Maximum concurrent crawling sessions (default: 5)
         
     Returns:
-        JSON string with enhanced crawl results and aggregated quality metrics
+        JSON string with unified crawl results and aggregated quality metrics
     """
-    if not is_enhanced_crawling_enabled():
-        return json.dumps({
-            "success": False,
-            "error": "Enhanced crawling requires USE_ENHANCED_CRAWLING=true",
-            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
-        }, indent=2)
+    # Enhanced functionality is now built-in to the unified AdvancedWebCrawler (Task 17.3)
     
     try:
         supabase_client = ctx.request_context.lifespan_context.supabase_client
         
-        # Use the enhanced crawler with limited concurrency
-        async with EnhancedCrawler(max_fallback_attempts=3) as enhanced_crawler:
-            enhanced_crawler.factory._crawler_cache = {}  # Reset cache
-            results = await enhanced_crawler.smart_crawl_url_enhanced(url)
+        # Use the unified AdvancedWebCrawler system (Task 17.3)
+        from .advanced_web_crawler import smart_crawl_url_advanced
+        results = await smart_crawl_url_advanced(url, max_concurrent=max_concurrent)
         
         if not results:
             return json.dumps({
@@ -1501,13 +1453,16 @@ async def smart_crawl_url_enhanced(
             successful_crawls += 1
             
             # Track framework usage
-            framework_name = result.framework.value
+            framework_name = result.framework_detected if result.framework_detected else "unknown"
             frameworks_detected[framework_name] = frameworks_detected.get(framework_name, 0) + 1
             
-            # Track quality distribution
-            if result.quality_metrics:
-                quality_category = safe_get_quality_category(result.quality_metrics)
-                quality_stats[quality_category] += 1
+            # Track quality distribution (AdvancedCrawlResult uses quality_score instead of quality_metrics)
+            if result.quality_passed:
+                quality_stats["good"] += 1
+            elif result.quality_score > 0.5:
+                quality_stats["fair"] += 1
+            else:
+                quality_stats["poor"] += 1
             
             # Chunk the content
             chunks = smart_chunk_markdown(result.markdown)
@@ -1608,7 +1563,7 @@ async def analyze_site_framework(ctx: Context, url: str) -> str:
     This diagnostic tool helps understand how the enhanced crawler will process a site
     without actually crawling it. Useful for troubleshooting extraction issues.
     
-    Requires USE_ENHANCED_CRAWLING=true.
+    Enhanced functionality is now built-in.
     
     Args:
         ctx: The MCP server provided context
@@ -1617,12 +1572,7 @@ async def analyze_site_framework(ctx: Context, url: str) -> str:
     Returns:
         JSON string with framework detection results and configuration recommendations
     """
-    if not is_enhanced_crawling_enabled():
-        return json.dumps({
-            "success": False,
-            "error": "Site analysis requires USE_ENHANCED_CRAWLING=true",
-            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
-        }, indent=2)
+    # Enhanced functionality is now built-in to the unified AdvancedWebCrawler (Task 17.5)
     
     try:
         # Use a basic crawler to get the HTML for analysis
@@ -1723,7 +1673,7 @@ async def crawl_single_page_with_advanced_crawler(ctx: Context, url: str) -> str
     - Automated quality validation with comprehensive scoring
     - Html2TextConverter optimized for DocumentIngestionPipeline
     
-    Requires USE_ENHANCED_CRAWLING=true.
+    Enhanced functionality is now built-in.
     
     Args:
         ctx: The MCP server provided context
@@ -1735,8 +1685,8 @@ async def crawl_single_page_with_advanced_crawler(ctx: Context, url: str) -> str
     if not is_advanced_crawler_available():
         return json.dumps({
             "success": False,
-            "error": "AdvancedWebCrawler requires USE_ENHANCED_CRAWLING=true",
-            "suggestion": "Set USE_ENHANCED_CRAWLING=true in your environment variables"
+            "error": "AdvancedWebCrawler module not available",
+            "suggestion": "Check that the advanced_web_crawler module is properly installed and imported"
         }, indent=2)
     
     try:
