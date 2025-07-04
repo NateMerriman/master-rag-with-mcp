@@ -1,0 +1,574 @@
+CRAWL ATTEMPT #1:
+
+root@59494d12a70c:/app# uv run -m src.manual_crawl --url https://docs.n8n.io/glossary/ --advanced --max-depth 1
+      Built crawl4ai-mcp @ file:///app
+Uninstalled 1 package in 4ms
+Installed 1 package in 0.92ms
+--- LOADING LATEST VERSION OF UTILS.PY ---
+--- LOADING LATEST VERSION OF UTILS.PY ---
+✅ StrategyConfig: Enabled strategies: contextual_embeddings, agentic_rag, hybrid_search_enhanced, reranking
+📊 Enhanced RAG strategies enabled: contextual_embeddings, agentic_rag, hybrid_search_enhanced, reranking
+✅ Strategy manager initialized with 4 components
+🚀 Unified AdvancedWebCrawler system loaded successfully
+🚀 AdvancedWebCrawler system loaded for manual crawling
+🚀 DocumentIngestionPipeline system loaded for manual crawling
+2025-07-03 23:53:39 INFO ✅ StrategyConfig: Enabled strategies: contextual_embeddings, agentic_rag, hybrid_search_enhanced, reranking
+2025-07-03 23:53:39 INFO 📊 Manual crawl with enhanced RAG strategies: contextual_embeddings, agentic_rag, hybrid_search_enhanced, reranking
+2025-07-03 23:53:39 INFO 🚀 Using unified AdvancedWebCrawler system (enhanced functionality built-in)
+2025-07-03 23:53:39 INFO 🎯 AdvancedWebCrawler with legacy chunking mode
+2025-07-03 23:53:39 INFO 📋 Mode: AdvancedWebCrawler with Playwright, TrafilaturaExtractor, and quality validation (legacy chunking)
+2025-07-03 23:53:39 INFO 🎯 Using AdvancedWebCrawler with legacy chunking
+2025-07-03 23:53:39 INFO 📋 Crawling single URL: https://docs.n8n.io/glossary/
+2025-07-03 23:53:39 INFO 🎯 Starting single URL crawl with AdvancedWebCrawler
+2025-07-03 23:53:41 INFO Primary extraction attempt for https://docs.n8n.io/glossary/
+[FETCH]... ↓ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 1.82s
+[SCRAPE].. ◆ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.36s
+[COMPLETE] ● https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 2.18s
+2025-07-03 23:53:43 INFO Real-time validation for https://docs.n8n.io/glossary/ (tier 0): quality=0.400, threshold=0.6, valid=False
+2025-07-03 23:53:43 WARNING Validation failed - link_density=0.118, nav_keywords=84, words=11760
+2025-07-03 23:53:43 INFO Real-time validation (tier 0): valid=False, score=0.400
+2025-07-03 23:53:43 INFO   Suggestion: Short list items (avg 4.2 words) may be navigation
+2025-07-03 23:53:43 INFO Real-time validation failed for https://docs.n8n.io/glossary/, trying tier 1 fallback
+2025-07-03 23:53:43 INFO Creating Tier 1 fallback config with 15 exclusions, word threshold: 17
+2025-07-03 23:53:43 INFO Fallback extraction attempt 1 for https://docs.n8n.io/glossary/
+[FETCH]... ↓ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.93s
+[SCRAPE].. ◆ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.01s
+[COMPLETE] ● https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.94s
+2025-07-03 23:53:44 INFO Real-time validation for https://docs.n8n.io/glossary/ (tier 1): quality=1.000, threshold=0.5, valid=True
+2025-07-03 23:53:44 INFO Real-time validation (tier 1): valid=True, score=1.000
+2025-07-03 23:53:44 INFO Quality validation disabled for https://docs.n8n.io/glossary/ - accepting content
+2025-07-03 23:53:44 INFO Quality validation complete: method=disabled, score=1.000, passed=True
+2025-07-03 23:53:44 INFO Successfully extracted 1235 words from https://docs.n8n.io/glossary/ in 3144.1ms (attempts: 2, fallback: True)
+2025-07-03 23:53:44 INFO 💾 Storing 2 chunks for https://docs.n8n.io/glossary/
+2025-07-03 23:53:44 INFO HTTP Request: DELETE http://host.docker.internal:54321/rest/v1/crawled_pages?url=in.%28%22https%3A%2F%2Fdocs.n8n.io%2Fglossary%2F%22%29 "HTTP/1.1 200 OK"
+2025-07-03 23:53:44 INFO HTTP Request: GET http://host.docker.internal:54321/rest/v1/sources?select=source_id&url=eq.https%3A%2F%2Fdocs.n8n.io%2Fglossary%2F&limit=1 "HTTP/1.1 200 OK"
+2025-07-03 23:53:44 INFO HTTP Request: POST http://host.docker.internal:54321/rest/v1/sources?on_conflict=url "HTTP/1.1 201 Created"
+✅ Created new source: https://docs.n8n.io/glossary/ (ID: 2749)
+Error generating contextual embedding: No module named 'config'. Using original chunk instead.
+Error generating contextual embedding: No module named 'config'. Using original chunk instead.
+2025-07-03 23:53:45 INFO HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-07-03 23:53:45 INFO HTTP Request: POST http://host.docker.internal:54321/rest/v1/crawled_pages?columns=%22source_id%22%2C%22url%22%2C%22content%22%2C%22metadata%22%2C%22embedding%22%2C%22chunk_number%22 "HTTP/1.1 201 Created"
+2025-07-03 23:53:45 INFO ✅ Processed https://docs.n8n.io/glossary/: 1235 words → 2 chunks (quality: 1.000)
+2025-07-03 23:53:45 INFO 
+============================================================
+2025-07-03 23:53:45 INFO 🎯 ADVANCED CRAWLER SUMMARY
+2025-07-03 23:53:45 INFO ============================================================
+2025-07-03 23:53:45 INFO URLs attempted: 1
+2025-07-03 23:53:45 INFO Successful crawls: 1
+2025-07-03 23:53:45 INFO Failed crawls: 0
+2025-07-03 23:53:45 INFO Total chunks stored: 2
+2025-07-03 23:53:45 INFO Total time: 6.16 seconds
+2025-07-03 23:53:45 INFO Average time per URL: 6.16 seconds
+2025-07-03 23:53:45 INFO 🎉 AdvancedWebCrawler processing complete!
+
+Chunk 1:
+1. [ Using n8n  ](https://docs.n8n.io/glossary/<..>)
+  2. [ Key concepts  ](https://docs.n8n.io/glossary/<../flow-logic/>)
+
+[ ](https://docs.n8n.io/glossary/<https:/github.com/n8n-io/n8n-docs/edit/main/docs/glossary.md> "Edit this page")
+# Glossary
+#### AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> "Permanent link")
+AI agents are artificial intelligence systems capable of responding to requests, making decisions, and performing real-world tasks for users. They use large language models (LLMs) to interpret user input and make decisions about how to best process requests using the information and resources they have available.
+#### AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> "Permanent link")
+AI chains allow you to interact with large language models (LLMs) and other resources in sequences of calls to components. AI chains in n8n don't use persistent memory, so you can't use them to reference previous context (use AI agents for this).
+#### AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> "Permanent link")
+Embeddings are numerical representations of data using vectors. They're used by AI to interpret complex data and relationships by mapping values across many dimensions. Vector databases, or vector stores, are databases designed to store and access embeddings.
+#### AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> "Permanent link")
+In AI, and specifically in retrieval-augmented generation (RAG) contexts, groundedness and ungroundedness are measures of how much a model's responses accurately reflect source information. The model uses its source documents to generate grounded responses, while ungrounded responses involve speculation or hallucination unsupported by those same sources.
+#### AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> "Permanent link")
+Reranking is a technique that refines the order of a list of candidate documents to improve the relevance of search results. Retrieval-Augmented Generation (RAG) and other applications use reranking to prioritize the most relevant information for generation or downstream tasks.
+#### AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> "Permanent link")
+In an AI context, memory allows AI tools to persist message context across interactions. This allows you to have a continuing conversations with AI agents, for example, without submitting ongoing context with each message. In n8n, AI agent nodes can use memory, but AI chains can't.
+#### AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> "Permanent link")
+Retrieval-augmented generation, or RAG, is a technique for providing LLMs access to new information from external sources to improve AI responses. RAG systems retrieve relevant documents to ground responses in up-to-date, domain-specific, or proprietary knowledge to supplement their original training data. RAG systems often rely on vector stores to manage and search this external data efficiently.
+#### AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> "Permanent link")
+In an AI context, a tool is an add-on resource that the AI can refer to for specific information or functionality when responding to a request. The AI model can use a tool to interact with external systems or complete specific, focused tasks.
+#### AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> "Permanent link")
+Vector stores, or vector databases, are databases designed to store numerical representations of information called embeddings.
+#### API[#](https://docs.n8n.io/glossary/<#api> "Permanent link")
+APIs, or application programming interfaces, offer programmatic access to a service's data and functionality. APIs make it easier for software to interact with external systems. They're often offered as an alternative to traditional user-focused interfaces accessed through web browsers or UI.
+#### canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> "Permanent link")
+The canvas is the main interface for building workflows in n8n's editor UI. You use the canvas to add and connect nodes to compose workflows.
+#### cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> "Permanent link")
+In n8n, cluster nodes are groups of nodes that work together to provide functionality in a workflow. They consist of a root node and one or more sub nodes that extend the node's functionality.
+#### credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> "Permanent link")
+In n8n, credentials store authentication information to connect with specific apps and services. After creating credentials with your authentication information (username and password, API key, OAuth secrets, etc.), you can use the associated app node to interact with the service.
+#### data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> "Permanent link")
+Data pinning allows you to temporarily freeze the output data of a node during workflow development.
+
+
+Chunk 2:
+This allows you to develop workflows with predictable data without making repeated requests to external services. Production workflows ignore pinned data and request new data on each execution.
+#### editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> "Permanent link")
+The n8n editor UI allows you to create and manage workflows. The main area is the canvas, where you can compose workflows by adding, configuring, and connecting nodes. The side and top panels allow you to access other areas of the UI like credentials, templates, variables, executions, and more.
+#### entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> "Permanent link")
+In n8n, entitlements grant n8n instances access to plan-restricted features for a specific period of time.
+Floating entitlements are a pool of entitlements that you can distribute among various n8n instances. You can re-assign a floating entitlement to transfer its access to a different n8n instance.
+#### evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> "Permanent link")
+In n8n, evaluation allows you to tag and organize execution history and compare it against new executions. You can use this to understand how your workflow performs over time as you make changes. In particular, this is useful while developing AI-centered workflows.
+#### expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> "Permanent link")
+In n8n, expressions allow you to populate node parameters dynamically by executing JavaScript code. Instead of providing a static value, you can use the n8n expression syntax to define the value using data from previous nodes, other workflows, or your n8n environment.
+#### LangChain[#](https://docs.n8n.io/glossary/<#langchain> "Permanent link")
+LangChain is an AI-development framework used to work with large language models (LLMs). LangChain provides a standardized system for working with a wide variety of models and other resources and linking different components together to build complex applications.
+#### Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> "Permanent link")
+Large language models, or LLMs, are AI machine learning models designed to excel in natural language processing (NLP) tasks. They're built by training on large amounts of data to develop probabilistic models of language and other data.
+#### node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> "Permanent link")
+In n8n, nodes are individual components that you compose to create workflows. Nodes define when the workflow should run, allow you to fetch, send, and process data, can define flow control logic, and connect with external services.
+#### project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> "Permanent link")
+n8n projects allow you to separate workflows, variables, and credentials into separate groups for easier management. Projects make it easier for teams to collaborate by sharing and compartmentalizing related resources.
+#### root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> "Permanent link")
+Each n8n cluster node contains a single root nodes that defines the main functionality of the cluster. One or more sub nodes attach to the root node to extend its functionality.
+#### sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> "Permanent link")
+n8n cluster nodes consist of one or more sub nodes connected to a root node. Sub nodes extend the functionality of the root node, providing access to specific services or resources or offering specific types of dedicated processing, like calculator functionality, for example.
+#### template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> "Permanent link")
+n8n templates are pre-built workflows designed by n8n and community members that you can import into your n8n instance. When using templates, you may need to fill in credentials and adjust the configuration to suit your needs.
+#### trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> "Permanent link")
+A trigger node is a special node responsible for executing the workflow in response to certain conditions. All production workflows need at least one trigger to determine when the workflow should run.
+#### workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> "Permanent link")
+An n8n workflow is a collection of nodes that automate a process. Workflows begin execution when a trigger condition occurs and execute sequentially to achieve complex tasks.
+Was this page helpful? 
+Thanks for your feedback! 
+Thanks for your feedback! Help us improve this page by submitting an issue or a fix in our [GitHub repo](https://docs.n8n.io/glossary/<https:/github.com/n8n-io/n8n-docs>).
+
+
+
+CRAWL ATTEMPT #2:
+
+root@59494d12a70c:/app# uv run -m src.manual_crawl --url https://platform.openai.com/docs/guides/prompt-caching --advanced --max-depth 1
+--- LOADING LATEST VERSION OF UTILS.PY ---
+--- LOADING LATEST VERSION OF UTILS.PY ---
+✅ StrategyConfig: Enabled strategies: contextual_embeddings, reranking, agentic_rag, hybrid_search_enhanced
+📊 Enhanced RAG strategies enabled: contextual_embeddings, reranking, agentic_rag, hybrid_search_enhanced
+✅ Strategy manager initialized with 4 components
+🚀 Unified AdvancedWebCrawler system loaded successfully
+🚀 AdvancedWebCrawler system loaded for manual crawling
+🚀 DocumentIngestionPipeline system loaded for manual crawling
+2025-07-03 23:58:18 INFO ✅ StrategyConfig: Enabled strategies: contextual_embeddings, reranking, agentic_rag, hybrid_search_enhanced
+2025-07-03 23:58:18 INFO 📊 Manual crawl with enhanced RAG strategies: contextual_embeddings, reranking, agentic_rag, hybrid_search_enhanced
+2025-07-03 23:58:18 INFO 🚀 Using unified AdvancedWebCrawler system (enhanced functionality built-in)
+2025-07-03 23:58:18 INFO 🎯 AdvancedWebCrawler with legacy chunking mode
+2025-07-03 23:58:18 INFO 📋 Mode: AdvancedWebCrawler with Playwright, TrafilaturaExtractor, and quality validation (legacy chunking)
+2025-07-03 23:58:18 INFO 🎯 Using AdvancedWebCrawler with legacy chunking
+2025-07-03 23:58:18 INFO 📋 Crawling single URL: https://platform.openai.com/docs/guides/prompt-caching
+2025-07-03 23:58:18 INFO 🎯 Starting single URL crawl with AdvancedWebCrawler
+2025-07-03 23:58:19 INFO Primary extraction attempt for https://platform.openai.com/docs/guides/prompt-caching
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.23s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.23s
+2025-07-03 23:58:20 INFO Real-time validation (tier 0): valid=False, score=0.000
+2025-07-03 23:58:20 INFO   Suggestion: Content is too short or empty
+2025-07-03 23:58:20 INFO Real-time validation failed for https://platform.openai.com/docs/guides/prompt-caching, trying tier 1 fallback
+2025-07-03 23:58:20 INFO Creating Tier 1 fallback config with 15 exclusions, word threshold: 17
+2025-07-03 23:58:20 INFO Fallback extraction attempt 1 for https://platform.openai.com/docs/guides/prompt-caching
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.14s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.14s
+2025-07-03 23:58:21 INFO Real-time validation (tier 1): valid=False, score=0.000
+2025-07-03 23:58:21 INFO   Suggestion: Content is too short or empty
+2025-07-03 23:58:21 INFO Real-time validation failed for https://platform.openai.com/docs/guides/prompt-caching, trying tier 2 fallback
+2025-07-03 23:58:21 INFO Creating Tier 2 fallback config with 20 exclusions, word threshold: 14
+2025-07-03 23:58:21 INFO Fallback extraction attempt 2 for https://platform.openai.com/docs/guides/prompt-caching
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.86s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.86s
+2025-07-03 23:58:22 INFO Real-time validation (tier 2): valid=False, score=0.000
+2025-07-03 23:58:22 INFO   Suggestion: Content is too short or empty
+2025-07-03 23:58:22 INFO Real-time validation failed for https://platform.openai.com/docs/guides/prompt-caching, trying tier 3 fallback
+2025-07-03 23:58:22 INFO Creating Tier 3 fallback config with 25 exclusions, word threshold: 11
+2025-07-03 23:58:22 INFO Fallback extraction attempt 3 for https://platform.openai.com/docs/guides/prompt-caching
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.93s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.93s
+2025-07-03 23:58:23 INFO Real-time validation (tier 3): valid=False, score=0.000
+2025-07-03 23:58:23 INFO   Suggestion: Content is too short or empty
+2025-07-03 23:58:23 WARNING Using best available result for https://platform.openai.com/docs/guides/prompt-caching with low quality (score: 0.000)
+2025-07-03 23:58:23 WARNING ⚠️ No chunks created for https://platform.openai.com/docs/guides/prompt-caching
+2025-07-03 23:58:23 INFO 
+============================================================
+2025-07-03 23:58:23 INFO 🎯 ADVANCED CRAWLER SUMMARY
+2025-07-03 23:58:23 INFO ============================================================
+2025-07-03 23:58:23 INFO URLs attempted: 1
+2025-07-03 23:58:23 INFO Successful crawls: 1
+2025-07-03 23:58:23 INFO Failed crawls: 0
+2025-07-03 23:58:23 INFO Total chunks stored: 0
+2025-07-03 23:58:23 INFO Total time: 4.89 seconds
+2025-07-03 23:58:23 INFO Average time per URL: 4.89 seconds
+2025-07-03 23:58:23 INFO 🎉 AdvancedWebCrawler processing complete!
+
+
+
+CRAWL ATTEMPT #3:
+
+root@59494d12a70c:/app# uv run -m src.manual_crawl --url https://www.promptingguide.ai/agents/introduction --advanced --max-depth 1
+--- LOADING LATEST VERSION OF UTILS.PY ---
+--- LOADING LATEST VERSION OF UTILS.PY ---
+✅ StrategyConfig: Enabled strategies: reranking, agentic_rag, contextual_embeddings, hybrid_search_enhanced
+📊 Enhanced RAG strategies enabled: reranking, agentic_rag, contextual_embeddings, hybrid_search_enhanced
+✅ Strategy manager initialized with 4 components
+🚀 Unified AdvancedWebCrawler system loaded successfully
+🚀 AdvancedWebCrawler system loaded for manual crawling
+🚀 DocumentIngestionPipeline system loaded for manual crawling
+2025-07-04 00:04:46 INFO ✅ StrategyConfig: Enabled strategies: reranking, agentic_rag, contextual_embeddings, hybrid_search_enhanced
+2025-07-04 00:04:46 INFO 📊 Manual crawl with enhanced RAG strategies: reranking, agentic_rag, contextual_embeddings, hybrid_search_enhanced
+2025-07-04 00:04:46 INFO 🚀 Using unified AdvancedWebCrawler system (enhanced functionality built-in)
+2025-07-04 00:04:46 INFO 🎯 AdvancedWebCrawler with legacy chunking mode
+2025-07-04 00:04:46 INFO 📋 Mode: AdvancedWebCrawler with Playwright, TrafilaturaExtractor, and quality validation (legacy chunking)
+2025-07-04 00:04:46 INFO 🎯 Using AdvancedWebCrawler with legacy chunking
+2025-07-04 00:04:46 INFO 📋 Crawling single URL: https://www.promptingguide.ai/agents/introduction
+2025-07-04 00:04:46 INFO 🎯 Starting single URL crawl with AdvancedWebCrawler
+2025-07-04 00:04:47 INFO Primary extraction attempt for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 1.39s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 1.39s
+2025-07-04 00:04:48 INFO Real-time validation (tier 0): valid=False, score=0.000
+2025-07-04 00:04:48 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:04:48 INFO Real-time validation failed for https://www.promptingguide.ai/agents/introduction, trying tier 1 fallback
+2025-07-04 00:04:48 INFO Creating Tier 1 fallback config with 15 exclusions, word threshold: 17
+2025-07-04 00:04:48 INFO Fallback extraction attempt 1 for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.81s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.82s
+2025-07-04 00:04:49 INFO Real-time validation (tier 1): valid=False, score=0.000
+2025-07-04 00:04:49 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:04:49 INFO Real-time validation failed for https://www.promptingguide.ai/agents/introduction, trying tier 2 fallback
+2025-07-04 00:04:49 INFO Creating Tier 2 fallback config with 20 exclusions, word threshold: 14
+2025-07-04 00:04:49 INFO Fallback extraction attempt 2 for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.83s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.83s
+2025-07-04 00:04:50 INFO Real-time validation (tier 2): valid=False, score=0.000
+2025-07-04 00:04:50 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:04:50 INFO Real-time validation failed for https://www.promptingguide.ai/agents/introduction, trying tier 3 fallback
+2025-07-04 00:04:50 INFO Creating Tier 3 fallback config with 25 exclusions, word threshold: 11
+2025-07-04 00:04:50 INFO Fallback extraction attempt 3 for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.92s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.92s
+2025-07-04 00:04:50 INFO Real-time validation (tier 3): valid=False, score=0.000
+2025-07-04 00:04:50 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:04:50 WARNING Using best available result for https://www.promptingguide.ai/agents/introduction with low quality (score: 0.000)
+2025-07-04 00:04:51 WARNING ⚠️ No chunks created for https://www.promptingguide.ai/agents/introduction
+2025-07-04 00:04:51 INFO 
+============================================================
+2025-07-04 00:04:51 INFO 🎯 ADVANCED CRAWLER SUMMARY
+2025-07-04 00:04:51 INFO ============================================================
+2025-07-04 00:04:51 INFO URLs attempted: 1
+2025-07-04 00:04:51 INFO Successful crawls: 1
+2025-07-04 00:04:51 INFO Failed crawls: 0
+2025-07-04 00:04:51 INFO Total chunks stored: 0
+2025-07-04 00:04:51 INFO Total time: 4.56 seconds
+2025-07-04 00:04:51 INFO Average time per URL: 4.56 seconds
+2025-07-04 00:04:51 INFO 🎉 AdvancedWebCrawler processing complete!
+
+
+
+CRAWL ATTEMPT #4:
+
+root@59494d12a70c:/app# uv run -m src.manual_crawl --url https://docs.n8n.io/glossary/ --pipeline --max-depth 1
+--- LOADING LATEST VERSION OF UTILS.PY ---
+--- LOADING LATEST VERSION OF UTILS.PY ---
+✅ StrategyConfig: Enabled strategies: hybrid_search_enhanced, contextual_embeddings, agentic_rag, reranking
+📊 Enhanced RAG strategies enabled: hybrid_search_enhanced, contextual_embeddings, agentic_rag, reranking
+✅ Strategy manager initialized with 4 components
+🚀 Unified AdvancedWebCrawler system loaded successfully
+🚀 AdvancedWebCrawler system loaded for manual crawling
+🚀 DocumentIngestionPipeline system loaded for manual crawling
+2025-07-04 00:11:20 INFO ✅ StrategyConfig: Enabled strategies: hybrid_search_enhanced, contextual_embeddings, agentic_rag, reranking
+2025-07-04 00:11:20 INFO 📊 Manual crawl with enhanced RAG strategies: hybrid_search_enhanced, contextual_embeddings, agentic_rag, reranking
+2025-07-04 00:11:20 INFO 🚀 Using unified AdvancedWebCrawler system (enhanced functionality built-in)
+2025-07-04 00:11:20 INFO 🎯 INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline mode (Task 14.6)
+2025-07-04 00:11:20 INFO 📋 Mode: INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline with semantic chunking, embeddings, and database storage
+2025-07-04 00:11:20 INFO 🎯 Using INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline (Task 14.6)
+2025-07-04 00:11:20 INFO 📋 Crawling single URL: https://docs.n8n.io/glossary/
+2025-07-04 00:11:20 INFO EmbeddingGenerator initialized with batch_size=100
+2025-07-04 00:11:20 INFO 🚀 DocumentIngestionPipeline initialized with semantic chunking and embedding generation
+2025-07-04 00:11:20 INFO 🎯 Starting single URL crawl with AdvancedWebCrawler
+2025-07-04 00:11:21 INFO Primary extraction attempt for https://docs.n8n.io/glossary/
+[FETCH]... ↓ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 1.60s
+[SCRAPE].. ◆ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.32s
+[COMPLETE] ● https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 1.92s
+2025-07-04 00:11:23 INFO Real-time validation for https://docs.n8n.io/glossary/ (tier 0): quality=0.400, threshold=0.6, valid=False
+2025-07-04 00:11:23 WARNING Validation failed - link_density=0.118, nav_keywords=84, words=11760
+2025-07-04 00:11:23 INFO Real-time validation (tier 0): valid=False, score=0.400
+2025-07-04 00:11:23 INFO   Suggestion: Short list items (avg 4.2 words) may be navigation
+2025-07-04 00:11:23 INFO Real-time validation failed for https://docs.n8n.io/glossary/, trying tier 1 fallback
+2025-07-04 00:11:23 INFO Creating Tier 1 fallback config with 15 exclusions, word threshold: 17
+2025-07-04 00:11:23 INFO Fallback extraction attempt 1 for https://docs.n8n.io/glossary/
+[FETCH]... ↓ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.96s
+[SCRAPE].. ◆ https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.01s
+[COMPLETE] ● https://docs.n8n.io/glossary/                                                                        | ✓ | ⏱: 0.97s
+2025-07-04 00:11:24 INFO Real-time validation for https://docs.n8n.io/glossary/ (tier 1): quality=1.000, threshold=0.5, valid=True
+2025-07-04 00:11:24 INFO Real-time validation (tier 1): valid=True, score=1.000
+2025-07-04 00:11:24 INFO Quality validation disabled for https://docs.n8n.io/glossary/ - accepting content
+2025-07-04 00:11:24 INFO Quality validation complete: method=disabled, score=1.000, passed=True
+2025-07-04 00:11:24 INFO Successfully extracted 1235 words from https://docs.n8n.io/glossary/ in 2907.6ms (attempts: 2, fallback: True)
+2025-07-04 00:11:24 INFO 🔄 Processing https://docs.n8n.io/glossary/ through DocumentIngestionPipeline...
+2025-07-04 00:11:24 INFO Initializing document ingestion pipeline...
+2025-07-04 00:11:24 INFO Pipeline initialized with chunking: True, embeddings: True, storage: True
+2025-07-04 00:11:24 INFO Document ingestion pipeline initialized
+2025-07-04 00:11:24 INFO Processing document: Glossary
+2025-07-04 00:11:24 INFO Created 1 chunks
+2025-07-04 00:11:24 INFO Generating embeddings for 1/1 chunks
+2025-07-04 00:11:26 INFO HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-07-04 00:11:26 INFO Successfully generated 1 embeddings in 1.66s
+2025-07-04 00:11:26 INFO Generated embeddings for 1 chunks
+2025-07-04 00:11:26 INFO HTTP Request: DELETE http://host.docker.internal:54321/rest/v1/crawled_pages?url=in.%28%22https%3A%2F%2Fdocs.n8n.io%2Fglossary%2F%22%29 "HTTP/1.1 200 OK"
+2025-07-04 00:11:26 INFO HTTP Request: GET http://host.docker.internal:54321/rest/v1/sources?select=source_id&url=eq.https%3A%2F%2Fdocs.n8n.io%2Fglossary%2F&limit=1 "HTTP/1.1 200 OK"
+2025-07-04 00:11:26 INFO HTTP Request: POST http://host.docker.internal:54321/rest/v1/sources?on_conflict=url "HTTP/1.1 201 Created"
+✅ Created new source: https://docs.n8n.io/glossary/ (ID: 2750)
+Error generating contextual embedding: No module named 'config'. Using original chunk instead.
+2025-07-04 00:11:26 INFO HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-07-04 00:11:26 INFO HTTP Request: POST http://host.docker.internal:54321/rest/v1/crawled_pages?columns=%22chunk_number%22%2C%22source_id%22%2C%22content%22%2C%22url%22%2C%22embedding%22%2C%22metadata%22 "HTTP/1.1 201 Created"
+2025-07-04 00:11:26 INFO Successfully stored 1 chunks for document docs.n8n.io_glossary_
+2025-07-04 00:11:26 INFO Stored document docs.n8n.io_glossary_ with 1 chunks
+2025-07-04 00:11:26 INFO Stored document with ID: docs.n8n.io_glossary_
+2025-07-04 00:11:26 INFO ✅ Pipeline processed https://docs.n8n.io/glossary/: 1235 words → 1 chunks → 1 embeddings (quality: 1.000)
+2025-07-04 00:11:26 INFO 
+============================================================
+2025-07-04 00:11:26 INFO 🚀 DOCUMENT INGESTION PIPELINE REPORT
+2025-07-04 00:11:26 INFO ============================================================
+2025-07-04 00:11:26 INFO ✅ Successful pipeline processing: 1
+2025-07-04 00:11:26 INFO 📊 Average processing time: 2508.3 ms
+2025-07-04 00:11:26 INFO 📊 Average chunks per document: 1.0
+2025-07-04 00:11:26 INFO 📊 Average embeddings per document: 1.0
+2025-07-04 00:11:26 INFO 
+============================================================
+2025-07-04 00:11:26 INFO 🎯 INTEGRATED CRAWLER + PIPELINE SUMMARY
+2025-07-04 00:11:26 INFO ============================================================
+2025-07-04 00:11:26 INFO URLs attempted: 1
+2025-07-04 00:11:26 INFO Successful crawls: 1
+2025-07-04 00:11:26 INFO Failed crawls: 0
+2025-07-04 00:11:26 INFO Successful pipeline processing: 1
+2025-07-04 00:11:26 INFO Failed pipeline processing: 0
+2025-07-04 00:11:26 INFO Total chunks created: 1
+2025-07-04 00:11:26 INFO Total embeddings generated: 1
+2025-07-04 00:11:26 INFO Total processing time: 6.00 seconds
+2025-07-04 00:11:26 INFO Average time per URL: 6.00 seconds
+2025-07-04 00:11:26 INFO 🎉 Integrated AdvancedWebCrawler + DocumentIngestionPipeline processing complete!
+
+CHUNK #1 RESULT:
+1. [ Using n8n  ](https://docs.n8n.io/glossary/<..>)
+  2. [ Key concepts  ](https://docs.n8n.io/glossary/<../flow-logic/>)
+
+[ ](https://docs.n8n.io/glossary/<https:/github.com/n8n-io/n8n-docs/edit/main/docs/glossary.md> "Edit this page")
+# Glossary
+#### AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> "Permanent link")
+AI agents are artificial intelligence systems capable of responding to requests, making decisions, and performing real-world tasks for users. They use large language models (LLMs) to interpret user input and make decisions about how to best process requests using the information and resources they have available.
+#### AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> "Permanent link")
+AI chains allow you to interact with large language models (LLMs) and other resources in sequences of calls to components. AI chains in n8n don't use persistent memory, so you can't use them to reference previous context (use AI agents for this).
+#### AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> "Permanent link")
+Embeddings are numerical representations of data using vectors. They're used by AI to interpret complex data and relationships by mapping values across many dimensions. Vector databases, or vector stores, are databases designed to store and access embeddings.
+#### AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> "Permanent link")
+In AI, and specifically in retrieval-augmented generation (RAG) contexts, groundedness and ungroundedness are measures of how much a model's responses accurately reflect source information. The model uses its source documents to generate grounded responses, while ungrounded responses involve speculation or hallucination unsupported by those same sources.
+#### AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> "Permanent link")
+Reranking is a technique that refines the order of a list of candidate documents to improve the relevance of search results. Retrieval-Augmented Generation (RAG) and other applications use reranking to prioritize the most relevant information for generation or downstream tasks.
+#### AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> "Permanent link")
+In an AI context, memory allows AI tools to persist message context across interactions. This allows you to have a continuing conversations with AI agents, for example, without submitting ongoing context with each message. In n8n, AI agent nodes can use memory, but AI chains can't.
+#### AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> "Permanent link")
+Retrieval-augmented generation, or RAG, is a technique for providing LLMs access to new information from external sources to improve AI responses. RAG systems retrieve relevant documents to ground responses in up-to-date, domain-specific, or proprietary knowledge to supplement their original training data. RAG systems often rely on vector stores to manage and search this external data efficiently.
+#### AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> "Permanent link")
+In an AI context, a tool is an add-on resource that the AI can refer to for specific information or functionality when responding to a request. The AI model can use a tool to interact with external systems or complete specific, focused tasks.
+#### AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> "Permanent link")
+Vector stores, or vector databases, are databases designed to store numerical representations of information called embeddings.
+#### API[#](https://docs.n8n.io/glossary/<#api> "Permanent link")
+APIs, or application programming interfaces, offer programmatic access to a service's data and functionality. APIs make it easier for software to interact with external systems. They're often offered as an alternative to traditional user-focused interfaces accessed through web browsers or UI.
+#### canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> "Permanent link")
+The canvas is the main interface for building workflows in n8n's editor UI. You use the canvas to add and connect nodes to compose workflows.
+#### cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> "Permanent link")
+In n8n, cluster nodes are groups of nodes that work together to provide functionality in a workflow. They consist of a root node and one or more sub nodes that extend the node's functionality.
+#### credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> "Permanent link")
+In n8n, credentials store authentication information to connect with specific apps and services. After creating credentials with your authentication information (username and password, API key, OAuth secrets, etc.), you can use the associated app node to interact with the service.
+#### data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> "Permanent link")
+Data pinning allows you to temporarily freeze the output data of a node during workflow development. This allows you to develop workflows with predictable data without making repeated requests to external services. Production workflows ignore pinned data and request new data on each execution.
+#### editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> "Permanent link")
+The n8n editor UI allows you to create and manage workflows. The main area is the canvas, where you can compose workflows by adding, configuring, and connecting nodes. The side and top panels allow you to access other areas of the UI like credentials, templates, variables, executions, and more.
+#### entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> "Permanent link")
+In n8n, entitlements grant n8n instances access to plan-restricted features for a specific period of time.
+Floating entitlements are a pool of entitlements that you can distribute among various n8n instances. You can re-assign a floating entitlement to transfer its access to a different n8n instance.
+#### evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> "Permanent link")
+In n8n, evaluation allows you to tag and organize execution history and compare it against new executions. You can use this to understand how your workflow performs over time as you make changes. In particular, this is useful while developing AI-centered workflows.
+#### expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> "Permanent link")
+In n8n, expressions allow you to populate node parameters dynamically by executing JavaScript code. Instead of providing a static value, you can use the n8n expression syntax to define the value using data from previous nodes, other workflows, or your n8n environment.
+#### LangChain[#](https://docs.n8n.io/glossary/<#langchain> "Permanent link")
+LangChain is an AI-development framework used to work with large language models (LLMs). LangChain provides a standardized system for working with a wide variety of models and other resources and linking different components together to build complex applications.
+#### Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> "Permanent link")
+Large language models, or LLMs, are AI machine learning models designed to excel in natural language processing (NLP) tasks. They're built by training on large amounts of data to develop probabilistic models of language and other data.
+#### node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> "Permanent link")
+In n8n, nodes are individual components that you compose to create workflows. Nodes define when the workflow should run, allow you to fetch, send, and process data, can define flow control logic, and connect with external services.
+#### project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> "Permanent link")
+n8n projects allow you to separate workflows, variables, and credentials into separate groups for easier management. Projects make it easier for teams to collaborate by sharing and compartmentalizing related resources.
+#### root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> "Permanent link")
+Each n8n cluster node contains a single root nodes that defines the main functionality of the cluster. One or more sub nodes attach to the root node to extend its functionality.
+#### sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> "Permanent link")
+n8n cluster nodes consist of one or more sub nodes connected to a root node. Sub nodes extend the functionality of the root node, providing access to specific services or resources or offering specific types of dedicated processing, like calculator functionality, for example.
+#### template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> "Permanent link")
+n8n templates are pre-built workflows designed by n8n and community members that you can import into your n8n instance. When using templates, you may need to fill in credentials and adjust the configuration to suit your needs.
+#### trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> "Permanent link")
+A trigger node is a special node responsible for executing the workflow in response to certain conditions. All production workflows need at least one trigger to determine when the workflow should run.
+#### workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> "Permanent link")
+An n8n workflow is a collection of nodes that automate a process. Workflows begin execution when a trigger condition occurs and execute sequentially to achieve complex tasks.
+Was this page helpful? 
+Thanks for your feedback! 
+Thanks for your feedback! Help us improve this page by submitting an issue or a fix in our [GitHub repo](https://docs.n8n.io/glossary/<https:/github.com/n8n-io/n8n-docs>).
+
+
+CRAWL ATTEMPT #5:
+
+root@59494d12a70c:/app# uv run -m src.manual_crawl --url https://platform.openai.com/docs/guides/prompt-caching --pipeline --max-depth 1
+--- LOADING LATEST VERSION OF UTILS.PY ---
+--- LOADING LATEST VERSION OF UTILS.PY ---
+✅ StrategyConfig: Enabled strategies: contextual_embeddings, reranking, hybrid_search_enhanced, agentic_rag
+📊 Enhanced RAG strategies enabled: contextual_embeddings, reranking, hybrid_search_enhanced, agentic_rag
+✅ Strategy manager initialized with 4 components
+🚀 Unified AdvancedWebCrawler system loaded successfully
+🚀 AdvancedWebCrawler system loaded for manual crawling
+🚀 DocumentIngestionPipeline system loaded for manual crawling
+2025-07-04 00:13:49 INFO ✅ StrategyConfig: Enabled strategies: contextual_embeddings, reranking, hybrid_search_enhanced, agentic_rag
+2025-07-04 00:13:49 INFO 📊 Manual crawl with enhanced RAG strategies: contextual_embeddings, reranking, hybrid_search_enhanced, agentic_rag
+2025-07-04 00:13:49 INFO 🚀 Using unified AdvancedWebCrawler system (enhanced functionality built-in)
+2025-07-04 00:13:49 INFO 🎯 INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline mode (Task 14.6)
+2025-07-04 00:13:49 INFO 📋 Mode: INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline with semantic chunking, embeddings, and database storage
+2025-07-04 00:13:49 INFO 🎯 Using INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline (Task 14.6)
+2025-07-04 00:13:49 INFO 📋 Crawling single URL: https://platform.openai.com/docs/guides/prompt-caching
+2025-07-04 00:13:49 INFO EmbeddingGenerator initialized with batch_size=100
+2025-07-04 00:13:49 INFO 🚀 DocumentIngestionPipeline initialized with semantic chunking and embedding generation
+2025-07-04 00:13:49 INFO 🎯 Starting single URL crawl with AdvancedWebCrawler
+2025-07-04 00:13:49 INFO Primary extraction attempt for https://platform.openai.com/docs/guides/prompt-caching
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.07s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.07s
+2025-07-04 00:13:50 INFO Real-time validation (tier 0): valid=False, score=0.000
+2025-07-04 00:13:50 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:13:50 INFO Real-time validation failed for https://platform.openai.com/docs/guides/prompt-caching, trying tier 1 fallback
+2025-07-04 00:13:50 INFO Creating Tier 1 fallback config with 15 exclusions, word threshold: 17
+2025-07-04 00:13:51 INFO Fallback extraction attempt 1 for https://platform.openai.com/docs/guides/prompt-caching
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.93s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.93s
+2025-07-04 00:13:51 INFO Real-time validation (tier 1): valid=False, score=0.000
+2025-07-04 00:13:51 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:13:51 INFO Real-time validation failed for https://platform.openai.com/docs/guides/prompt-caching, trying tier 2 fallback
+2025-07-04 00:13:51 INFO Creating Tier 2 fallback config with 20 exclusions, word threshold: 14
+2025-07-04 00:13:51 INFO Fallback extraction attempt 2 for https://platform.openai.com/docs/guides/prompt-caching
+Warning: Could not get content for selector '[role='main'] article': Page.evaluate: Execution context was destroyed, most likely because of a navigation
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.96s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.97s
+2025-07-04 00:13:52 INFO Real-time validation (tier 2): valid=False, score=0.000
+2025-07-04 00:13:52 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:13:52 INFO Real-time validation failed for https://platform.openai.com/docs/guides/prompt-caching, trying tier 3 fallback
+2025-07-04 00:13:52 INFO Creating Tier 3 fallback config with 25 exclusions, word threshold: 11
+2025-07-04 00:13:52 INFO Fallback extraction attempt 3 for https://platform.openai.com/docs/guides/prompt-caching
+[FETCH]... ↓ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.30s
+[SCRAPE].. ◆ https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://platform.openai.com/docs/guides/prompt-caching                                               | ✓ | ⏱: 1.30s
+2025-07-04 00:13:54 INFO Real-time validation (tier 3): valid=False, score=0.000
+2025-07-04 00:13:54 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:13:54 WARNING Using best available result for https://platform.openai.com/docs/guides/prompt-caching with low quality (score: 0.000)
+2025-07-04 00:13:54 INFO 🔄 Processing https://platform.openai.com/docs/guides/prompt-caching through DocumentIngestionPipeline...
+2025-07-04 00:13:54 INFO Initializing document ingestion pipeline...
+2025-07-04 00:13:54 INFO Pipeline initialized with chunking: True, embeddings: True, storage: True
+2025-07-04 00:13:54 INFO Document ingestion pipeline initialized
+2025-07-04 00:13:54 INFO Processing document: Untitled Document
+2025-07-04 00:13:54 WARNING No chunks created for Untitled Document
+2025-07-04 00:13:54 ERROR ❌ Pipeline failed for https://platform.openai.com/docs/guides/prompt-caching: ['No chunks created']
+2025-07-04 00:13:54 INFO 
+============================================================
+2025-07-04 00:13:54 INFO 🚀 DOCUMENT INGESTION PIPELINE REPORT
+2025-07-04 00:13:54 INFO ============================================================
+2025-07-04 00:13:54 INFO ❌ Failed pipeline processing: 1
+2025-07-04 00:13:54 INFO    - : ['No chunks created']
+2025-07-04 00:13:54 INFO 
+============================================================
+2025-07-04 00:13:54 INFO 🎯 INTEGRATED CRAWLER + PIPELINE SUMMARY
+2025-07-04 00:13:54 INFO ============================================================
+2025-07-04 00:13:54 INFO URLs attempted: 1
+2025-07-04 00:13:54 INFO Successful crawls: 1
+2025-07-04 00:13:54 INFO Failed crawls: 0
+2025-07-04 00:13:54 INFO Successful pipeline processing: 0
+2025-07-04 00:13:54 INFO Failed pipeline processing: 1
+2025-07-04 00:13:54 INFO Total chunks created: 0
+2025-07-04 00:13:54 INFO Total embeddings generated: 0
+2025-07-04 00:13:54 INFO Total processing time: 4.93 seconds
+2025-07-04 00:13:54 INFO Average time per URL: 4.93 seconds
+2025-07-04 00:13:54 INFO 🎉 Integrated AdvancedWebCrawler + DocumentIngestionPipeline processing complete!
+
+CRAWL ATTEMPT #6:
+
+root@59494d12a70c:/app# uv run -m src.manual_crawl --url https://www.promptingguide.ai/agents/introduction --pipeline --max-depth 1
+--- LOADING LATEST VERSION OF UTILS.PY ---
+--- LOADING LATEST VERSION OF UTILS.PY ---
+✅ StrategyConfig: Enabled strategies: reranking, hybrid_search_enhanced, agentic_rag, contextual_embeddings
+📊 Enhanced RAG strategies enabled: reranking, hybrid_search_enhanced, agentic_rag, contextual_embeddings
+✅ Strategy manager initialized with 4 components
+🚀 Unified AdvancedWebCrawler system loaded successfully
+🚀 AdvancedWebCrawler system loaded for manual crawling
+🚀 DocumentIngestionPipeline system loaded for manual crawling
+2025-07-04 00:15:08 INFO ✅ StrategyConfig: Enabled strategies: reranking, hybrid_search_enhanced, agentic_rag, contextual_embeddings
+2025-07-04 00:15:08 INFO 📊 Manual crawl with enhanced RAG strategies: reranking, hybrid_search_enhanced, agentic_rag, contextual_embeddings
+2025-07-04 00:15:08 INFO 🚀 Using unified AdvancedWebCrawler system (enhanced functionality built-in)
+2025-07-04 00:15:08 INFO 🎯 INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline mode (Task 14.6)
+2025-07-04 00:15:08 INFO 📋 Mode: INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline with semantic chunking, embeddings, and database storage
+2025-07-04 00:15:08 INFO 🎯 Using INTEGRATED AdvancedWebCrawler + DocumentIngestionPipeline (Task 14.6)
+2025-07-04 00:15:08 INFO 📋 Crawling single URL: https://www.promptingguide.ai/agents/introduction
+2025-07-04 00:15:08 INFO EmbeddingGenerator initialized with batch_size=100
+2025-07-04 00:15:08 INFO 🚀 DocumentIngestionPipeline initialized with semantic chunking and embedding generation
+2025-07-04 00:15:08 INFO 🎯 Starting single URL crawl with AdvancedWebCrawler
+2025-07-04 00:15:08 INFO Primary extraction attempt for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 1.06s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 1.07s
+2025-07-04 00:15:09 INFO Real-time validation (tier 0): valid=False, score=0.000
+2025-07-04 00:15:09 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:15:09 INFO Real-time validation failed for https://www.promptingguide.ai/agents/introduction, trying tier 1 fallback
+2025-07-04 00:15:09 INFO Creating Tier 1 fallback config with 15 exclusions, word threshold: 17
+2025-07-04 00:15:09 INFO Fallback extraction attempt 1 for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.93s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.93s
+2025-07-04 00:15:10 INFO Real-time validation (tier 1): valid=False, score=0.000
+2025-07-04 00:15:10 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:15:10 INFO Real-time validation failed for https://www.promptingguide.ai/agents/introduction, trying tier 2 fallback
+2025-07-04 00:15:10 INFO Creating Tier 2 fallback config with 20 exclusions, word threshold: 14
+2025-07-04 00:15:10 INFO Fallback extraction attempt 2 for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.91s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.91s
+2025-07-04 00:15:11 INFO Real-time validation (tier 2): valid=False, score=0.000
+2025-07-04 00:15:11 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:15:11 INFO Real-time validation failed for https://www.promptingguide.ai/agents/introduction, trying tier 3 fallback
+2025-07-04 00:15:11 INFO Creating Tier 3 fallback config with 25 exclusions, word threshold: 11
+2025-07-04 00:15:11 INFO Fallback extraction attempt 3 for https://www.promptingguide.ai/agents/introduction
+[FETCH]... ↓ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.92s
+[SCRAPE].. ◆ https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.00s
+[COMPLETE] ● https://www.promptingguide.ai/agents/introduction                                                    | ✓ | ⏱: 0.92s
+2025-07-04 00:15:12 INFO Real-time validation (tier 3): valid=False, score=0.000
+2025-07-04 00:15:12 INFO   Suggestion: Content is too short or empty
+2025-07-04 00:15:12 WARNING Using best available result for https://www.promptingguide.ai/agents/introduction with low quality (score: 0.000)
+2025-07-04 00:15:12 INFO 🔄 Processing https://www.promptingguide.ai/agents/introduction through DocumentIngestionPipeline...
+2025-07-04 00:15:12 INFO Initializing document ingestion pipeline...
+2025-07-04 00:15:12 INFO Pipeline initialized with chunking: True, embeddings: True, storage: True
+2025-07-04 00:15:12 INFO Document ingestion pipeline initialized
+2025-07-04 00:15:12 INFO Processing document: Untitled Document
+2025-07-04 00:15:12 WARNING No chunks created for Untitled Document
+2025-07-04 00:15:12 ERROR ❌ Pipeline failed for https://www.promptingguide.ai/agents/introduction: ['No chunks created']
+2025-07-04 00:15:12 INFO 
+============================================================
+2025-07-04 00:15:12 INFO 🚀 DOCUMENT INGESTION PIPELINE REPORT
+2025-07-04 00:15:12 INFO ============================================================
+2025-07-04 00:15:12 INFO ❌ Failed pipeline processing: 1
+2025-07-04 00:15:12 INFO    - : ['No chunks created']
+2025-07-04 00:15:12 INFO 
+============================================================
+2025-07-04 00:15:12 INFO 🎯 INTEGRATED CRAWLER + PIPELINE SUMMARY
+2025-07-04 00:15:12 INFO ============================================================
+2025-07-04 00:15:12 INFO URLs attempted: 1
+2025-07-04 00:15:12 INFO Successful crawls: 1
+2025-07-04 00:15:12 INFO Failed crawls: 0
+2025-07-04 00:15:12 INFO Successful pipeline processing: 0
+2025-07-04 00:15:12 INFO Failed pipeline processing: 1
+2025-07-04 00:15:12 INFO Total chunks created: 0
+2025-07-04 00:15:12 INFO Total embeddings generated: 0
+2025-07-04 00:15:12 INFO Total processing time: 4.49 seconds
+2025-07-04 00:15:12 INFO Average time per URL: 4.49 seconds
+2025-07-04 00:15:12 INFO 🎉 Integrated AdvancedWebCrawler + DocumentIngestionPipeline processing complete!

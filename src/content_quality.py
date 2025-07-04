@@ -190,26 +190,99 @@ class ContentQualityAnalyzer:
         return all_links
     
     def _count_navigation_elements(self, text: str) -> int:
-        """Count elements that appear to be navigation."""
+        """Count elements that appear to be navigation with advanced heuristics."""
         nav_count = 0
         text_lower = text.lower()
         
+        # Original navigation patterns
         for pattern in self.navigation_patterns:
             matches = re.findall(pattern, text_lower, re.IGNORECASE)
             nav_count += len(matches)
         
-        # Count list items that are likely navigation
-        list_items = re.findall(r'^\s*[-*+]\s+(.+)$', text, re.MULTILINE)
-        nav_list_items = 0
+        # ENHANCED: Advanced navigation detection for integration lists
+        nav_count += self._detect_integration_lists(text)
+        nav_count += self._detect_link_heavy_content(text)
+        nav_count += self._detect_repeated_link_patterns(text)
         
-        for item in list_items:
-            item_lower = item.lower().strip()
-            # Short items with links are likely navigation
-            if len(item_lower.split()) <= 5 and ('[' in item or 'http' in item):
-                nav_list_items += 1
-        
-        nav_count += nav_list_items
         return nav_count
+    
+    def _detect_integration_lists(self, text: str) -> int:
+        """Detect bulleted integration lists like n8n.io credential pages."""
+        lines = text.split('\n')
+        integration_indicators = [
+            'integration', 'credential', 'connector', 'node', 'service', 
+            'api', 'webhook', 'plugin', 'extension', 'app'
+        ]
+        
+        nav_score = 0
+        consecutive_link_lines = 0
+        
+        for line in lines:
+            line_clean = line.strip()
+            
+            # Check for bulleted list items with links
+            if re.match(r'^\s*[-*+]\s+.*\[.*\]\(.*\)', line_clean):
+                # Check if it contains integration-related terms
+                line_lower = line_clean.lower()
+                if any(indicator in line_lower for indicator in integration_indicators):
+                    nav_score += 2  # Higher penalty for integration links
+                    consecutive_link_lines += 1
+                elif '[' in line_clean and '](' in line_clean:
+                    nav_score += 1
+                    consecutive_link_lines += 1
+                else:
+                    consecutive_link_lines = 0
+            else:
+                consecutive_link_lines = 0
+            
+            # Penalty multiplier for consecutive integration links
+            if consecutive_link_lines >= 5:
+                nav_score += consecutive_link_lines * 2
+        
+        return nav_score
+    
+    def _detect_link_heavy_content(self, text: str) -> int:
+        """Detect content with excessive link density indicating navigation."""
+        words = len(text.split())
+        if words < 10:
+            return 0
+        
+        # Count all markdown links
+        links = re.findall(r'\[([^\]]*)\]\([^)]*\)', text)
+        link_density = len(links) / words if words > 0 else 0
+        
+        # Apply cliff penalties for high link density
+        if link_density > 0.4:  # >40% link density
+            return int(link_density * 50)  # Severe penalty
+        elif link_density > 0.2:  # >20% link density
+            return int(link_density * 20)  # Moderate penalty
+        
+        return 0
+    
+    def _detect_repeated_link_patterns(self, text: str) -> int:
+        """Detect repeated link patterns typical of navigation menus."""
+        lines = text.split('\n')
+        link_pattern_counts = {}
+        
+        for line in lines:
+            # Extract link pattern (ignore specific text, focus on structure)
+            if '[' in line and '](' in line:
+                # Normalize the pattern (replace content with placeholders)
+                pattern = re.sub(r'\[[^\]]*\]', '[TEXT]', line.strip())
+                pattern = re.sub(r'\([^)]*\)', '(URL)', pattern)
+                
+                if pattern in link_pattern_counts:
+                    link_pattern_counts[pattern] += 1
+                else:
+                    link_pattern_counts[pattern] = 1
+        
+        # Count repeated patterns as navigation
+        nav_score = 0
+        for pattern, count in link_pattern_counts.items():
+            if count >= 3:  # 3+ similar patterns = likely navigation
+                nav_score += count * 2
+        
+        return nav_score
     
     def _calculate_content_navigation_ratio(self, text: str, nav_elements: int, link_count: int) -> float:
         """Calculate the ratio of content to navigation elements."""
@@ -286,45 +359,54 @@ class ContentQualityAnalyzer:
     def _calculate_overall_quality_score(self, content_ratio: float, link_density: float, 
                                        coherence: float, word_count: int, code_blocks: int, 
                                        paragraphs: int) -> float:
-        """Calculate overall quality score weighted across multiple factors."""
+        """Calculate overall quality score with non-linear penalties for navigation content."""
         
-        # Weighted scoring
-        score = 0.0
+        # ENHANCED: Non-linear scoring with cliff effects for navigation detection
+        score = 1.0  # Start with perfect score, apply penalties
         
-        # Content-to-navigation ratio (40% weight)
-        score += content_ratio * 0.4
+        # CRITICAL: Link density cliff penalties (massive penalties for navigation)
+        if link_density > 0.4:  # >40% links = definitely navigation
+            score *= 0.05  # 95% penalty - nearly zero score
+        elif link_density > 0.3:  # >30% links = likely navigation  
+            score *= 0.15  # 85% penalty
+        elif link_density > 0.2:  # >20% links = suspicious
+            score *= 0.4   # 60% penalty
+        elif link_density > 0.1:  # >10% links = moderate penalty
+            score *= 0.7   # 30% penalty
         
-        # Link density penalty (20% weight)
-        # Lower link density is better (more content, less navigation)
-        link_density_score = max(0, 1.0 - (link_density * 2))  # Penalty for high link density
-        score += link_density_score * 0.2
+        # Content-to-navigation ratio penalties (non-linear)
+        if content_ratio < 0.3:  # <30% content = mostly navigation
+            score *= 0.1   # 90% penalty
+        elif content_ratio < 0.5:  # <50% content = mixed
+            score *= 0.3   # 70% penalty
+        elif content_ratio < 0.7:  # <70% content = some navigation
+            score *= 0.6   # 40% penalty
+        elif content_ratio < 0.9:  # <90% content = minor navigation
+            score *= 0.8   # 20% penalty
         
-        # Text coherence (25% weight)
-        score += coherence * 0.25
+        # Word count floor penalties (very short content is suspicious)
+        if word_count < 20:
+            score *= 0.05  # 95% penalty for very short content
+        elif word_count < 50:
+            score *= 0.2   # 80% penalty
+        elif word_count < 100:
+            score *= 0.5   # 50% penalty
         
-        # Content substance (15% weight)
-        # Reward substantial content
-        substance_score = 0.0
-        if word_count >= 200:
-            substance_score += 0.4
-        elif word_count >= 100:
-            substance_score += 0.2
-        elif word_count >= 50:
-            substance_score += 0.1
+        # Structural diversity bonuses (only if not heavily penalized)
+        if score > 0.3:  # Only apply bonuses if base quality is decent
+            if paragraphs >= 3:
+                score = min(1.0, score * 1.2)  # 20% bonus
+            elif paragraphs >= 2:
+                score = min(1.0, score * 1.1)  # 10% bonus
+                
+            if code_blocks > 0:
+                score = min(1.0, score * 1.1)  # 10% bonus for code
             
-        if paragraphs >= 3:
-            substance_score += 0.3
-        elif paragraphs >= 2:
-            substance_score += 0.2
-        elif paragraphs >= 1:
-            substance_score += 0.1
-            
-        if code_blocks > 0:
-            substance_score += 0.3
-            
-        score += min(substance_score, 1.0) * 0.15
+            # Text coherence bonus
+            if coherence > 0.7:
+                score = min(1.0, score * 1.15)  # 15% bonus for high coherence
         
-        return min(score, 1.0)
+        return max(0.0, min(score, 1.0))
     
     def _categorize_quality(self, score: float) -> str:
         """Categorize quality score into human-readable categories."""

@@ -89,7 +89,7 @@ class ConfigurationRegistry:
         # n8n.io configuration (Material Design framework)
         n8n_config = DocumentationSiteConfig(
             domain="n8n.io",
-            content_selectors=["main.md-main", "article.md-content__inner"]
+            content_selectors=["main.md-main .md-content", "article.md-content__inner", "main.md-main"]
         )
         self._configs["n8n.io"] = n8n_config
         self._configs["docs.n8n.io"] = n8n_config

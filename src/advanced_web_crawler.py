@@ -15,13 +15,30 @@ Key Features:
 - Framework-specific CSS targeting
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 import asyncio
 import time
 import logging
 import re
+import json
 from dataclasses import dataclass
 from urllib.parse import urlparse
+
+# Import specific exception types for granular error handling
+try:
+    from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
+    from playwright._impl._errors import Error as PlaywrightError
+except ImportError:
+    PlaywrightTimeoutError = TimeoutError
+    PlaywrightError = Exception
+
+try:
+    import aiohttp
+    from aiohttp import ClientError, ClientTimeout, ClientConnectionError
+except ImportError:
+    ClientError = ConnectionError
+    ClientTimeout = TimeoutError  
+    ClientConnectionError = ConnectionError
 
 from crawl4ai import (
     AsyncWebCrawler,
@@ -80,6 +97,26 @@ except ImportError:
     ENHANCED_QUALITY_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class UnifiedQualityResult:
+    """Unified result from quality validation system with clear prioritization."""
+    
+    quality_score: float = 0.0
+    quality_passed: bool = False
+    validation_method: str = "none"  # "enhanced", "legacy", "disabled", "failed"
+    issues: List[str] = None
+    
+    # Enhanced quality metrics if available
+    enhanced_metrics: Optional['ContentQualityMetrics'] = None
+    
+    # Legacy validation result if available  
+    legacy_validation: Optional['QualityValidationResult'] = None
+    
+    def __post_init__(self):
+        if self.issues is None:
+            self.issues = []
 
 
 @dataclass 
@@ -168,17 +205,42 @@ class AdvancedWebCrawler:
             "[role='main']"  # Semantic main role
         ]
         
-        # Fallback CSS selectors for when primary extraction fails (from smart_crawler_factory)
+        # ENHANCED: 4-tier fallback selector hierarchy for robust content extraction
         self.fallback_css_selectors = [
-            # Primary content containers
-            "main, article, .content, .main-content, .documentation",
-            # Secondary content areas
-            ".docs-content, .page-content, [role='main']",
-            # Basic content divs
-            ".container .content, .wrapper .main, .page .content",
-            # Last resort - exclude obvious navigation
-            "body > :not(nav):not(header):not(footer):not(aside)"
+            # TIER 1: High-precision framework-specific selectors (if framework detection fails)
+            "main.md-main .md-content, .rm-Article .markdown-body, .gitbook-content .markdown-section, main.docMainContainer .markdown",
+            
+            # TIER 2: Standard semantic HTML5 containers  
+            "main article, article[role='main'], main[role='main'], [role='main'] article",
+            
+            # TIER 3: Common generic class names (ordered by specificity)
+            ".content, .main-content, .page-content, .docs-content, .documentation, .article-content",
+            
+            # TIER 4: Last resort with aggressive exclusion of navigation
+            "body > main, body > article, body > .content, body > div:not(.sidebar):not(.navigation):not(.nav):not(.menu):not(.header):not(.footer)"
         ]
+        
+        # Enhanced exclusion selectors for each tier
+        self.tier_exclusions = {
+            1: [  # Minimal exclusions for high-precision selectors
+                ".sidebar", ".navigation", ".nav", ".menu", ".breadcrumb"
+            ],
+            2: [  # Moderate exclusions for semantic selectors
+                ".sidebar", ".navigation", ".nav", ".menu", ".breadcrumb", 
+                ".toc", ".table-of-contents", ".pagination", "header", "footer"
+            ],
+            3: [  # More aggressive exclusions for generic selectors
+                ".sidebar", ".navigation", ".nav", ".menu", ".breadcrumb",
+                ".toc", ".table-of-contents", ".pagination", "header", "footer",
+                ".related", ".recommended", ".social", ".share", ".comments"
+            ],
+            4: [  # Very aggressive exclusions for last resort
+                ".sidebar", ".navigation", ".nav", ".menu", ".breadcrumb",
+                ".toc", ".table-of-contents", ".pagination", "header", "footer", 
+                ".related", ".recommended", ".social", ".share", ".comments",
+                "aside", ".widget", ".advertisement", ".ad", ".banner", ".promo"
+            ]
+        }
         
         # Elements to exclude (navigation, headers, footers, etc.)
         self.excluded_selectors = [
@@ -327,30 +389,56 @@ class AdvancedWebCrawler:
     
     def _create_fallback_config(self, attempt_number: int) -> CrawlerRunConfig:
         """
-        Create a fallback configuration for when primary extraction fails.
+        Create a tier-based fallback configuration for when primary extraction fails.
+        
+        Uses a 4-tier fallback hierarchy with progressively more aggressive exclusions:
+        - Tier 1: High-precision framework selectors with minimal exclusions
+        - Tier 2: Semantic HTML5 containers with moderate exclusions  
+        - Tier 3: Generic class names with aggressive exclusions
+        - Tier 4: Last resort with very aggressive exclusions
         
         Args:
             attempt_number: The attempt number (1-based)
             
         Returns:
-            Fallback CrawlerRunConfig
+            Tier-appropriate CrawlerRunConfig
         """
+        # Determine tier and selector
         if attempt_number <= len(self.fallback_css_selectors):
             css_selector = self.fallback_css_selectors[attempt_number - 1]
+            tier = attempt_number
         else:
-            # Last resort - basic content extraction
+            # Emergency fallback beyond tier 4
             css_selector = "body"
+            tier = 4
+            
+        # Get tier-appropriate exclusions
+        tier_exclusions = self.tier_exclusions.get(tier, self.tier_exclusions[4])
+        combined_exclusions = tier_exclusions + self.excluded_selectors
+        
+        # Adjust word count threshold based on tier (lower thresholds for more desperate attempts)
+        word_threshold = max(5, 20 - (tier * 3))  # 17, 14, 11, 8, then minimum 5
+        
+        # Create tier-specific excluded tags
+        if tier <= 2:
+            excluded_tags = ["script", "style", "noscript"]  # Minimal for precise selectors
+        elif tier == 3:
+            excluded_tags = ["nav", "script", "style", "noscript"]  # Add nav for generic
+        else:
+            excluded_tags = ["nav", "header", "footer", "aside", "script", "style", "noscript"]  # Aggressive
+        
+        logger.info(f"Creating Tier {tier} fallback config with {len(combined_exclusions)} exclusions, word threshold: {word_threshold}")
         
         return CrawlerRunConfig(
             # Use NoExtractionStrategy for consistent extraction
             extraction_strategy=NoExtractionStrategy(),
             
-            # Basic markdown generation for fallback
+            # Tier-optimized markdown generation
             markdown_generator=DefaultMarkdownGenerator(
                 options={
-                    'ignore_links': False,
+                    'ignore_links': tier >= 3,  # Preserve links in precise tiers, remove in desperate ones
                     'ignore_images': True,
-                    'protect_links': True,
+                    'protect_links': tier <= 2,  # Protect links only in precise tiers
                     'bodywidth': 0,
                     'escape_all': True,
                     'strip_html_tags': True,
@@ -362,10 +450,10 @@ class AdvancedWebCrawler:
             ),
             
             css_selector=css_selector,
-            excluded_tags=["nav", "header", "footer", "aside", "script", "style"],
-            excluded_selector=", ".join(self.excluded_selectors),
-            word_count_threshold=10,  # Lower threshold for fallback
-            exclude_external_links=True,
+            excluded_tags=excluded_tags,
+            excluded_selector=", ".join(combined_exclusions),
+            word_count_threshold=word_threshold,
+            exclude_external_links=tier >= 3,  # More aggressive link filtering in desperate tiers
             exclude_social_media_links=True,
             process_iframes=False,
             cache_mode=CacheMode.BYPASS
@@ -426,29 +514,93 @@ class AdvancedWebCrawler:
                     # Post-process the markdown to remove unwanted elements
                     cleaned_markdown = self._post_process_markdown(result.markdown)
                     
+                    # ENHANCED: Real-time selector validation (Task 20.4)
+                    tier = 0 if attempt == 1 else attempt - 1  # Primary = tier 0, fallbacks = tier 1-4
+                    is_valid_content, rt_quality_score, rt_suggestions = self._perform_real_time_selector_validation(
+                        cleaned_markdown, url, tier
+                    )
+                    
+                    # Log real-time validation results
+                    logger.info(f"Real-time validation (tier {tier}): valid={is_valid_content}, score={rt_quality_score:.3f}")
+                    for suggestion in rt_suggestions[:3]:  # Log first 3 suggestions
+                        logger.info(f"  Suggestion: {suggestion}")
+                    
                     # Enhanced quality validation if available
+                    enhanced_quality_metrics = None
                     if self.enable_enhanced_quality and self.enhanced_quality_analyzer and ENHANCED_QUALITY_AVAILABLE:
                         enhanced_quality_metrics = calculate_content_quality(cleaned_markdown)
                         
                         # Log quality metrics
                         log_quality_metrics(enhanced_quality_metrics, url, framework_detected)
                         
-                        # Check if quality is acceptable
-                        if not should_retry_extraction(enhanced_quality_metrics) or attempt >= self.max_fallback_attempts + 1:
+                        # Combine real-time validation with enhanced quality metrics
+                        should_retry_enhanced = should_retry_extraction(enhanced_quality_metrics)
+                        combined_should_retry = (not is_valid_content) or should_retry_enhanced
+                        
+                        logger.info(f"Combined validation: real-time={is_valid_content}, enhanced={not should_retry_enhanced}, overall={'ACCEPT' if not combined_should_retry else 'RETRY'}")
+                        
+                        # Check if quality is acceptable (both real-time and enhanced must pass)
+                        if not combined_should_retry or attempt >= self.max_fallback_attempts + 1:
                             # Quality is acceptable or we've exhausted attempts
                             break
                         else:
-                            logger.info(f"Quality too low for {url}, trying fallback approach")
+                            logger.info(f"Quality validation failed for {url}, trying tier {attempt} fallback")
                             # Store this result in case fallbacks also fail
                             if best_result is None:
-                                best_result = (result, cleaned_markdown, enhanced_quality_metrics)
+                                best_result = (result, cleaned_markdown, enhanced_quality_metrics, rt_quality_score)
                             continue
                     else:
-                        # Use basic quality validation or accept first successful result
-                        break
+                        # Use only real-time validation if enhanced quality not available
+                        if is_valid_content or attempt >= self.max_fallback_attempts + 1:
+                            # Real-time validation passed or we've exhausted attempts
+                            break
+                        else:
+                            logger.info(f"Real-time validation failed for {url}, trying tier {attempt} fallback")
+                            # Store this result in case fallbacks also fail
+                            if best_result is None:
+                                best_result = (result, cleaned_markdown, None, rt_quality_score)
+                            continue
                         
+                except PlaywrightTimeoutError as e:
+                    self._log_structured("warning", "Playwright timeout during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="timeout", should_retry=True)
+                    continue
+                except PlaywrightError as e:
+                    self._log_structured("error", "Playwright error during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="browser", should_retry=True)
+                    continue
+                except ClientConnectionError as e:
+                    self._log_structured("warning", "Network connection error during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="network", should_retry=True)
+                    continue
+                except ClientTimeout as e:
+                    self._log_structured("warning", "Network timeout during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="timeout", should_retry=True)
+                    continue
+                except ClientError as e:
+                    self._log_structured("warning", "HTTP client error during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="http", should_retry=True)
+                    continue
+                except ValueError as e:
+                    self._log_structured("error", "Data validation error during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="validation", should_retry=True)
+                    continue
+                except KeyError as e:
+                    self._log_structured("error", "Missing required data during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="data", should_retry=True)
+                    continue
                 except Exception as e:
-                    logger.error(f"Extraction attempt {attempt} failed for {url}: {str(e)}")
+                    # Fallback for unexpected errors
+                    self._log_structured("error", "Unexpected error during extraction", 
+                                       url=url, attempt=attempt, exception=e,
+                                       error_category="unexpected", should_retry=True)
                     continue
             
             extraction_time_ms = (time.time() - start_time) * 1000
@@ -462,26 +614,18 @@ class AdvancedWebCrawler:
                 content_ratio = self._calculate_content_ratio(cleaned_markdown)
                 has_dynamic = self._detect_dynamic_content_indicators(cleaned_markdown)
                 
-                # Legacy quality validation if enabled
-                quality_validation = None
-                quality_passed = True
-                quality_score = 1.0
+                # Unified quality validation with clear prioritization
+                unified_quality = self._perform_unified_quality_validation(cleaned_markdown, url, enhanced_quality_metrics)
                 
-                if self.enable_quality_validation and self.quality_validator:
-                    logger.info(f"Running legacy quality validation for {url}")
-                    quality_validation = self.quality_validator.validate_content(cleaned_markdown, url)
-                    quality_passed = quality_validation.passed
-                    quality_score = quality_validation.score
-                    
-                    if not quality_passed:
-                        logger.warning(f"Legacy quality validation failed for {url}: {', '.join(quality_validation.issues)}")
-                    else:
-                        logger.info(f"Legacy quality validation passed for {url}: {quality_validation.category} ({quality_score:.3f})")
+                # Extract results from unified validation
+                quality_score = unified_quality.quality_score
+                quality_passed = unified_quality.quality_passed
+                quality_validation = unified_quality.legacy_validation  # For backward compatibility
                 
-                # Use enhanced quality score if available
-                if enhanced_quality_metrics:
-                    quality_score = enhanced_quality_metrics.overall_quality_score
-                    quality_passed = not enhanced_quality_metrics.should_retry_with_fallback
+                # Log final quality decision
+                logger.info(f"Quality validation complete: method={unified_quality.validation_method}, score={quality_score:.3f}, passed={quality_passed}")
+                if unified_quality.issues:
+                    logger.warning(f"Quality issues found: {', '.join(unified_quality.issues)}")
                 
                 logger.info(f"Successfully extracted {word_count} words from {url} in {extraction_time_ms:.1f}ms (attempts: {extraction_attempts}, fallback: {used_fallback})")
                 
@@ -504,13 +648,24 @@ class AdvancedWebCrawler:
                 error_msg = "Failed to extract content with acceptable quality"
                 if best_result:
                     # Use best available result if we have one
-                    result, cleaned_markdown, enhanced_quality_metrics = best_result
+                    # Handle both old format (3 items) and new format (4 items) for compatibility
+                    if len(best_result) == 4:
+                        result, cleaned_markdown, enhanced_quality_metrics, rt_quality_score = best_result
+                    else:
+                        result, cleaned_markdown, enhanced_quality_metrics = best_result
+                        rt_quality_score = 0.0
+                        
                     word_count = len(cleaned_markdown.split())
                     title = self._extract_title_from_markdown(cleaned_markdown)
                     content_ratio = self._calculate_content_ratio(cleaned_markdown)
                     has_dynamic = self._detect_dynamic_content_indicators(cleaned_markdown)
                     
-                    logger.warning(f"Using best available result for {url} with low quality")
+                    # Use real-time quality score if available, otherwise fall back to enhanced metrics
+                    final_quality_score = rt_quality_score if rt_quality_score > 0 else (
+                        enhanced_quality_metrics.overall_quality_score if enhanced_quality_metrics else 0.0
+                    )
+                    
+                    logger.warning(f"Using best available result for {url} with low quality (score: {final_quality_score:.3f})")
                     return AdvancedCrawlResult(
                         url=url,
                         markdown=cleaned_markdown,
@@ -523,7 +678,7 @@ class AdvancedWebCrawler:
                         has_dynamic_content=has_dynamic,
                         quality_validation=None,
                         quality_passed=False,
-                        quality_score=enhanced_quality_metrics.overall_quality_score if enhanced_quality_metrics else 0.0
+                        quality_score=final_quality_score
                     )
                 else:
                     logger.warning(f"Failed to crawl {url}: {error_msg}")
@@ -535,16 +690,59 @@ class AdvancedWebCrawler:
                         extraction_time_ms=extraction_time_ms
                     )
                 
-        except Exception as e:
+        except PlaywrightTimeoutError as e:
             extraction_time_ms = (time.time() - start_time) * 1000
-            error_msg = f"Crawling error: {str(e)}"
-            logger.error(f"Error crawling {url}: {error_msg}")
+            error_msg = f"Browser timeout: {str(e)}"
+            self._log_structured("error", "Top-level browser timeout", 
+                               url=url, exception=e, error_category="timeout",
+                               extraction_time_ms=extraction_time_ms, should_retry=False)
             
             return AdvancedCrawlResult(
-                url=url,
-                markdown="",
-                success=False,
-                error_message=error_msg,
+                url=url, markdown="", success=False, error_message=error_msg,
+                extraction_time_ms=extraction_time_ms
+            )
+        except PlaywrightError as e:
+            extraction_time_ms = (time.time() - start_time) * 1000
+            error_msg = f"Browser error: {str(e)}"
+            self._log_structured("error", "Top-level browser error", 
+                               url=url, exception=e, error_category="browser",
+                               extraction_time_ms=extraction_time_ms, should_retry=False)
+            
+            return AdvancedCrawlResult(
+                url=url, markdown="", success=False, error_message=error_msg,
+                extraction_time_ms=extraction_time_ms
+            )
+        except (ClientConnectionError, ClientTimeout, ClientError) as e:
+            extraction_time_ms = (time.time() - start_time) * 1000
+            error_msg = f"Network error: {str(e)}"
+            self._log_structured("error", "Top-level network error", 
+                               url=url, exception=e, error_category="network",
+                               extraction_time_ms=extraction_time_ms, should_retry=True)
+            
+            return AdvancedCrawlResult(
+                url=url, markdown="", success=False, error_message=error_msg,
+                extraction_time_ms=extraction_time_ms
+            )
+        except (ValueError, KeyError, AttributeError) as e:
+            extraction_time_ms = (time.time() - start_time) * 1000
+            error_msg = f"Data processing error: {str(e)}"
+            self._log_structured("error", "Top-level data processing error", 
+                               url=url, exception=e, error_category="data",
+                               extraction_time_ms=extraction_time_ms, should_retry=False)
+            
+            return AdvancedCrawlResult(
+                url=url, markdown="", success=False, error_message=error_msg,
+                extraction_time_ms=extraction_time_ms
+            )
+        except Exception as e:
+            extraction_time_ms = (time.time() - start_time) * 1000
+            error_msg = f"Unexpected crawling error: {str(e)}"
+            self._log_structured("error", "Top-level unexpected error", 
+                               url=url, exception=e, error_category="unexpected",
+                               extraction_time_ms=extraction_time_ms, should_retry=False)
+            
+            return AdvancedCrawlResult(
+                url=url, markdown="", success=False, error_message=error_msg,
                 extraction_time_ms=extraction_time_ms
             )
             
@@ -601,6 +799,233 @@ class AdvancedWebCrawler:
         
         markdown_lower = markdown.lower()
         return any(indicator in markdown_lower for indicator in dynamic_indicators)
+    
+    def _log_structured(self, level: str, message: str, url: str = None, attempt: int = None, exception: Exception = None, **extra_context):
+        """
+        Create structured JSON log entries with consistent context.
+        
+        Args:
+            level: Log level (info, warning, error, debug)
+            message: Human readable message
+            url: URL being processed (if applicable)
+            attempt: Attempt number (if applicable) 
+            exception: Exception object (if applicable)
+            **extra_context: Additional context fields
+        """
+        # Create structured log entry
+        log_data = {
+            "message": message,
+            "timestamp": time.time(),
+        }
+        
+        # Add context if provided
+        if url:
+            log_data["url"] = url
+            log_data["domain"] = urlparse(url).netloc
+        if attempt is not None:
+            log_data["attempt"] = attempt
+        if exception:
+            log_data["exception"] = {
+                "type": type(exception).__name__,
+                "message": str(exception),
+                "module": getattr(exception, "__module__", "unknown")
+            }
+        
+        # Add any additional context
+        log_data.update(extra_context)
+        
+        # Log with appropriate level
+        log_method = getattr(logger, level.lower(), logger.info)
+        log_method(json.dumps(log_data, default=str))
+    
+    def _perform_unified_quality_validation(self, markdown: str, url: str, enhanced_quality_metrics: Optional['ContentQualityMetrics'] = None) -> UnifiedQualityResult:
+        """
+        Perform unified quality validation with clear prioritization.
+        
+        Priority order:
+        1. Enhanced quality system (if available and metrics provided)
+        2. Legacy quality validation (if enabled and available) 
+        3. Disabled validation (pass-through)
+        4. Failed validation (fail-closed)
+        
+        Args:
+            markdown: The content to validate
+            url: The URL being validated (for logging)
+            enhanced_quality_metrics: Pre-calculated enhanced quality metrics if available
+            
+        Returns:
+            UnifiedQualityResult with clear validation outcome and method used
+        """
+        logger.debug(f"Starting unified quality validation for {url}")
+        
+        # Priority 1: Enhanced quality system
+        if enhanced_quality_metrics and ENHANCED_QUALITY_AVAILABLE:
+            logger.info(f"Using enhanced quality validation for {url}")
+            quality_score = enhanced_quality_metrics.overall_quality_score
+            quality_passed = not enhanced_quality_metrics.should_retry_with_fallback
+            
+            # Log enhanced quality decision
+            logger.info(f"Enhanced quality: score={quality_score:.3f}, passed={quality_passed}")
+            
+            return UnifiedQualityResult(
+                quality_score=quality_score,
+                quality_passed=quality_passed,
+                validation_method="enhanced",
+                enhanced_metrics=enhanced_quality_metrics,
+                issues=[] if quality_passed else ["Enhanced quality metrics suggest retry needed"]
+            )
+        
+        # Priority 2: Legacy quality validation
+        if self.enable_quality_validation and self.quality_validator and QUALITY_VALIDATION_AVAILABLE:
+            logger.info(f"Using legacy quality validation for {url}")
+            legacy_validation = self.quality_validator.validate_content(markdown, url)
+            
+            # Log legacy quality decision
+            logger.info(f"Legacy quality: score={legacy_validation.score:.3f}, passed={legacy_validation.passed}")
+            if not legacy_validation.passed:
+                logger.warning(f"Legacy quality validation failed: {', '.join(legacy_validation.issues)}")
+            
+            return UnifiedQualityResult(
+                quality_score=legacy_validation.score,
+                quality_passed=legacy_validation.passed,
+                validation_method="legacy",
+                legacy_validation=legacy_validation,
+                issues=legacy_validation.issues
+            )
+        
+        # Priority 3: Validation explicitly disabled
+        if not self.enable_quality_validation:
+            logger.info(f"Quality validation disabled for {url} - accepting content")
+            return UnifiedQualityResult(
+                quality_score=1.0,
+                quality_passed=True,
+                validation_method="disabled",
+                issues=[]
+            )
+        
+        # Priority 4: Validation enabled but failed/unavailable (fail-closed)
+        logger.warning(f"Quality validation enabled but unavailable for {url} - failing closed")
+        return UnifiedQualityResult(
+            quality_score=0.0,
+            quality_passed=False,
+            validation_method="failed",
+            issues=["Quality validation system enabled but not available"]
+        )
+    
+    def _perform_real_time_selector_validation(self, markdown: str, url: str, tier: int = 0) -> Tuple[bool, float, List[str]]:
+        """
+        Perform real-time validation to determine if the selected content is navigation vs. main content.
+        
+        This function implements the specific validation criteria from Task 20.4:
+        - Link density validation (flag if link/word ratio > 0.4)
+        - Average text length validation for list items
+        - Navigation keyword detection
+        - Text-to-tag ratio analysis
+        
+        Args:
+            markdown: Extracted markdown content to validate
+            url: URL being crawled (for logging)
+            tier: Fallback tier being used (0 = primary, 1-4 = fallback tiers)
+            
+        Returns:
+            Tuple of (is_valid_content, quality_score, improvement_suggestions)
+        """
+        
+        if not markdown or len(markdown.strip()) < 10:
+            return False, 0.0, ["Content is too short or empty"]
+        
+        suggestions = []
+        quality_score = 1.0  # Start with perfect score, apply penalties
+        
+        # 1. LINK DENSITY VALIDATION (Task 20.4 requirement)
+        words = len(markdown.split())
+        links = re.findall(r'\[([^\]]*)\]\([^)]*\)', markdown)
+        link_density = len(links) / words if words > 0 else 0
+        
+        if link_density > 0.4:  # Critical threshold from task
+            quality_score *= 0.1  # 90% penalty - almost certainly navigation
+            suggestions.append(f"Critical: Link density {link_density:.3f} > 0.4 indicates navigation content")
+        elif link_density > 0.25:
+            quality_score *= 0.3  # 70% penalty
+            suggestions.append(f"High link density {link_density:.3f} suggests navigation elements")
+        elif link_density > 0.15:
+            quality_score *= 0.6  # 40% penalty  
+            suggestions.append(f"Moderate link density {link_density:.3f} may include navigation")
+        
+        # 2. NAVIGATION KEYWORD DETECTION (Task 20.4 requirement)
+        nav_keywords = ['next', 'previous', 'prev', 'home', 'back', 'menu', 'navigation', 'nav', 
+                       'breadcrumb', 'sidebar', 'toc', 'table of contents', 'edit', 'edit page']
+        
+        markdown_lower = markdown.lower()
+        nav_keyword_count = sum(markdown_lower.count(keyword) for keyword in nav_keywords)
+        nav_keyword_density = nav_keyword_count / words if words > 0 else 0
+        
+        if nav_keyword_density > 0.05:  # >5% navigation keywords
+            quality_score *= 0.2  # 80% penalty
+            suggestions.append(f"High navigation keyword density {nav_keyword_density:.3f} indicates navigation content")
+        elif nav_keyword_density > 0.02:  # >2% navigation keywords
+            quality_score *= 0.5  # 50% penalty
+            suggestions.append(f"Moderate navigation keywords detected {nav_keyword_density:.3f}")
+        
+        # 3. AVERAGE TEXT LENGTH VALIDATION FOR LIST ITEMS (Task 20.4 requirement)
+        list_items = re.findall(r'^\s*[-*+]\s+(.+)$', markdown, re.MULTILINE)
+        if list_items:
+            avg_list_item_length = sum(len(item.split()) for item in list_items) / len(list_items)
+            
+            if avg_list_item_length < 3:  # Very short list items likely navigation
+                quality_score *= 0.15  # 85% penalty
+                suggestions.append(f"List items too short (avg {avg_list_item_length:.1f} words) - likely navigation")
+            elif avg_list_item_length < 5:  # Short list items suspicious
+                quality_score *= 0.4  # 60% penalty
+                suggestions.append(f"Short list items (avg {avg_list_item_length:.1f} words) may be navigation")
+        
+        # 4. TEXT-TO-TAG RATIO ANALYSIS (Task 20.4 requirement)
+        # Count markdown formatting tags vs plain text
+        markdown_tags = len(re.findall(r'[#*`\[\]()_~]', markdown))
+        plain_chars = len(re.sub(r'[#*`\[\]()_~]', '', markdown))
+        tag_ratio = markdown_tags / (plain_chars + markdown_tags) if (plain_chars + markdown_tags) > 0 else 0
+        
+        if tag_ratio > 0.3:  # >30% formatting suggests navigation/links
+            quality_score *= 0.3  # 70% penalty
+            suggestions.append(f"High tag-to-text ratio {tag_ratio:.3f} indicates link-heavy navigation")
+        elif tag_ratio > 0.2:  # >20% formatting
+            quality_score *= 0.6  # 40% penalty
+            suggestions.append(f"Moderate tag-to-text ratio {tag_ratio:.3f}")
+        
+        # 5. REPETITIVE PATTERN DETECTION
+        lines = [line.strip() for line in markdown.split('\n') if line.strip()]
+        if len(lines) > 5:
+            # Check for repetitive short lines (breadcrumbs, navigation)
+            short_lines = [line for line in lines if len(line.split()) <= 4]
+            short_line_ratio = len(short_lines) / len(lines)
+            
+            if short_line_ratio > 0.7:  # >70% short lines
+                quality_score *= 0.15  # 85% penalty
+                suggestions.append(f"High ratio of short lines {short_line_ratio:.3f} indicates navigation")
+            elif short_line_ratio > 0.5:  # >50% short lines
+                quality_score *= 0.4  # 60% penalty
+                suggestions.append(f"Many short lines {short_line_ratio:.3f} may indicate navigation")
+        
+        # 6. MINIMUM WORD COUNT WITH TIER-BASED THRESHOLDS
+        min_words_by_tier = {0: 50, 1: 40, 2: 30, 3: 20, 4: 15}  # Lower thresholds for fallback tiers
+        min_words = min_words_by_tier.get(tier, 15)
+        
+        if words < min_words:
+            quality_score *= 0.2  # 80% penalty for insufficient content
+            suggestions.append(f"Word count {words} below tier {tier} minimum of {min_words}")
+        
+        # Determine if content should be accepted
+        # Use tier-based quality thresholds (more lenient for fallback tiers)
+        tier_thresholds = {0: 0.6, 1: 0.5, 2: 0.4, 3: 0.3, 4: 0.2}
+        threshold = tier_thresholds.get(tier, 0.3)
+        
+        is_valid = quality_score >= threshold
+        
+        logger.info(f"Real-time validation for {url} (tier {tier}): quality={quality_score:.3f}, threshold={threshold}, valid={is_valid}")
+        if not is_valid:
+            logger.warning(f"Validation failed - link_density={link_density:.3f}, nav_keywords={nav_keyword_count}, words={words}")
+        
+        return is_valid, quality_score, suggestions
 
     def _post_process_markdown(self, markdown: str) -> str:
         """
@@ -797,8 +1222,18 @@ async def _crawl_sitemap_advanced(sitemap_url: str, **kwargs) -> List[AdvancedCr
             limited_urls = urls[:50]
             results = await batch_crawl_advanced(limited_urls, max_concurrent, **kwargs)
         
+    except ClientConnectionError as e:
+        logger.error(f"Network connection error downloading sitemap {sitemap_url}: {str(e)}")
+    except ClientTimeout as e:
+        logger.error(f"Timeout downloading sitemap {sitemap_url}: {str(e)}")
+    except ClientError as e:
+        logger.error(f"HTTP error downloading sitemap {sitemap_url}: {str(e)}")
+    except ET.ParseError as e:
+        logger.error(f"XML parsing error for sitemap {sitemap_url}: {str(e)}")
+    except ValueError as e:
+        logger.error(f"Data validation error for sitemap {sitemap_url}: {str(e)}")
     except Exception as e:
-        logger.error(f"Error crawling sitemap {sitemap_url}: {str(e)}")
+        logger.error(f"Unexpected error crawling sitemap {sitemap_url}: {str(e)}")
     
     return results
 
@@ -833,7 +1268,17 @@ async def _crawl_text_file_advanced(text_file_url: str, **kwargs) -> List[Advanc
             limited_urls = urls[:50]
             results = await batch_crawl_advanced(limited_urls, max_concurrent, **kwargs)
         
+    except ClientConnectionError as e:
+        logger.error(f"Network connection error downloading text file {text_file_url}: {str(e)}")
+    except ClientTimeout as e:
+        logger.error(f"Timeout downloading text file {text_file_url}: {str(e)}")
+    except ClientError as e:
+        logger.error(f"HTTP error downloading text file {text_file_url}: {str(e)}")
+    except UnicodeDecodeError as e:
+        logger.error(f"Text encoding error for file {text_file_url}: {str(e)}")
+    except ValueError as e:
+        logger.error(f"Data validation error for text file {text_file_url}: {str(e)}")
     except Exception as e:
-        logger.error(f"Error crawling text file {text_file_url}: {str(e)}")
+        logger.error(f"Unexpected error crawling text file {text_file_url}: {str(e)}")
     
     return results

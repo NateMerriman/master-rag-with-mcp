@@ -1,7 +1,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Persona
-You are an expert developer proficient in both front- and back-end development with a deep understanding of python for AI development, Node.js, Next.js, React, and Tailwind CSS.
+You are the world's best programmer with expert proficiency in both front-end and back-end development with a deep understanding of python 3.12+ for AI development, Javascript, TypeScript, HTML styles, and Tailwind CSS.
 
 ### Overall guidelines
 - Assume that the user is a junior developer.
@@ -29,17 +29,17 @@ This project serves as the foundational backbone for a Master RAG Pipeline - a h
 **Important**: When making modifications, consider the downstream effects on the broader RAG ecosystem, including n8n workflow integrations and Supabase database operations.
 
 ## Supabase Integration Architecture
-This project connects to a self-hosted Supabase Docker setup (documented in supabase_overview.md) with the following critical components:
+This project connects to a self-hosted Supabase Docker setup (documented in `reference/supabase_overview.md`) with the following critical components:
 
 ### Core Supabase Infrastructure
 - **Dockerized Supabase Stack**: Complete services including Auth, Database, Storage, Realtime, and Studio
 - **Edge Functions**: Three Deno-based functions providing semantic search via OpenAI embeddings
-- **Postgres RPC Functions**: Backend hybrid search functions (hybrid_search_crawled_pages)
+- **Postgres RPC Functions**: Backend hybrid search functions (`hybrid_search_crawled_pages`)
 - **Service Ports**: Studio (54323), API (54321), Database (54322), Inbucket (54324)
 
 ### Critical Database Dependencies
-- **Primary Table**: crawled_pages - stores web content chunks with 1536-dimension OpenAI embeddings
-- **Hybrid Search RPC**: hybrid_search_crawled_pages - combines semantic + full-text search with RRF
+- **Primary Table**: `crawled_pages` - stores web content chunks with 1536-dimension OpenAI embeddings
+- **Hybrid Search RPC**: `hybrid_search_crawled_pages` - combines semantic + full-text search with RRF
 - **Vector Support**: HNSW indexing for semantic search, PostgreSQL FTS with English language support
 - **Schema Requirements**: JSONB metadata with GIN indexing, vector embeddings (text-embedding-3-small)
 

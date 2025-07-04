@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "crawl4ai-mcp"
 version = "0.1.0"
@@ -16,6 +20,16 @@ dependencies = [
     "sentence-transformers>=3.0.0",
     "pydantic>=2.11.4",
 ]
+
+[project.scripts]
+crawl4ai-mcp = "src.crawl4ai_mcp:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.sql"]
 
 [dependency-groups]
 dev = [

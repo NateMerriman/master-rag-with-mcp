@@ -1,0 +1,322 @@
+{
+  "test_results": [
+    {
+      "test_case": {
+        "test_id": "n8n_glossary_main",
+        "url": "https://docs.n8n.io/glossary/",
+        "description": "N8N.io main glossary page with comprehensive definitions",
+        "page_type": "glossary",
+        "site_framework": "material_design",
+        "content_assertions": {
+          "required_headings": [
+            "Glossary",
+            "Workflow",
+            "Node",
+            "Execution",
+            "Connection",
+            "Trigger"
+          ],
+          "required_text_fragments": [
+            "A workflow is a collection of nodes",
+            "Nodes are the building blocks",
+            "execution of a workflow",
+            "trigger node starts",
+            "connection links nodes"
+          ],
+          "required_keywords": [
+            "workflow",
+            "node",
+            "execution",
+            "trigger",
+            "connection",
+            "data",
+            "automation"
+          ],
+          "required_code_blocks": 0,
+          "required_links": null,
+          "forbidden_navigation_terms": [
+            "Skip to content",
+            "Main navigation",
+            "Table of contents",
+            "Previous page",
+            "Next page",
+            "Edit on GitHub"
+          ],
+          "forbidden_ui_elements": [
+            "sidebar",
+            "menu",
+            "breadcrumb",
+            "navigation",
+            "header",
+            "footer",
+            "skip",
+            "toggle"
+          ],
+          "max_navigation_density": 0.2,
+          "min_quality_score": 0.8,
+          "max_quality_score": 1.0,
+          "min_word_count": 1000,
+          "min_content_to_nav_ratio": 0.8,
+          "max_extraction_time_ms": 5000,
+          "expected_framework": "material_design"
+        },
+        "priority": "critical",
+        "timeout_ms": 30000,
+        "retry_attempts": 2
+      },
+      "overall_passed": false,
+      "test_timestamp": "2025-07-03T16:29:20.128824",
+      "crawl_success": true,
+      "crawl_result": {
+        "url": "https://docs.n8n.io/glossary/",
+        "markdown": "# Glossary\n#### AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> \"Permanent link\")\nAI agents are artificial intelligence systems capable of responding to requests, making decisions, and performing real-world tasks for users. They use large language models (LLMs) to interpret user input and make decisions about how to best process requests using the information and resources they have available.\n#### AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> \"Permanent link\")\nAI chains allow you to interact with large language models (LLMs) and other resources in sequences of calls to components. AI chains in n8n don't use persistent memory, so you can't use them to reference previous context (use AI agents for this).\n#### AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> \"Permanent link\")\nEmbeddings are numerical representations of data using vectors. They're used by AI to interpret complex data and relationships by mapping values across many dimensions. Vector databases, or vector stores, are databases designed to store and access embeddings.\n#### AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> \"Permanent link\")\nIn AI, and specifically in retrieval-augmented generation (RAG) contexts, groundedness and ungroundedness are measures of how much a model's responses accurately reflect source information. The model uses its source documents to generate grounded responses, while ungrounded responses involve speculation or hallucination unsupported by those same sources.\n#### AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> \"Permanent link\")\nReranking is a technique that refines the order of a list of candidate documents to improve the relevance of search results. Retrieval-Augmented Generation (RAG) and other applications use reranking to prioritize the most relevant information for generation or downstream tasks.\n#### AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> \"Permanent link\")\nIn an AI context, memory allows AI tools to persist message context across interactions. This allows you to have a continuing conversations with AI agents, for example, without submitting ongoing context with each message. In n8n, AI agent nodes can use memory, but AI chains can't.\n#### AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> \"Permanent link\")\nRetrieval-augmented generation, or RAG, is a technique for providing LLMs access to new information from external sources to improve AI responses. RAG systems retrieve relevant documents to ground responses in up-to-date, domain-specific, or proprietary knowledge to supplement their original training data. RAG systems often rely on vector stores to manage and search this external data efficiently.\n#### AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> \"Permanent link\")\nIn an AI context, a tool is an add-on resource that the AI can refer to for specific information or functionality when responding to a request. The AI model can use a tool to interact with external systems or complete specific, focused tasks.\n#### AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> \"Permanent link\")\nVector stores, or vector databases, are databases designed to store numerical representations of information called embeddings.\n#### API[#](https://docs.n8n.io/glossary/<#api> \"Permanent link\")\nAPIs, or application programming interfaces, offer programmatic access to a service's data and functionality. APIs make it easier for software to interact with external systems. They're often offered as an alternative to traditional user-focused interfaces accessed through web browsers or UI.\n#### canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> \"Permanent link\")\nThe canvas is the main interface for building workflows in n8n's editor UI. You use the canvas to add and connect nodes to compose workflows.\n#### cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> \"Permanent link\")\nIn n8n, cluster nodes are groups of nodes that work together to provide functionality in a workflow. They consist of a root node and one or more sub nodes that extend the node's functionality.\n#### credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> \"Permanent link\")\nIn n8n, credentials store authentication information to connect with specific apps and services. After creating credentials with your authentication information (username and password, API key, OAuth secrets, etc.), you can use the associated app node to interact with the service.\n#### data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> \"Permanent link\")\nData pinning allows you to temporarily freeze the output data of a node during workflow development. This allows you to develop workflows with predictable data without making repeated requests to external services. Production workflows ignore pinned data and request new data on each execution.\n#### editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> \"Permanent link\")\nThe n8n editor UI allows you to create and manage workflows. The main area is the canvas, where you can compose workflows by adding, configuring, and connecting nodes. The side and top panels allow you to access other areas of the UI like credentials, templates, variables, executions, and more.\n#### entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> \"Permanent link\")\nIn n8n, entitlements grant n8n instances access to plan-restricted features for a specific period of time.\nFloating entitlements are a pool of entitlements that you can distribute among various n8n instances. You can re-assign a floating entitlement to transfer its access to a different n8n instance.\n#### evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> \"Permanent link\")\nIn n8n, evaluation allows you to tag and organize execution history and compare it against new executions. You can use this to understand how your workflow performs over time as you make changes. In particular, this is useful while developing AI-centered workflows.\n#### expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> \"Permanent link\")\nIn n8n, expressions allow you to populate node parameters dynamically by executing JavaScript code. Instead of providing a static value, you can use the n8n expression syntax to define the value using data from previous nodes, other workflows, or your n8n environment.\n#### LangChain[#](https://docs.n8n.io/glossary/<#langchain> \"Permanent link\")\nLangChain is an AI-development framework used to work with large language models (LLMs). LangChain provides a standardized system for working with a wide variety of models and other resources and linking different components together to build complex applications.\n#### Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> \"Permanent link\")\nLarge language models, or LLMs, are AI machine learning models designed to excel in natural language processing (NLP) tasks. They're built by training on large amounts of data to develop probabilistic models of language and other data.\n#### node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> \"Permanent link\")\nIn n8n, nodes are individual components that you compose to create workflows. Nodes define when the workflow should run, allow you to fetch, send, and process data, can define flow control logic, and connect with external services.\n#### project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> \"Permanent link\")\nn8n projects allow you to separate workflows, variables, and credentials into separate groups for easier management. Projects make it easier for teams to collaborate by sharing and compartmentalizing related resources.\n#### root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> \"Permanent link\")\nEach n8n cluster node contains a single root nodes that defines the main functionality of the cluster. One or more sub nodes attach to the root node to extend its functionality.\n#### sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> \"Permanent link\")\nn8n cluster nodes consist of one or more sub nodes connected to a root node. Sub nodes extend the functionality of the root node, providing access to specific services or resources or offering specific types of dedicated processing, like calculator functionality, for example.\n#### template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> \"Permanent link\")\nn8n templates are pre-built workflows designed by n8n and community members that you can import into your n8n instance. When using templates, you may need to fill in credentials and adjust the configuration to suit your needs.\n#### trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> \"Permanent link\")\nA trigger node is a special node responsible for executing the workflow in response to certain conditions. All production workflows need at least one trigger to determine when the workflow should run.\n#### workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> \"Permanent link\")\nAn n8n workflow is a collection of nodes that automate a process. Workflows begin execution when a trigger condition occurs and execute sequentially to achieve complex tasks.\nWas this page helpful? \nThanks for your feedback! \nThanks for your feedback! Help us improve this page by submitting an issue or a fix in our [GitHub repo](https://docs.n8n.io/glossary/<https:/github.com/n8n-io/n8n-docs>). \n# Glossary\n#### AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> \"Permanent link\")\nAI agents are artificial intelligence systems capable of responding to requests, making decisions, and performing real-world tasks for users. They use large language models (LLMs) to interpret user input and make decisions about how to best process requests using the information and resources they have available.\n#### AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> \"Permanent link\")\nAI chains allow you to interact with large language models (LLMs) and other resources in sequences of calls to components. AI chains in n8n don't use persistent memory, so you can't use them to reference previous context (use AI agents for this).\n#### AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> \"Permanent link\")\nEmbeddings are numerical representations of data using vectors. They're used by AI to interpret complex data and relationships by mapping values across many dimensions. Vector databases, or vector stores, are databases designed to store and access embeddings.\n#### AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> \"Permanent link\")\nIn AI, and specifically in retrieval-augmented generation (RAG) contexts, groundedness and ungroundedness are measures of how much a model's responses accurately reflect source information. The model uses its source documents to generate grounded responses, while ungrounded responses involve speculation or hallucination unsupported by those same sources.\n#### AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> \"Permanent link\")\nReranking is a technique that refines the order of a list of candidate documents to improve the relevance of search results. Retrieval-Augmented Generation (RAG) and other applications use reranking to prioritize the most relevant information for generation or downstream tasks.\n#### AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> \"Permanent link\")\nIn an AI context, memory allows AI tools to persist message context across interactions. This allows you to have a continuing conversations with AI agents, for example, without submitting ongoing context with each message. In n8n, AI agent nodes can use memory, but AI chains can't.\n#### AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> \"Permanent link\")\nRetrieval-augmented generation, or RAG, is a technique for providing LLMs access to new information from external sources to improve AI responses. RAG systems retrieve relevant documents to ground responses in up-to-date, domain-specific, or proprietary knowledge to supplement their original training data. RAG systems often rely on vector stores to manage and search this external data efficiently.\n#### AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> \"Permanent link\")\nIn an AI context, a tool is an add-on resource that the AI can refer to for specific information or functionality when responding to a request. The AI model can use a tool to interact with external systems or complete specific, focused tasks.\n#### AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> \"Permanent link\")\nVector stores, or vector databases, are databases designed to store numerical representations of information called embeddings.\n#### API[#](https://docs.n8n.io/glossary/<#api> \"Permanent link\")\nAPIs, or application programming interfaces, offer programmatic access to a service's data and functionality. APIs make it easier for software to interact with external systems. They're often offered as an alternative to traditional user-focused interfaces accessed through web browsers or UI.\n#### canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> \"Permanent link\")\nThe canvas is the main interface for building workflows in n8n's editor UI. You use the canvas to add and connect nodes to compose workflows.\n#### cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> \"Permanent link\")\nIn n8n, cluster nodes are groups of nodes that work together to provide functionality in a workflow. They consist of a root node and one or more sub nodes that extend the node's functionality.\n#### credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> \"Permanent link\")\nIn n8n, credentials store authentication information to connect with specific apps and services. After creating credentials with your authentication information (username and password, API key, OAuth secrets, etc.), you can use the associated app node to interact with the service.\n#### data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> \"Permanent link\")\nData pinning allows you to temporarily freeze the output data of a node during workflow development. This allows you to develop workflows with predictable data without making repeated requests to external services. Production workflows ignore pinned data and request new data on each execution.\n#### editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> \"Permanent link\")\nThe n8n editor UI allows you to create and manage workflows. The main area is the canvas, where you can compose workflows by adding, configuring, and connecting nodes. The side and top panels allow you to access other areas of the UI like credentials, templates, variables, executions, and more.\n#### entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> \"Permanent link\")\nIn n8n, entitlements grant n8n instances access to plan-restricted features for a specific period of time.\nFloating entitlements are a pool of entitlements that you can distribute among various n8n instances. You can re-assign a floating entitlement to transfer its access to a different n8n instance.\n#### evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> \"Permanent link\")\nIn n8n, evaluation allows you to tag and organize execution history and compare it against new executions. You can use this to understand how your workflow performs over time as you make changes. In particular, this is useful while developing AI-centered workflows.\n#### expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> \"Permanent link\")\nIn n8n, expressions allow you to populate node parameters dynamically by executing JavaScript code. Instead of providing a static value, you can use the n8n expression syntax to define the value using data from previous nodes, other workflows, or your n8n environment.\n#### LangChain[#](https://docs.n8n.io/glossary/<#langchain> \"Permanent link\")\nLangChain is an AI-development framework used to work with large language models (LLMs). LangChain provides a standardized system for working with a wide variety of models and other resources and linking different components together to build complex applications.\n#### Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> \"Permanent link\")\nLarge language models, or LLMs, are AI machine learning models designed to excel in natural language processing (NLP) tasks. They're built by training on large amounts of data to develop probabilistic models of language and other data.\n#### node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> \"Permanent link\")\nIn n8n, nodes are individual components that you compose to create workflows. Nodes define when the workflow should run, allow you to fetch, send, and process data, can define flow control logic, and connect with external services.\n#### project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> \"Permanent link\")\nn8n projects allow you to separate workflows, variables, and credentials into separate groups for easier management. Projects make it easier for teams to collaborate by sharing and compartmentalizing related resources.\n#### root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> \"Permanent link\")\nEach n8n cluster node contains a single root nodes that defines the main functionality of the cluster. One or more sub nodes attach to the root node to extend its functionality.\n#### sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> \"Permanent link\")\nn8n cluster nodes consist of one or more sub nodes connected to a root node. Sub nodes extend the functionality of the root node, providing access to specific services or resources or offering specific types of dedicated processing, like calculator functionality, for example.\n#### template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> \"Permanent link\")\nn8n templates are pre-built workflows designed by n8n and community members that you can import into your n8n instance. When using templates, you may need to fill in credentials and adjust the configuration to suit your needs.\n#### trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> \"Permanent link\")\nA trigger node is a special node responsible for executing the workflow in response to certain conditions. All production workflows need at least one trigger to determine when the workflow should run.\n#### workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> \"Permanent link\")\nAn n8n workflow is a collection of nodes that automate a process. Workflows begin execution when a trigger condition occurs and execute sequentially to achieve complex tasks.\nWas this page helpful? \nThanks for your feedback! \nThanks for your feedback! Help us improve this page by submitting an issue or a fix in our [GitHub repo](https://docs.n8n.io/glossary/<https:/github.com/n8n-io/n8n-docs>). \n# Glossary\n#### AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> \"Permanent link\")\nAI agents are artificial intelligence systems capable of responding to requests, making decisions, and performing real-world tasks for users. They use large language models (LLMs) to interpret user input and make decisions about how to best process requests using the information and resources they have available.\n#### AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> \"Permanent link\")\nAI chains allow you to interact with large language models (LLMs) and other resources in sequences of calls to components. AI chains in n8n don't use persistent memory, so you can't use them to reference previous context (use AI agents for this).\n#### AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> \"Permanent link\")\nEmbeddings are numerical representations of data using vectors. They're used by AI to interpret complex data and relationships by mapping values across many dimensions. Vector databases, or vector stores, are databases designed to store and access embeddings.\n#### AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> \"Permanent link\")\nIn AI, and specifically in retrieval-augmented generation (RAG) contexts, groundedness and ungroundedness are measures of how much a model's responses accurately reflect source information. The model uses its source documents to generate grounded responses, while ungrounded responses involve speculation or hallucination unsupported by those same sources.\n#### AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> \"Permanent link\")\nReranking is a technique that refines the order of a list of candidate documents to improve the relevance of search results. Retrieval-Augmented Generation (RAG) and other applications use reranking to prioritize the most relevant information for generation or downstream tasks.\n#### AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> \"Permanent link\")\nIn an AI context, memory allows AI tools to persist message context across interactions. This allows you to have a continuing conversations with AI agents, for example, without submitting ongoing context with each message. In n8n, AI agent nodes can use memory, but AI chains can't.\n#### AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> \"Permanent link\")\nRetrieval-augmented generation, or RAG, is a technique for providing LLMs access to new information from external sources to improve AI responses. RAG systems retrieve relevant documents to ground responses in up-to-date, domain-specific, or proprietary knowledge to supplement their original training data. RAG systems often rely on vector stores to manage and search this external data efficiently.\n#### AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> \"Permanent link\")\nIn an AI context, a tool is an add-on resource that the AI can refer to for specific information or functionality when responding to a request. The AI model can use a tool to interact with external systems or complete specific, focused tasks.\n#### AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> \"Permanent link\")\nVector stores, or vector databases, are databases designed to store numerical representations of information called embeddings.\n#### API[#](https://docs.n8n.io/glossary/<#api> \"Permanent link\")\nAPIs, or application programming interfaces, offer programmatic access to a service's data and functionality. APIs make it easier for software to interact with external systems. They're often offered as an alternative to traditional user-focused interfaces accessed through web browsers or UI.\n#### canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> \"Permanent link\")\nThe canvas is the main interface for building workflows in n8n's editor UI. You use the canvas to add and connect nodes to compose workflows.\n#### cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> \"Permanent link\")\nIn n8n, cluster nodes are groups of nodes that work together to provide functionality in a workflow. They consist of a root node and one or more sub nodes that extend the node's functionality.\n#### credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> \"Permanent link\")\nIn n8n, credentials store authentication information to connect with specific apps and services. After creating credentials with your authentication information (username and password, API key, OAuth secrets, etc.), you can use the associated app node to interact with the service.\n#### data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> \"Permanent link\")\nData pinning allows you to temporarily freeze the output data of a node during workflow development. This allows you to develop workflows with predictable data without making repeated requests to external services. Production workflows ignore pinned data and request new data on each execution.\n#### editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> \"Permanent link\")\nThe n8n editor UI allows you to create and manage workflows. The main area is the canvas, where you can compose workflows by adding, configuring, and connecting nodes. The side and top panels allow you to access other areas of the UI like credentials, templates, variables, executions, and more.\n#### entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> \"Permanent link\")\nIn n8n, entitlements grant n8n instances access to plan-restricted features for a specific period of time.\nFloating entitlements are a pool of entitlements that you can distribute among various n8n instances. You can re-assign a floating entitlement to transfer its access to a different n8n instance.\n#### evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> \"Permanent link\")\nIn n8n, evaluation allows you to tag and organize execution history and compare it against new executions. You can use this to understand how your workflow performs over time as you make changes. In particular, this is useful while developing AI-centered workflows.\n#### expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> \"Permanent link\")\nIn n8n, expressions allow you to populate node parameters dynamically by executing JavaScript code. Instead of providing a static value, you can use the n8n expression syntax to define the value using data from previous nodes, other workflows, or your n8n environment.\n#### LangChain[#](https://docs.n8n.io/glossary/<#langchain> \"Permanent link\")\nLangChain is an AI-development framework used to work with large language models (LLMs). LangChain provides a standardized system for working with a wide variety of models and other resources and linking different components together to build complex applications.\n#### Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> \"Permanent link\")\nLarge language models, or LLMs, are AI machine learning models designed to excel in natural language processing (NLP) tasks. They're built by training on large amounts of data to develop probabilistic models of language and other data.\n#### node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> \"Permanent link\")\nIn n8n, nodes are individual components that you compose to create workflows. Nodes define when the workflow should run, allow you to fetch, send, and process data, can define flow control logic, and connect with external services.\n#### project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> \"Permanent link\")\nn8n projects allow you to separate workflows, variables, and credentials into separate groups for easier management. Projects make it easier for teams to collaborate by sharing and compartmentalizing related resources.\n#### root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> \"Permanent link\")\nEach n8n cluster node contains a single root nodes that defines the main functionality of the cluster. One or more sub nodes attach to the root node to extend its functionality.\n#### sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> \"Permanent link\")\nn8n cluster nodes consist of one or more sub nodes connected to a root node. Sub nodes extend the functionality of the root node, providing access to specific services or resources or offering specific types of dedicated processing, like calculator functionality, for example.\n#### template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> \"Permanent link\")\nn8n templates are pre-built workflows designed by n8n and community members that you can import into your n8n instance. When using templates, you may need to fill in credentials and adjust the configuration to suit your needs.\n#### trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> \"Permanent link\")\nA trigger node is a special node responsible for executing the workflow in response to certain conditions. All production workflows need at least one trigger to determine when the workflow should run.\n#### workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> \"Permanent link\")\nAn n8n workflow is a collection of nodes that automate a process. Workflows begin execution when a trigger condition occurs and execute sequentially to achieve complex tasks.\nWas this page helpful? \nThanks for your feedback! \nThanks for your feedback! Help us improve this page by submitting an issue or a fix in our [GitHub repo](https://docs.n8n.io/glossary/<https:/github.com/n8n-io/n8n-docs>). \nBack to top",
+        "success": true,
+        "error_message": null,
+        "title": "Glossary",
+        "word_count": 3663,
+        "extraction_time_ms": 2113.269090652466,
+        "framework_detected": "material_design",
+        "content_to_navigation_ratio": 1.0,
+        "has_dynamic_content": true,
+        "quality_validation": null,
+        "quality_passed": true,
+        "quality_score": 1.0
+      },
+      "quality_metrics": {
+        "content_to_navigation_ratio": 0.9269662921348315,
+        "link_density": 0.04,
+        "text_coherence_score": 0.5,
+        "word_count": 4200,
+        "navigation_element_count": 181,
+        "unique_link_count": 56,
+        "repeated_link_count": 112,
+        "paragraph_count": 1,
+        "code_block_count": 0,
+        "heading_count": 84,
+        "overall_quality_score": 1.0,
+        "quality_category": "excellent",
+        "calculation_time_ms": 6.999969482421875,
+        "should_retry_with_fallback": false,
+        "improvement_suggestions": [
+          "High navigation element count (181). Add navigation-specific exclusion selectors."
+        ]
+      },
+      "content_assertions_passed": [
+        "Required heading found: Glossary",
+        "Required heading found: Workflow",
+        "Required heading found: Node",
+        "Required heading found: Trigger",
+        "Required keyword found: workflow",
+        "Required keyword found: node",
+        "Required keyword found: execution",
+        "Required keyword found: trigger",
+        "Required keyword found: data"
+      ],
+      "content_assertions_failed": [
+        "Required heading missing: Execution",
+        "Required heading missing: Connection",
+        "Required text missing: A workflow is a collection of nodes",
+        "Required text missing: Nodes are the building blocks",
+        "Required text missing: execution of a workflow",
+        "Required text missing: trigger node starts",
+        "Required text missing: connection links nodes",
+        "Required keyword missing: connection",
+        "Required keyword missing: automation"
+      ],
+      "required_headings_found": [
+        "Glossary",
+        "Workflow",
+        "Node",
+        "Trigger"
+      ],
+      "required_headings_missing": [
+        "Execution",
+        "Connection"
+      ],
+      "required_text_found": [],
+      "required_text_missing": [
+        "A workflow is a collection of nodes",
+        "Nodes are the building blocks",
+        "execution of a workflow",
+        "trigger node starts",
+        "connection links nodes"
+      ],
+      "forbidden_content_found": [],
+      "quality_score_in_range": true,
+      "word_count_sufficient": true,
+      "content_nav_ratio_sufficient": true,
+      "framework_detected_correctly": true,
+      "extraction_time_acceptable": true,
+      "extraction_time_ms": 3366.575002670288,
+      "extracted_headings": [
+        "Glossary",
+        "AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> \"Permanent link\")",
+        "AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> \"Permanent link\")",
+        "AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> \"Permanent link\")",
+        "AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> \"Permanent link\")",
+        "AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> \"Permanent link\")",
+        "AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> \"Permanent link\")",
+        "AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> \"Permanent link\")",
+        "AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> \"Permanent link\")",
+        "AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> \"Permanent link\")",
+        "API[#](https://docs.n8n.io/glossary/<#api> \"Permanent link\")",
+        "canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> \"Permanent link\")",
+        "cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> \"Permanent link\")",
+        "credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> \"Permanent link\")",
+        "data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> \"Permanent link\")",
+        "editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> \"Permanent link\")",
+        "entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> \"Permanent link\")",
+        "evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> \"Permanent link\")",
+        "expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> \"Permanent link\")",
+        "LangChain[#](https://docs.n8n.io/glossary/<#langchain> \"Permanent link\")",
+        "Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> \"Permanent link\")",
+        "node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> \"Permanent link\")",
+        "project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> \"Permanent link\")",
+        "root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> \"Permanent link\")",
+        "sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> \"Permanent link\")",
+        "template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> \"Permanent link\")",
+        "trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> \"Permanent link\")",
+        "workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> \"Permanent link\")",
+        "Glossary",
+        "AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> \"Permanent link\")",
+        "AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> \"Permanent link\")",
+        "AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> \"Permanent link\")",
+        "AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> \"Permanent link\")",
+        "AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> \"Permanent link\")",
+        "AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> \"Permanent link\")",
+        "AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> \"Permanent link\")",
+        "AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> \"Permanent link\")",
+        "AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> \"Permanent link\")",
+        "API[#](https://docs.n8n.io/glossary/<#api> \"Permanent link\")",
+        "canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> \"Permanent link\")",
+        "cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> \"Permanent link\")",
+        "credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> \"Permanent link\")",
+        "data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> \"Permanent link\")",
+        "editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> \"Permanent link\")",
+        "entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> \"Permanent link\")",
+        "evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> \"Permanent link\")",
+        "expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> \"Permanent link\")",
+        "LangChain[#](https://docs.n8n.io/glossary/<#langchain> \"Permanent link\")",
+        "Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> \"Permanent link\")",
+        "node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> \"Permanent link\")",
+        "project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> \"Permanent link\")",
+        "root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> \"Permanent link\")",
+        "sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> \"Permanent link\")",
+        "template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> \"Permanent link\")",
+        "trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> \"Permanent link\")",
+        "workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> \"Permanent link\")",
+        "Glossary",
+        "AI agent[#](https://docs.n8n.io/glossary/<#ai-agent> \"Permanent link\")",
+        "AI chain[#](https://docs.n8n.io/glossary/<#ai-chain> \"Permanent link\")",
+        "AI embedding[#](https://docs.n8n.io/glossary/<#ai-embedding> \"Permanent link\")",
+        "AI groundedness[#](https://docs.n8n.io/glossary/<#ai-groundedness> \"Permanent link\")",
+        "AI reranking[#](https://docs.n8n.io/glossary/<#ai-reranking> \"Permanent link\")",
+        "AI memory[#](https://docs.n8n.io/glossary/<#ai-memory> \"Permanent link\")",
+        "AI retrieval-augmented generation (RAG)[#](https://docs.n8n.io/glossary/<#ai-retrieval-augmented-generation-rag> \"Permanent link\")",
+        "AI tool[#](https://docs.n8n.io/glossary/<#ai-tool> \"Permanent link\")",
+        "AI vector store[#](https://docs.n8n.io/glossary/<#ai-vector-store> \"Permanent link\")",
+        "API[#](https://docs.n8n.io/glossary/<#api> \"Permanent link\")",
+        "canvas (n8n)[#](https://docs.n8n.io/glossary/<#canvas-n8n> \"Permanent link\")",
+        "cluster node (n8n)[#](https://docs.n8n.io/glossary/<#cluster-node-n8n> \"Permanent link\")",
+        "credential (n8n)[#](https://docs.n8n.io/glossary/<#credential-n8n> \"Permanent link\")",
+        "data pinning (n8n)[#](https://docs.n8n.io/glossary/<#data-pinning-n8n> \"Permanent link\")",
+        "editor (n8n)[#](https://docs.n8n.io/glossary/<#editor-n8n> \"Permanent link\")",
+        "entitlement (n8n)[#](https://docs.n8n.io/glossary/<#entitlement-n8n> \"Permanent link\")",
+        "evaluation (n8n)[#](https://docs.n8n.io/glossary/<#evaluation-n8n> \"Permanent link\")",
+        "expression (n8n)[#](https://docs.n8n.io/glossary/<#expression-n8n> \"Permanent link\")",
+        "LangChain[#](https://docs.n8n.io/glossary/<#langchain> \"Permanent link\")",
+        "Large language model (LLM)[#](https://docs.n8n.io/glossary/<#large-language-model-llm> \"Permanent link\")",
+        "node (n8n)[#](https://docs.n8n.io/glossary/<#node-n8n> \"Permanent link\")",
+        "project (n8n)[#](https://docs.n8n.io/glossary/<#project-n8n> \"Permanent link\")",
+        "root node (n8n)[#](https://docs.n8n.io/glossary/<#root-node-n8n> \"Permanent link\")",
+        "sub node (n8n)[#](https://docs.n8n.io/glossary/<#sub-node-n8n> \"Permanent link\")",
+        "template (n8n)[#](https://docs.n8n.io/glossary/<#template-n8n> \"Permanent link\")",
+        "trigger node (n8n)[#](https://docs.n8n.io/glossary/<#trigger-node-n8n> \"Permanent link\")",
+        "workflow (n8n)[#](https://docs.n8n.io/glossary/<#workflow-n8n> \"Permanent link\")"
+      ],
+      "detected_navigation_elements": [],
+      "link_analysis": {
+        "total_links": 84,
+        "internal_links": 0,
+        "external_links": 84,
+        "documentation_links": 84
+      },
+      "error_message": null,
+      "warnings": []
+    }
+  ],
+  "analysis": {
+    "total_tests": 1,
+    "passed_tests": 0,
+    "failed_tests": 1,
+    "crawl_failures": 0,
+    "content_assertion_failures": 1,
+    "quality_failures": 0,
+    "performance_failures": 0,
+    "framework_detection_failures": 0,
+    "tests_by_priority": {
+      "critical": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      }
+    },
+    "tests_by_page_type": {
+      "glossary": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      }
+    },
+    "common_failures": [
+      [
+        "Required text missing",
+        5
+      ],
+      [
+        "Required heading missing",
+        2
+      ],
+      [
+        "Required keyword missing",
+        2
+      ]
+    ],
+    "performance_stats": {
+      "avg_extraction_time_ms": 3366.575002670288,
+      "max_extraction_time_ms": 3366.575002670288,
+      "min_extraction_time_ms": 3366.575002670288
+    },
+    "quality_stats": {
+      "avg_quality_score": 1.0,
+      "max_quality_score": 1.0,
+      "min_quality_score": 1.0
+    }
+  },
+  "total_time_seconds": 3.3769280910491943,
+  "test_summary_by_priority": {
+    "critical": {
+      "tests": [
+        {
+          "test_id": "n8n_glossary_main",
+          "passed": false,
+          "url": "https://docs.n8n.io/glossary/",
+          "quality_score": 1.0
+        }
+      ],
+      "passed": 0,
+      "failed": 1,
+      "critical_issues": [
+        "Required heading missing: Execution",
+        "Required heading missing: Connection",
+        "Required text missing: A workflow is a collection of nodes",
+        "Required text missing: Nodes are the building blocks",
+        "Required text missing: execution of a workflow",
+        "Required text missing: trigger node starts",
+        "Required text missing: connection links nodes",
+        "Required keyword missing: connection",
+        "Required keyword missing: automation"
+      ]
+    }
+  }
+}

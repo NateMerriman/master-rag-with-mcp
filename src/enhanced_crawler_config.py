@@ -76,13 +76,25 @@ class DocumentationSiteConfigManager:
         # Material Design (used by n8n, MkDocs sites)
         configs[DocumentationFramework.MATERIAL_DESIGN] = FrameworkConfig(
             target_elements=[
-                "article.md-content__inner"  # This was the most effective selector with 554 words
+                "main.md-main .md-content",  # Primary target for main content area
+                "article.md-content__inner",  # Fallback for alternative layouts
+                ".md-content__inner",  # Additional fallback
+                "main.md-main"  # Broader fallback for main element
             ],
             excluded_selectors=[
-                # Minimal exclusions to test if content extraction works
+                # Comprehensive exclusions for Material Design
                 ".md-sidebar",
                 ".md-nav",
-                "nav.md-path"  # Just breadcrumbs for now
+                "nav.md-tabs",
+                ".md-header", 
+                ".md-footer",
+                ".md-search",
+                "nav.md-path",  # Breadcrumbs
+                ".md-content__button",  # Edit buttons
+                ".md-nav--primary",  # Primary navigation
+                ".md-nav--secondary",  # Secondary navigation
+                ".md-source",  # Source links
+                ".md-copyright"  # Copyright footer
             ],
             excluded_tags=["nav", "footer", "aside"],  # Removed "header" to preserve content headers
             word_count_threshold=15,
@@ -98,42 +110,33 @@ class DocumentationSiteConfigManager:
         # ReadMe.io (used by VirusTotal, many API documentation sites)
         configs[DocumentationFramework.README_IO] = FrameworkConfig(
             target_elements=[
-                "main.rm-Guides",
-                "main[class*='rm-']",
-                "article.rm-Content",
-                ".markdown-body",
-                ".rm-Article"
+                ".rm-Article .markdown-body",  # Primary content within article
+                "main.rm-Guides .markdown-body",  # Guide content
+                "article.rm-Content",  # Alternative article structure
+                ".rm-Article",  # Fallback to full article
+                "main.rm-Guides",  # Fallback to full guide
+                ".markdown-body"  # Generic markdown content
             ],
             excluded_selectors=[
+                # Core navigation exclusions
                 ".rm-Sidebar",
-                ".hub-sidebar",
-                ".hub-reference-sidebar", 
-                ".content-toc",
+                ".hub-sidebar", 
+                ".hub-reference-sidebar",
                 ".rm-Nav",
                 "nav[class*='rm-']",
                 "nav[class*='hub-']",
-                ".md-sidebar",
-                ".md-nav",
-                ".md-header",
-                ".md-footer",
-                ".md-tabs",
-                ".md-search",
+                # Table of contents and navigation
+                ".content-toc",
+                ".table-of-contents", 
                 ".pagination-nav",
-                "[role='navigation']",
-                "[role='banner']",
-                "[role='contentinfo']",
-                "#__docusaurus",
+                # Common UI elements
                 ".DocSearch-Button",
                 ".navbar",
                 ".menu",
                 ".sidebar",
-                ".table-of-contents",
-                ".theme-doc-toc",
-                ".theme-edit-this-page",
-                ".pagination-nav",
-                ".docItemFooter_node_modules-",
                 ".footer",
                 ".cookie-consent",
+                # ReadMe.io specific UI
                 ".feedback-section",
                 ".related-content",
                 ".popular-integrations",
@@ -141,97 +144,10 @@ class DocumentationSiteConfigManager:
                 ".top-integration-categories",
                 ".trending-templates",
                 ".top-guides",
-                ".md-copyright",
-                ".md-source",
-                ".md-nav",
-                ".md-tabs",
-                ".md-search",
-                ".md-footer",
-                ".md-header",
-                ".md-sidebar",
-                ".md-content__button",
-                ".md-content__inner",
-                ".md-content__heading",
-                ".md-content__source",
-                ".md-content__toc",
-                ".md-content__footnote",
-                ".md-content__admonition",
-                ".md-content__code",
-                ".md-content__table",
-                ".md-content__figure",
-                ".md-content__image",
-                ".md-content__video",
-                ".md-content__iframe",
-                ".md-content__button",
-                ".md-content__link",
-                ".md-content__list",
-                ".md-content__list-item",
-                ".md-content__paragraph",
-                ".md-content__blockquote",
-                ".md-content__hr",
-                ".md-content__details",
-                ".md-content__summary",
-                ".md-content__kbd",
-                ".md-content__mark",
-                ".md-content__del",
-                ".md-content__ins",
-                ".md-content__sup",
-                ".md-content__sub",
-                ".md-content__small",
-                ".md-content__strong",
-                ".md-content__em",
-                ".md-content__code-inline",
-                ".md-content__code-block",
-                ".md-content__table-wrapper",
-                ".md-content__figure-wrapper",
-                ".md-content__image-wrapper",
-                ".md-content__video-wrapper",
-                ".md-content__iframe-wrapper",
-                ".md-content__button-wrapper",
-                ".md-content__link-wrapper",
-                ".md-content__list-wrapper",
-                ".md-content__list-item-wrapper",
-                ".md-content__paragraph-wrapper",
-                ".md-content__blockquote-wrapper",
-                ".md-content__hr-wrapper",
-                ".md-content__details-wrapper",
-                ".md-content__summary-wrapper",
-                ".md-content__kbd-wrapper",
-                ".md-content__mark-wrapper",
-                ".md-content__del-wrapper",
-                ".md-content__ins-wrapper",
-                ".md-content__sup-wrapper",
-                ".md-content__sub-wrapper",
-                ".md-content__small-wrapper",
-                ".md-content__strong-wrapper",
-                ".md-content__em-wrapper",
-                ".md-content__code-inline-wrapper",
-                ".md-content__code-block-wrapper",
-                ".md-content__table-wrapper",
-                ".md-content__figure-wrapper",
-                ".md-content__image-wrapper",
-                ".md-content__video-wrapper",
-                ".md-content__iframe-wrapper",
-                ".md-content__button-wrapper",
-                ".md-content__link-wrapper",
-                ".md-content__list-wrapper",
-                ".md-content__list-item-wrapper",
-                ".md-content__paragraph-wrapper",
-                ".md-content__blockquote-wrapper",
-                ".md-content__hr-wrapper",
-                ".md-content__details-wrapper",
-                ".md-content__summary-wrapper",
-                ".md-content__kbd-wrapper",
-                ".md-content__mark-wrapper",
-                ".md-content__del-wrapper",
-                ".md-content__ins-wrapper",
-                ".md-content__sup-wrapper",
-                ".md-content__sub-wrapper",
-                ".md-content__small-wrapper",
-                ".md-content__strong-wrapper",
-                ".md-content__em-wrapper",
-                ".md-content__code-inline-wrapper",
-                ".md-content__code-block-wrapper"
+                # Generic exclusions
+                "[role='navigation']",
+                "[role='banner']", 
+                "[role='contentinfo']"
             ],
             excluded_tags=["nav", "header", "footer", "aside"],
             word_count_threshold=20,  # ReadMe tends to have more concise navigation
@@ -247,17 +163,28 @@ class DocumentationSiteConfigManager:
         # GitBook
         configs[DocumentationFramework.GITBOOK] = FrameworkConfig(
             target_elements=[
-                ".gitbook-content",
-                ".page-inner",
-                ".book-body",
-                ".markdown-section"
+                ".gitbook-content .markdown-section",  # Primary content within GitBook
+                ".page-inner .markdown-section",  # Page content
+                ".book-body .page-inner",  # Book page content
+                ".gitbook-content",  # Fallback to full content
+                ".page-inner",  # Broader fallback
+                ".markdown-section"  # Generic markdown fallback
             ],
             excluded_selectors=[
+                # GitBook specific navigation
                 ".book-summary",
-                ".book-header",
-                ".navigation",
+                ".book-header", 
+                ".book-navigation",
                 ".gitbook-link",
-                ".book-navigation"
+                # Generic navigation
+                ".navigation",
+                ".nav-sidebar",
+                ".page-nav",
+                ".breadcrumb",
+                # UI elements
+                ".search-highlight",
+                ".toolbar",
+                ".page-footer"
             ],
             excluded_tags=["nav", "header", "footer", "aside"],
             word_count_threshold=15,
@@ -272,17 +199,33 @@ class DocumentationSiteConfigManager:
         # Docusaurus (Facebook's documentation framework)
         configs[DocumentationFramework.DOCUSAURUS] = FrameworkConfig(
             target_elements=[
-                "main.docMainContainer",
-                ".docItemContainer",
-                ".markdown",
-                "article"
+                "main.docMainContainer .markdown",  # Primary content within main container
+                ".docItemContainer article",  # Article within doc item
+                "main.docMainContainer article",  # Article within main container
+                ".docItemContainer .markdown",  # Markdown content in doc item
+                "main.docMainContainer",  # Fallback to full container
+                ".docItemContainer",  # Fallback to doc item
+                "article.margin-vert--xl"  # Alternative article structure
             ],
             excluded_selectors=[
+                # Docusaurus specific navigation
                 ".navbar",
                 ".sidebar",
                 ".menu",
-                ".table-of-contents",
+                ".theme-doc-sidebar-container",
+                ".theme-doc-toc",
+                ".theme-edit-this-page",
+                # Navigation elements
                 ".pagination-nav",
+                ".table-of-contents",
+                ".breadcrumbs",
+                ".docItemFooter",
+                # UI elements
+                ".DocSearch-Button",
+                ".navbar__toggle",
+                ".navbar__brand",
+                ".footer",
+                # Code highlighting (preserve content, exclude UI)
                 ".docusaurus-highlight-code-line"
             ],
             excluded_tags=["nav", "header", "footer", "aside"],

@@ -1134,7 +1134,7 @@
             "title": "Enhance Navigation Pattern Detection with Advanced Heuristics",
             "description": "Implement advanced structural and syntactic analysis for navigation detection, including list-item link dominance analysis, text-to-link ratio calculations, and semantic context analysis. Replace simple keyword matching with sophisticated pattern recognition that can identify bulleted integration lists.",
             "details": "- Implement list-item link dominance detection (>70% items are links)\n- Add text-to-link ratio analysis for each list item \n- Create semantic context analysis for navigation headers\n- Add pattern detection for integration lists and category menus\n- Update _count_navigation_elements with advanced structural analysis",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 19
           },
@@ -1143,7 +1143,7 @@
             "title": "Implement Non-Linear Quality Scoring Algorithm",
             "description": "Replace linear scoring with non-linear penalties and boosts that dramatically reduce scores for navigation-like content. Implement cliff effects for high link density and structural diversity analysis.",
             "details": "- Implement link density cliff penalties (>0.4 density = 0.05 multiplier)\n- Add structural diversity scoring (paragraphs, headings, code blocks)\n- Create word count floor penalties for low-content pages\n- Implement repeated links penalty for footers/sidebars\n- Add low content ratio penalty multipliers",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 19
           },
@@ -1170,10 +1170,8 @@
       {
         "id": 20,
         "title": "CRITICAL: Fix CSS Selector System for n8n.io Content Extraction",
-        "description": "Debug and fix the CSS selector system that extracts navigation menus instead of glossary definitions despite proper n8n.io configuration, ensuring actual content extraction over navigation elements.",
-        "details": "The current CSS selector system configured for n8n.io ('main.md-main, article.md-content__inner') is not functioning correctly and extracts navigation menus instead of glossary definitions. This task requires comprehensive debugging and fixes:\n\n**1. CSS Selector Validation:**\n- Add debug logging to DocumentationSiteConfig to track which selectors are loaded for docs.n8n.io\n- Implement DOM inspection to verify if configured selectors actually exist on target pages\n- Add fallback selector detection when primary selectors fail\n\n**2. Content Extraction Debugging:**\n- Add detailed logging in AdvancedWebCrawler to show which DOM elements are being selected\n- Log the actual content extracted by each CSS selector before processing\n- Compare extracted content against expected glossary definitions\n\n**3. Selector System Fixes:**\n- Update n8n.io configuration with verified working selectors through browser inspection\n- Implement selector testing utilities to validate selectors against live pages\n- Add content type detection to distinguish between navigation and main content\n\n**4. Domain Configuration Loading:**\n- Debug the domain matching logic to ensure docs.n8n.io properly loads n8n.io configuration\n- Add logging to track configuration loading process\n- Verify subdomain handling in DocumentationSiteConfig\n\n**5. Content Quality Validation:**\n- Implement content validation to detect when navigation content is extracted instead of main content\n- Add quality metrics to measure content-to-navigation ratio\n- Create alerts when extraction quality drops below acceptable thresholds\n<info added on 2025-07-03T17:50:25.800Z>\n**Research-Backed Implementation Plan:**\n\nBased on comprehensive research into CSS selector system failures for n8n.io content extraction, the following actionable solutions have been identified to fix the navigation targeting issue:\n\n**Advanced CSS Selector Debugging Implementation:**\n- Use browser DevTools methodology: Navigate to docs.n8n.io/glossary/, inspect elements, and test selectors in console using $$('selector') function\n- Current selectors 'main.md-main' and 'article.md-content__inner' are too broad and capture entire main container including sidebars\n- Precise diagnosis reveals Material for MkDocs framework structure where navigation sidebars are siblings to content area\n- Recommended replacement selector: 'main.md-main .md-content' which targets only the content container excluding sidebars\n\n**Material Design Framework-Specific Updates:**\nUpdate documentation_site_config.py n8n configuration:\n```python\ncontent_selectors=[\"main.md-main .md-content\"]\n```\nUpdate enhanced_crawler_config.py MATERIAL_DESIGN framework config:\n```python\ntarget_elements=[\"main.md-main .md-content\", \"article.md-content__inner\"]\nexcluded_selectors=[\".md-sidebar\", \".md-nav\", \"nav.md-tabs\", \".md-header\", \".md-footer\", \"nav.md-path\"]\n```\n\n**Robust Fallback Selector Hierarchy:**\nImplement 4-tier fallback system in advanced_web_crawler.py:\n- Tier 1: High-precision framework selectors (Material for MkDocs, ReadMe.io, GitBook, Docusaurus)\n- Tier 2: Standard semantic HTML5 containers (main article, article, main, [role='main'])\n- Tier 3: Common generic class names (.content, .main-content, .page-content)\n- Tier 4: Last resort broad exclusions\n\n**Real-Time Selector Effectiveness Validation:**\nImplement content quality heuristics in should_retry_extraction function:\n- Link density check: flag if (markdown links / word count) > 0.4\n- Average text length per list item: flag if < 5 words\n- Text-to-tag ratio validation\n- Navigation keyword detection for terms like \"Next\", \"Previous\", \"Home\", \"API\"\n- Quality score threshold of 0.4 to trigger selector retry\n\n**Performance Optimization Guidelines:**\n- Use specific selectors (div.md-content faster than .md-content)\n- Avoid universal selector and complex :not() pseudo-classes except as last resort\n- Prefer class/ID selectors over attribute selectors\n- Consider right-to-left selector evaluation for performance\n\n**Implementation Priority:**\n1. Update n8n.io specific selectors in documentation_site_config.py (immediate fix)\n2. Enhance Material Design framework configuration\n3. Implement robust fallback hierarchy\n4. Add real-time validation with quality metrics feedback loop\n\nThis research-backed approach provides both immediate fixes for n8n.io and systematic improvements to prevent similar issues across all Material for MkDocs sites.\n</info added on 2025-07-03T17:50:25.800Z>",
-        "testStrategy": "1. **CSS Selector Validation Test**: Create a test that loads the n8n.io configuration and verifies that the configured selectors exist on live n8n.io pages using browser automation. Assert that selectors return main content elements, not navigation.\n\n2. **Content Extraction Comparison**: Write a test that crawls https://n8n.io/glossary/ and compares extracted content against manually verified glossary definitions. Assert that extracted content contains specific glossary terms and their definitions, not navigation menu items.\n\n3. **Logging Integration Test**: Create a test that enables debug logging and crawls an n8n.io page, then verifies that logs show correct selector usage and content extraction process. Assert that logs indicate main content selectors are being used.\n\n4. **Domain Configuration Test**: Test the domain matching logic by asserting that docs.n8n.io, n8n.io, and www.n8n.io all load the correct configuration. Verify that subdomain handling works properly.\n\n5. **Quality Metrics Validation**: Implement automated quality checks that measure the ratio of navigation content to main content in extracted results. Assert that quality scores indicate successful main content extraction rather than navigation extraction.",
-        "status": "pending",
+        "description": "While originally identified on n8n.io, this task has been expanded to address a systemic issue with our CSS selector system. The system frequently extracts navigation menus instead of main content across various documentation frameworks (e.g., Material for MkDocs, ReadMe.io, GitBook, Docusaurus). The goal is to debug and enhance the content extraction logic to be more robust and intelligent, ensuring it reliably targets main content and ignores navigation elements across different site structures.",
+        "status": "done",
         "dependencies": [
           16,
           17,
@@ -1181,42 +1179,44 @@
           19
         ],
         "priority": "high",
+        "details": "The current CSS selector system is not robust enough, leading to poor quality content extraction from various documentation sites. The initial problem was a configuration for n8n.io ('main.md-main, article.md-content__inner') extracting navigation menus. This task involves a comprehensive overhaul of the selector system to improve its accuracy and resilience.\n\n**1. Framework-Specific Selector Configuration:**\n- Implement a system for defining and loading specific CSS selectors for known documentation frameworks (Material for MkDocs, ReadMe.io, GitBook, Docusaurus, etc.).\n- Add debug logging to track which framework configuration and selectors are being used for a given site.\n- Use browser DevTools to identify high-precision content selectors and robust exclusion selectors for each major framework.\n\n**2. Content Extraction Debugging & Logging:**\n- Add detailed logging in the AdvancedWebCrawler to show the hierarchy of selectors being attempted (framework-specific, semantic, generic).\n- Log the actual content extracted by the winning CSS selector before processing.\n- Compare extracted content against expected content for a set of benchmark sites.\n\n**3. Robust Fallback Selector Hierarchy:**\n- Implement a multi-tier fallback system in `advanced_web_crawler.py` to gracefully handle sites without a specific framework configuration.\n- **Tier 1:** High-precision framework selectors (e.g., for Material for MkDocs: `main.md-main .md-content`).\n- **Tier 2:** Standard semantic HTML5 containers (`main article`, `article`, `main`, `[role='main']`).\n- **Tier 3:** Common generic class names (`.content`, `.main-content`, `.page-content`).\n- **Tier 4:** Last resort broad content containers with aggressive exclusion of common navigation/header/footer selectors.\n\n**4. Real-Time Content Quality Validation:**\n- Implement content quality heuristics within a `should_retry_extraction` function to detect poor extractions in real-time.\n- **Link Density Check:** Flag content if the ratio of markdown links to words is too high (e.g., > 0.4), which often indicates a navigation menu.\n- **Text Analysis:** Flag content if the average text length per list item is too short (e.g., < 5 words) or if navigation keywords (\"Next\", \"Previous\", \"Home\", \"API\") are prevalent.\n- **Quality Score:** Use a combination of heuristics to generate a quality score. If the score is below a threshold (e.g., 0.4), trigger the fallback to the next tier of selectors.\n\n**5. Performance Optimization:**\n- Ensure selector implementation follows performance best practices.\n- Prefer specific selectors (e.g., `div.md-content` over `.md-content`).\n- Avoid the universal selector (`*`) and complex `:not()` pseudo-classes where possible.\n- Prioritize class/ID selectors over attribute selectors.",
+        "testStrategy": "1. **Framework Selector Validation**: Create a test suite that loads configurations for multiple documentation frameworks (e.g., Material for MkDocs, ReadMe.io, GitBook) and verifies that the configured selectors correctly isolate main content on live example pages for each framework.\n\n2. **Content Extraction Comparison**: Write tests that crawl representative pages from different documentation sites (e.g., a glossary, a tutorial, an API reference) and compare extracted content against manually verified ground truth. Assert that extracted content contains main body text, not navigation links.\n\n3. **Fallback Logic Integration Test**: Create a test that crawls a generic or unknown documentation site. Verify that the logs show the fallback mechanism activating and cycling through selector tiers until acceptable content is extracted, as determined by the quality heuristics.\n\n4. **Framework Configuration Test**: Test the framework detection and configuration loading logic by asserting that sites built with known frameworks (e.g., a site using Material for MkDocs, another using Docusaurus) load the correct, specific configurations and not the generic fallback selectors.\n\n5. **Quality Metrics Validation**: Implement automated tests that feed both high-quality (main content) and low-quality (navigation menu) HTML snippets to the quality validation function. Assert that the function correctly identifies the low-quality content and would trigger a retry.",
         "subtasks": [
           {
             "id": 1,
-            "title": "Debug and Fix n8n.io CSS Selectors",
-            "description": "Use browser DevTools to diagnose and fix the CSS selectors for n8n.io Material Design framework. Replace broad selectors with precise ones that target only content areas, excluding navigation sidebars.",
-            "details": "- Use DevTools to analyze n8n.io DOM structure\n- Test current selectors main.md-main and article.md-content__inner\n- Replace with precise selector: main.md-main .md-content\n- Update documentation_site_config.py with correct selectors\n- Validate new selectors exclude left/right navigation sidebars",
-            "status": "pending",
+            "title": "Update and Refine Framework-Specific Selectors",
+            "description": "Analyze the DOM structure of various documentation frameworks (Material for MkDocs, ReadMe.io, GitBook, Docusaurus) to define precise content selectors and exclusion rules. Start by implementing the fix for Material for MkDocs as a template.",
+            "status": "done",
             "dependencies": [],
-            "parentTaskId": 20
+            "details": "- Use DevTools to analyze DOM structures of target frameworks.\n- For Material for MkDocs, replace broad selectors with `main.md-main .md-content`.\n- Create or update configurations in `documentation_site_config.py` or a similar module for each supported framework.\n- Validate that new selectors exclude common navigation, header, and footer elements.",
+            "testStrategy": ""
           },
           {
             "id": 2,
-            "title": "Enhance Framework Detection for Material Design",
-            "description": "Update enhanced_crawler_config.py to use more robust selectors for Material for MkDocs framework. Improve exclusion selectors to better handle navigation elements.",
-            "details": "- Update MATERIAL_DESIGN framework config with main.md-main .md-content\n- Add comprehensive exclusion selectors (.md-sidebar, .md-nav, nav.md-tabs)\n- Include breadcrumb and header/footer exclusions\n- Test framework detection accuracy\n- Validate against multiple Material Design sites",
-            "status": "pending",
+            "title": "Enhance Framework Configurations and Exclusion Rules",
+            "description": "Update `enhanced_crawler_config.py` to use more robust selectors and exclusion lists for multiple frameworks, starting with Material for MkDocs. This will serve as a blueprint for other frameworks.",
+            "status": "done",
             "dependencies": [],
-            "parentTaskId": 20
+            "details": "- Update the MATERIAL_DESIGN framework config with `main.md-main .md-content` as a target.\n- Add a comprehensive list of exclusion selectors like `.md-sidebar`, `.md-nav`, `nav.md-tabs`, `.md-header`, `.md-footer`.\n- Research and add similar configurations for other major frameworks like ReadMe.io and GitBook.\n- Test framework detection accuracy against a list of sample sites.",
+            "testStrategy": ""
           },
           {
             "id": 3,
             "title": "Build Robust Fallback Selector Hierarchy",
-            "description": "Create a granular, performance-optimized fallback hierarchy in AdvancedWebCrawler that moves from framework-specific selectors to progressively broader ones with intelligent failure detection.",
-            "details": "- Design 4-tier fallback hierarchy (high-precision to broad exclusions)\n- Implement framework-specific selectors for common documentation systems\n- Add performance-optimized selector ordering (ID > class > element)\n- Create intelligent fallback triggers based on quality metrics\n- Update _create_fallback_config with dynamic configuration adjustment",
-            "status": "pending",
+            "description": "Create a granular, performance-optimized fallback hierarchy in the AdvancedWebCrawler that moves from framework-specific selectors to progressively broader ones, with intelligent failure detection based on content quality.",
+            "status": "done",
             "dependencies": [],
-            "parentTaskId": 20
+            "details": "- Design a 4-tier fallback hierarchy (high-precision framework -> semantic HTML -> generic classes -> broad exclusions).\n- Implement the logic to iterate through tiers when content quality is low.\n- Ensure selector ordering is performance-optimized (ID > class > element).\n- Update the crawler's configuration logic to dynamically apply fallbacks.",
+            "testStrategy": ""
           },
           {
             "id": 4,
             "title": "Implement Real-Time Selector Validation",
-            "description": "Create real-time validation system that checks extracted content quality and triggers fallback mechanisms when selectors produce navigation instead of content.",
-            "details": "- Implement link density validation heuristics (threshold >0.4)\n- Add average text length validation for list items\n- Create text-to-tag ratio analysis\n- Implement navigation stop words detection\n- Enhance should_retry_extraction with new validation checks",
-            "status": "pending",
+            "description": "Create a real-time validation system that checks extracted content quality and triggers fallback mechanisms when selectors produce navigation-like content instead of main article content.",
+            "status": "done",
             "dependencies": [],
-            "parentTaskId": 20
+            "details": "- Implement link density validation heuristic (e.g., flag if link/word ratio > 0.4).\n- Add average text length validation for list items.\n- Create text-to-tag ratio analysis.\n- Implement navigation keyword detection (e.g., \"Next\", \"Previous\", \"Home\").\n- Enhance the `should_retry_extraction` function to use these heuristics and trigger a fallback.",
+            "testStrategy": ""
           }
         ]
       },
@@ -1226,7 +1226,7 @@
         "description": "Fix recurring 'No module named config' import errors in contextual embedding system and repair flawed quality override logic that forces perfect scores for navigation content.",
         "details": "This task addresses two critical issues preventing proper content quality assessment:\n\n**1. Import Dependencies Resolution:**\n- Identify and fix all 'No module named config' errors occurring during crawling operations\n- Audit import statements in contextual embedding system modules\n- Ensure proper module path resolution and package structure\n- Add missing __init__.py files if needed\n- Verify all configuration modules are properly accessible\n\n**2. Quality Override Logic Repair (lines 482-484 in advanced_web_crawler.py):**\n- Fix the flawed enhanced quality system that overrides legacy validation inappropriately\n- Add comprehensive validation checks for enhanced quality metrics before applying them\n- Implement sanity checks to prevent perfect scores (1.000) for obvious navigation content\n- Add safeguards that detect when enhanced quality metrics are unreliable or suspicious\n- Restore legacy validation as a fallback mechanism when enhanced quality fails\n- Ensure navigation content (bulleted lists, menus, links) receives appropriately low quality scores\n\n**3. Enhanced Quality Validation:**\n- Add logging to track when quality override logic is triggered\n- Implement threshold checks for enhanced quality metrics\n- Create validation rules that flag suspicious perfect scores\n- Add fallback mechanisms that revert to legacy validation when enhanced system produces implausible results\n- Ensure quality scores reflect actual content value, not navigation elements\n<info added on 2025-07-03T17:52:10.839Z>\n**Research Results: Comprehensive Solutions for Quality Override and Import Dependencies**\n\nBased on extensive research into Python import resolution, quality validation systems, and error handling patterns, here are the key findings and actionable solutions:\n\n**Import Resolution Root Cause Analysis:**\nThe recurring 'No module named config' errors stem from Python's sys.path not including the project's source directories during runtime. The current try/except ImportError blocks are temporary patches masking structural issues. The recommended solution is implementing an installable package structure with pyproject.toml, enabling reliable absolute imports and eliminating path manipulation hacks.\n\n**Quality Override Logic Critical Flaw:**\nThe dangerous \"fail-open\" state occurs because quality_score defaults to 1.0 (perfect). When validation systems fail to execute, content receives perfect scores by default. The fix requires changing the default to 0.0 (fail-closed) and implementing explicit priority-based validation flow: Enhanced System → Legacy Fallback → Explicit Handling.\n\n**Intelligent Fallback Optimization:**\nCurrent fallback mechanisms can be enhanced by analyzing ContentQualityMetrics to determine failure modes. High link_density suggests navigation contamination requiring aggressive exclusion selectors. Low word_count indicates selector failure needing broader CSS targets. Dynamic configuration adjustment based on previous attempt metrics will improve success rates.\n\n**Structured Logging Implementation:**\nJSON-formatted structured logging with contextual fields (url, attempt, configuration) enables powerful filtering and analysis in monitoring tools like Grafana Loki. This supports the monitoring goals and facilitates debugging specific crawler failures across distributed environments.\n\n**Exception Handling Granularity:**\nReplace broad Exception handlers with specific exception types (PlaywrightTimeoutError, aiohttp.ClientError) to enable targeted error responses. Network errors may be fatal for a URL, while timeouts might warrant retry with extended wait times.\n\n**Integration Pattern Recommendations:**\nThe current Enhanced → Legacy priority approach is sound. Shadow mode operation (running both systems for comparison) provides validation data for eventual legacy system deprecation. Ensemble methods combining scores could prevent edge cases but add complexity.\n\n**Actionable Implementation Priority:**\n1. Fix import structure with installable package setup\n2. Correct quality_score default initialization to fail-closed\n3. Implement priority-based validation flow with explicit logging\n4. Add intelligent fallback configuration based on failure analysis\n5. Deploy structured logging for production monitoring readiness\n\nThese solutions address the core reliability issues while preparing the crawler for REST API integration and multi-modal content handling in upcoming tasks.\n</info added on 2025-07-03T17:52:10.839Z>",
         "testStrategy": "1. **Import Resolution Test**: Create a test that imports all modules in the contextual embedding system and verifies no 'No module named config' errors occur. Run this test in isolation and as part of the full crawling pipeline.\n\n2. **Quality Override Logic Test**: Create test cases using actual navigation content from n8n.io that currently receives incorrect perfect scores. Assert that after the fixes, these samples receive quality scores <0.3 and that the override logic properly validates enhanced metrics.\n\n3. **Fallback Validation Test**: Create test scenarios where enhanced quality metrics are intentionally corrupted or return suspicious values. Verify that the system correctly falls back to legacy validation and produces reasonable quality scores.\n\n4. **End-to-End Crawling Test**: Run a complete crawling session on n8n.io documentation and verify that no import errors occur and that navigation content receives appropriately low quality scores while actual content receives higher scores.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           19,
           20
@@ -1238,7 +1238,7 @@
             "title": "Fix Python Import Dependencies and Module Resolution",
             "description": "Resolve the 'No module named config' errors by implementing proper project structure and dependency management. Create installable package structure and remove all try/except ImportError blocks.",
             "details": "- Create pyproject.toml for installable package structure\n- Fix sys.path issues causing import failures\n- Remove all try/except ImportError fallback blocks\n- Implement absolute imports from src package\n- Set up proper virtual environment dependency management",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 21
           },
@@ -1247,7 +1247,7 @@
             "title": "Fix Quality Score Default Value Bug",
             "description": "Fix the critical fail-open bug where quality_score defaults to 1.0, causing navigation content to receive perfect scores. Change to fail-closed system with 0.0 default.",
             "details": "- Change quality_score default from 1.0 to 0.0 in advanced_web_crawler.py\n- Update quality_passed default from True to False\n- Fix fail-open security issue in quality validation\n- Add explicit validation for disabled quality systems\n- Implement sentinel values for not-scored content",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 21
           },
@@ -1256,7 +1256,7 @@
             "title": "Refactor Quality Validation Integration Logic",
             "description": "Simplify and clarify the complex nested quality validation logic with explicit prioritization: enhanced system first, legacy system fallback, clear error handling.",
             "details": "- Refactor nested if/else quality validation structure\n- Implement clear priority system (Enhanced > Legacy > Disabled)\n- Add comprehensive logging for quality validation decisions\n- Create unified quality result object\n- Ensure quality score is always calculated when validation enabled",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 21
           },
@@ -1265,7 +1265,7 @@
             "title": "Implement Structured Logging and Error Handling",
             "description": "Replace broad exception handling with specific error types and implement structured JSON logging for better debugging and monitoring of crawler failures.",
             "details": "- Replace broad except Exception blocks with specific exception handling\n- Implement structured JSON logging with relevant context\n- Add specific handling for PlaywrightTimeoutError, ClientError, etc.\n- Include URL, attempt number, and configuration in log context\n- Create comprehensive error classification system",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 21
           }
@@ -1290,7 +1290,7 @@
             "title": "Create Comprehensive Regression Testing Framework",
             "description": "Build golden dataset regression testing framework that prevents future crawler quality regressions. Create curated test URLs and expected outputs for continuous validation.",
             "details": "- Create golden dataset with 10-20 diverse, stable URLs\n- Manually curate perfect markdown outputs as golden files\n- Implement pytest regression tests with diff comparison\n- Create semantic comparison using embeddings for resilience\n- Set up automated golden dataset management workflow",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 22
           },
@@ -1299,7 +1299,7 @@
             "title": "Build End-to-End Content Integrity Testing",
             "description": "Create comprehensive E2E tests that validate the entire crawling pipeline from URL input to final markdown output, with specific assertions for content presence and navigation absence.",
             "details": "- Enhance test_n8n_validation.py with granular content assertions\n- Add presence tests for key content (glossary definitions, guide text)\n- Implement absence tests for navigation elements\n- Create framework detection validation tests\n- Add quality score range validation for different page types",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 22
           },
@@ -1335,7 +1335,7 @@
     ],
     "metadata": {
       "created": "2025-06-30T23:52:29.140Z",
-      "updated": "2025-07-03T05:57:43.140Z",
+      "updated": "2025-07-03T23:29:46.145Z",
       "description": "Tasks for master context"
     }
   }
